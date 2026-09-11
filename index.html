@@ -670,6 +670,7 @@ function viewToday(el) {
   }
   const t = todayIndex();
   const session = state.plan.sessions?.find((s) => s.day === t);
+  if (session) session.exercises = Array.isArray(session.exercises) ? session.exercises : [];
   const c = document.createElement('div'); c.className = 'card';
   if (!session || session.type === 'rest') {
     c.innerHTML = `<span class="badge rest">Rest day</span><h3 style="margin:10px 0 6px">${esc(session?.title || 'Rest')}</h3><p class="muted">${esc(session?.intent || 'Nothing scheduled. Recover, eat well, move lightly if you feel like it.')}</p>`;
@@ -691,6 +692,7 @@ function viewPlan(el) {
   if (!state.plan) { el.innerHTML = `<div class="card"><div class="empty"><h3>No plan yet</h3><p>Build your first week from Today.</p></div></div>`; return; }
   const p = state.plan;
   el.insertAdjacentHTML('beforeend', `<p class="muted"><span class="badge">${esc(p.phase)} phase</span> &nbsp;${esc(p.focus)}</p>`);
+  if (!p.sessions.some((x) => Array.isArray(x.warmup))) el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>This plan is in an older format</strong><div class="muted small">Use Rebuild this week below to get full session details.</div></div>`);
   const t = todayIndex();
   const card = document.createElement('div'); card.className = 'card';
   [...p.sessions].sort((a, b) => a.day - b.day).forEach((sess) => {
@@ -711,7 +713,9 @@ function viewPlan(el) {
   };
 }
 
-function openSession(sess) {
+function openSession(raw) {
+  const sess = { warmup: [], exercises: [], cooldown: [], intent: '', fixed: false, durationMin: 0, type: 'conditioning', ...raw };
+  sess.warmup = Array.isArray(sess.warmup) ? sess.warmup : []; sess.cooldown = Array.isArray(sess.cooldown) ? sess.cooldown : []; sess.exercises = Array.isArray(sess.exercises) ? sess.exercises : [];
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', sess.title);
   const list = (items) => items.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="muted small">None</p>';
   const rest = (sec) => sec ? (sec >= 60 ? `${Math.round(sec / 60 * 10) / 10} min rest` : `${sec} s rest`) : '';
