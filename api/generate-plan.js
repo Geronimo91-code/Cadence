@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const snap = await db().doc(`users/${user.uid}`).get();
   const profile = snap.data()?.profile;
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
-  if (!process.env.OPENROUTER_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
+  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
 
   if (!(await checkLimit(user.uid, 'plan', 6))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const id = weekId();

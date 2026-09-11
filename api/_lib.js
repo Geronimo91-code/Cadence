@@ -40,37 +40,43 @@ export function requireCron(req, res) {
   return ok;
 }
 
+// Providers in order: Gemini (free tier, OpenAI-compatible endpoint) if GEMINI_API_KEY is set, then OpenRouter.
+function providers() {
+  const list = [];
+  if (process.env.GEMINI_API_KEY) list.push({ name: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
+  if (process.env.OPENROUTER_API_KEY) list.push({ name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: process.env.OPENROUTER_API_KEY, model: process.env.OPENROUTER_MODEL || 'openrouter/free', headers: { 'HTTP-Referer': 'https://cadence.app', 'X-Title': 'Cadence' } });
+  return list;
+}
+
 export async function callModel({ system, user, image, maxTokens = 4000, retries = 1 }) {
-  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
+  const provs = providers();
+  if (!provs.length) throw new Error('No model provider configured (set GEMINI_API_KEY or OPENROUTER_API_KEY)');
   let lastErr;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://cadence.app',
-          'X-Title': 'Cadence',
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: maxTokens,
-          temperature: 0.4,
-          messages: [
-            { role: 'system', content: system + '\n\nRespond with a single JSON object and nothing else. No markdown, no commentary.' },
-            { role: 'user', content: image ? [{ type: 'text', text: user }, { type: 'image_url', image_url: { url: image } }] : user },
-          ],
-        }),
-      });
-      if (!r.ok) throw new Error(`Model error ${r.status}: ${(await r.text()).slice(0, 300)}`);
-      const data = await r.json();
-      const text = data.choices?.[0]?.message?.content || '';
-      return extractJson(text);
-    } catch (e) {
-      lastErr = e;
-      console.warn(`callModel attempt ${attempt + 1} failed:`, e.message);
-      if (attempt < retries) await new Promise((res) => setTimeout(res, 1500));
+  for (const prov of provs) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const r = await fetch(prov.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${prov.key}`, ...(prov.headers || {}) },
+          body: JSON.stringify({
+            model: prov.model,
+            max_tokens: maxTokens,
+            temperature: 0.4,
+            messages: [
+              { role: 'system', content: system + '\n\nRespond with a single JSON object and nothing else. No markdown, no commentary.' },
+              { role: 'user', content: image ? [{ type: 'text', text: user }, { type: 'image_url', image_url: { url: image } }] : user },
+            ],
+          }),
+        });
+        if (!r.ok) throw new Error(`${prov.name} ${r.status}: ${(await r.text()).slice(0, 300)}`);
+        const data = await r.json();
+        const text = data.choices?.[0]?.message?.content || '';
+        return extractJson(text);
+      } catch (e) {
+        lastErr = e;
+        console.warn(`callModel ${prov.name} attempt ${attempt + 1} failed:`, e.message);
+        if (attempt < retries) await new Promise((res) => setTimeout(res, 1500));
+      }
     }
   }
   throw lastErr;

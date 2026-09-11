@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const user = await requireUser(req, res);
   if (!user) return;
-  if (!process.env.OPENROUTER_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
+  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
 
   const uid = user.uid;
   const userDoc = await db().doc(`users/${uid}`).get();
