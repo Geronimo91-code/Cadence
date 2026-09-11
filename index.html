@@ -259,6 +259,29 @@ textarea.input { min-height: 90px; resize: vertical; }
 .seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 10px; }
 .seg button { padding: 7px 14px; font-size: .9rem; font-weight: 500; background: var(--white); color: var(--ink-2); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+.macro { margin-top: 12px; }
+.macro .lbl { display: flex; justify-content: space-between; font-size: .9rem; }
+.macro .lbl b { font-weight: 600; }
+.macro .bar { height: 10px; border-radius: 5px; background: var(--sage-2); margin-top: 5px; overflow: hidden; }
+.macro .bar i { display: block; height: 100%; background: var(--green); border-radius: 5px; transition: width .2s; }
+.macro.over .bar i { background: var(--amber); }
+.kcal { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
+.kcal b { font-family: var(--font-display); font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.kcal span { color: var(--ink-2); }
+.meal { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.meal:last-child { border-bottom: 0; }
+.meal .m { flex: 1; min-width: 0; }
+.meal .m strong { font-weight: 600; display: block; }
+.meal .m span { font-size: .85rem; color: var(--ink-2); }
+.meal .k { font-family: var(--font-display); font-weight: 700; }
+.meal .x { color: var(--ink-3); padding: 6px; }
+.daynav { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.daynav h3 { font-size: 1rem; }
+.recent { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-top: 8px; -webkit-overflow-scrolling: touch; }
+.recent .chip { flex: 0 0 auto; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.grid4 .input { padding: 10px 8px; text-align: center; }
+.grid4 label { font-size: .75rem; color: var(--ink-3); display: block; text-align: center; margin-bottom: 4px; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -276,6 +299,12 @@ textarea.input { min-height: 90px; resize: vertical; }
     </div>
     <p class="auth-lead">A training week that is built for you and rebuilt every Sunday.</p>
     <p class="muted">Tell Cadence how you train, what you're aiming for, and when. It plans your week, you log what you did, and it adjusts.</p>
+    <div class="list" style="margin:-10px 0 26px">
+      <div class="li"><span>Weekly plan built around your club practices and your deadline</span></div>
+      <div class="li"><span>Log sets, loads and how it felt, straight from the session</span></div>
+      <div class="li"><span>Every Monday: feedback and a new week, from what you actually did</span></div>
+      <div class="li"><span>Daily calorie and protein targets that follow your training days</span></div>
+    </div>
 
     <button class="btn secondary" id="btnGoogle">
       <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.5-5.8c-2.1 1.4-4.8 2.3-8.1 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
@@ -581,6 +610,8 @@ function renderAvailability(el) {
   el.append(weekStrip(d.days, { readonly: false, onToggle: (i, on) => { d.days = on ? [...new Set([...d.days, i])].sort() : d.days.filter((x) => x !== i); } }));
   const h = document.createElement('h3'); h.textContent = 'Typical session length'; h.style.margin = '30px 0 10px'; el.append(h);
   el.append(chipGroup(['30 min', '45 min', '60 min', '75 min', '90+ min'], d.sessionMin ? [d.sessionMin + ' min'] : [], (v) => { d.sessionMin = parseInt(v[0]); }, { multi: false }));
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fTime">Usual start time</label><input class="input" id="fTime" type="time"><span class="hint">Used for calendar reminders. Sessions themselves aren't locked to it.</span></div>`);
+  bind($('#fTime'), 'sessionTime'); if (!$('#fTime').value) { $('#fTime').value = '18:00'; ob.data.sessionTime = ob.data.sessionTime || '18:00'; }
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">Fixed commitments <span class="muted">(optional)</span></label><textarea class="input" id="fFixed" placeholder="e.g. Club practice Tue & Thu 19:30, matches most Sundays"></textarea><span class="hint">Cadence plans around these instead of replacing them.</span></div>`);
   bind($('#fFixed'), 'fixed');
 }
@@ -633,10 +664,10 @@ async function saveProfile() {
   const profile = {
     name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg,
     sports: d.sports, level: d.level, goals: d.goals, goal: d.goals[0], goalNote: d.goalNote || '',
-    days: d.days, sessionMin: d.sessionMin, fixed: d.fixed || '',
+    days: d.days, sessionMin: d.sessionMin, sessionTime: d.sessionTime || '18:00', fixed: d.fixed || '',
     equipment: d.equipment, injuries: d.injuries || '',
     deadline: d.hasDeadline ? { name: d.deadlineName, date: d.deadlineDate } : null,
-    nutrition: d.nutritionGoal === 'none' ? null : { goal: d.nutritionGoal, diet: d.diet },
+    nutrition: d.nutritionGoal === 'none' ? null : { goal: d.nutritionGoal, diet: d.diet, kcalAdjust: (ob.editing && state.profile?.nutrition?.goal === d.nutritionGoal) ? (state.profile.nutrition.kcalAdjust || 0) : 0 },
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     updatedAt: new Date().toISOString(),
   };
@@ -654,6 +685,27 @@ async function saveProfile() {
     btn.disabled = false; btn.textContent = 'Save and start';
   }
 }
+
+/* ============================================================
+   Nutrition targets — Mifflin-St Jeor + activity + goal, training vs rest day
+   ============================================================ */
+function nutritionTargets(p, trainingDay) {
+  // Mirrors api/_lib.js nutritionTargets — keep in sync
+  const n = p.nutrition; if (!n) return null;
+  const w = p.weightKg, h = p.heightCm, a = p.age;
+  const base = 10 * w + 6.25 * h - 5 * a;
+  const bmr = p.sex === 'Male' ? base + 5 : p.sex === 'Female' ? base - 161 : base - 78;
+  const sessions = (p.days || []).length, hours = sessions * ((p.sessionMin || 60) / 60);
+  const activity = Math.min(1.9, 1.4 + hours * 0.06);
+  const goalDelta = n.goal === 'gain' ? 250 : n.goal === 'lose' ? -400 : 0;
+  const tdee = bmr * activity + goalDelta + (n.kcalAdjust || 0);
+  const kcal = Math.round(tdee * (trainingDay ? 1.08 : 0.92) / 10) * 10;
+  const protein = Math.round(w * (n.goal === 'lose' ? 2.2 : n.goal === 'gain' ? 2.0 : 1.8));
+  const fat = Math.round(w * 0.9);
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  return { kcal, protein, carbs, fat, trainingDay };
+}
+function dateKey(d = new Date()) { return d.toLocaleDateString('en-CA'); }
 
 /* ============================================================
    App shell & views
@@ -700,6 +752,7 @@ function openReview(r) {
     <div class="block"><h3>What went well</h3>${li(r.wins)}</div>
     <div class="block"><h3>Watch out for</h3>${li(r.watchouts, 'warn')}</div>
     <div class="block"><h3>Changes next week</h3>${li(r.adjustments)}</div>
+    ${r.nutritionNote ? `<div class="block"><h3>Nutrition</h3><p class="muted">${esc(r.nutritionNote)}${r.kcalAdjust ? ` Daily targets adjusted by ${r.kcalAdjust > 0 ? '+' : ''}${r.kcalAdjust} kcal.` : ''}</p></div>` : ''}
     <div class="block"><button class="btn" id="btnGoNext">See next week's plan</button></div>
   </div>`;
   document.body.append(sheet); document.body.style.overflow = 'hidden';
@@ -984,10 +1037,88 @@ function openLog(l) {
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
 }
-function viewNutrition(el) {
-  const n = state.profile.nutrition;
-  if (!n) { el.innerHTML = `<div class="card"><div class="empty"><h3>Nutrition is off</h3><p>Turn it on from Profile to get daily calorie and protein targets.</p></div></div>`; return; }
-  el.innerHTML = `<div class="card"><div class="empty"><h3>Targets coming soon</h3><p>Your daily calorie and macro targets, plus quick meal logging, arrive with the nutrition release.</p></div></div>`;
+let nutDay = null;
+async function viewNutrition(el) {
+  const p = state.profile, n = p.nutrition;
+  if (!n) { el.innerHTML = `<div class="card"><div class="empty"><h3>Nutrition is off</h3><p>Turn it on from Profile → Edit setup to get daily calorie and protein targets with quick meal logging.</p></div></div>`; return; }
+  nutDay = nutDay || dateKey();
+  const dayDate = new Date(nutDay + 'T12:00:00');
+  const dow = (dayDate.getDay() + 6) % 7;
+  const plan = state.plans.find((x) => x.weekId === isoWeekId(dayDate));
+  const sess = plan?.sessions?.find((x) => x.day === dow);
+  const trainingDay = sess ? sess.type !== 'rest' : (p.days || []).includes(dow);
+  const t = nutritionTargets(p, trainingDay);
+  const isToday = nutDay === dateKey();
+  el.innerHTML = `
+    <div class="daynav"><button class="btn ghost sm" id="nPrev">‹</button><h3>${isToday ? 'Today' : dayDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}</h3><button class="btn ghost sm" id="nNext" ${isToday ? 'disabled style="visibility:hidden"' : ''}>›</button></div>
+    <div class="card" id="nCard">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${trainingDay ? '' : 'rest'}">${trainingDay ? 'Training day' : 'Rest day'}${sess && sess.type !== 'rest' ? ' · ' + esc(sess.title) : ''}</span><span class="muted small">${n.goal === 'gain' ? 'Slow gain' : n.goal === 'lose' ? 'Slow loss' : 'Maintain'}</span></div>
+      <div class="kcal"><b id="kcalLeft">–</b><span>kcal left of ${t.kcal}</span></div>
+      <div class="macro" id="mP"><div class="lbl"><span>Protein</span><b><span class="v">0</span> / ${t.protein} g</b></div><div class="bar"><i style="width:0%"></i></div></div>
+      <div class="macro" id="mC"><div class="lbl"><span>Carbs</span><b><span class="v">0</span> / ${t.carbs} g</b></div><div class="bar"><i style="width:0%"></i></div></div>
+      <div class="macro" id="mF"><div class="lbl"><span>Fat</span><b><span class="v">0</span> / ${t.fat} g</b></div><div class="bar"><i style="width:0%"></i></div></div>
+    </div>
+    <div class="card">
+      <h3>Add a meal</h3>
+      <div class="field" style="margin-top:10px"><input class="input" id="mealName" placeholder="e.g. Chicken wrap and a banana"></div>
+      <div class="grid4"><div><label>kcal</label><input class="input" id="mealK" type="number" inputmode="numeric"></div><div><label>Protein</label><input class="input" id="mealP" type="number" inputmode="numeric"></div><div><label>Carbs</label><input class="input" id="mealC" type="number" inputmode="numeric"></div><div><label>Fat</label><input class="input" id="mealF" type="number" inputmode="numeric"></div></div>
+      <div class="row" style="margin-top:12px"><button class="btn secondary" id="mealEst">Estimate from name</button><button class="btn" id="mealAdd">Add</button></div>
+      <div id="recentWrap"></div>
+    </div>
+    <div class="card"><h3>Meals</h3><div id="mealList" class="muted small" style="margin-top:6px">Loading…</div></div>
+    <p class="muted small" style="margin-top:14px">Targets come from your profile (weight, height, age, sex), your weekly training volume and your goal. They shift up on training days. Update your weight in Log to keep them accurate.</p>`;
+  $('#nPrev').onclick = () => { const d = new Date(nutDay + 'T12:00:00'); d.setDate(d.getDate() - 1); nutDay = dateKey(d); navigate('nutrition'); };
+  $('#nNext').onclick = () => { const d = new Date(nutDay + 'T12:00:00'); d.setDate(d.getDate() + 1); nutDay = dateKey(d); navigate('nutrition'); };
+
+  const ref = db.doc('users/' + state.user.uid + '/nutrition/' + nutDay);
+  let doc = { date: nutDay, meals: [] };
+  try { const d = await ref.get(); if (d.exists) doc = d.data(); } catch (_) {}
+  doc.meals = doc.meals || [];
+  const render = () => {
+    const sum = doc.meals.reduce((a, m) => ({ k: a.k + (m.kcal || 0), p: a.p + (m.protein || 0), c: a.c + (m.carbs || 0), f: a.f + (m.fat || 0) }), { k: 0, p: 0, c: 0, f: 0 });
+    $('#kcalLeft').textContent = Math.max(0, t.kcal - sum.k) + (sum.k > t.kcal ? '' : '');
+    if (sum.k > t.kcal) $('#kcalLeft').textContent = '+' + (sum.k - t.kcal);
+    $('#kcalLeft').nextElementSibling.textContent = sum.k > t.kcal ? `kcal over ${t.kcal}` : `kcal left of ${t.kcal}`;
+    [['#mP', sum.p, t.protein], ['#mC', sum.c, t.carbs], ['#mF', sum.f, t.fat]].forEach(([id, v, tg]) => { const m = $(id); m.querySelector('.v').textContent = Math.round(v); m.querySelector('i').style.width = Math.min(100, (v / tg) * 100) + '%'; m.classList.toggle('over', v > tg * 1.15); });
+    const list = $('#mealList');
+    if (!doc.meals.length) { list.innerHTML = '<span class="muted">Nothing logged yet.</span>'; return; }
+    list.className = ''; list.innerHTML = '';
+    doc.meals.forEach((m, i) => {
+      const row = document.createElement('div'); row.className = 'meal';
+      row.innerHTML = `<div class="m"><strong>${esc(m.name)}</strong><span>${m.protein || 0}P · ${m.carbs || 0}C · ${m.fat || 0}F${m.at ? ' · ' + new Date(m.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''}</span></div><span class="k">${m.kcal || 0}</span><button class="x" aria-label="Remove">✕</button>`;
+      row.querySelector('.x').onclick = async () => { doc.meals.splice(i, 1); await persist(); render(); };
+      list.append(row);
+    });
+  };
+  const persist = async () => { try { await ref.set({ date: nutDay, meals: doc.meals, targets: t, updatedAt: new Date().toISOString() }, { merge: true }); } catch (e) { toast('Could not save meal.'); } };
+  render();
+
+  // recent meals as quick-add chips
+  try {
+    const rq = await db.collection('users/' + state.user.uid + '/nutrition').orderBy('date', 'desc').limit(14).get();
+    const seen = new Map();
+    rq.forEach((d) => (d.data().meals || []).forEach((m) => { const k = m.name.toLowerCase(); if (!seen.has(k)) seen.set(k, m); }));
+    const items = [...seen.values()].slice(0, 12);
+    if (items.length) {
+      const w = $('#recentWrap'); w.innerHTML = '<div class="muted small" style="margin-top:12px">Recent</div><div class="recent"></div>';
+      items.forEach((m) => { const c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.textContent = `${m.name} · ${m.kcal}`; c.onclick = async () => { doc.meals.push({ ...m, id: Date.now().toString(36), at: new Date().toISOString() }); await persist(); render(); toast('Added'); }; w.querySelector('.recent').append(c); });
+    }
+  } catch (_) {}
+
+  $('#mealAdd').onclick = async () => {
+    const name = $('#mealName').value.trim(); const kcal = Number($('#mealK').value);
+    if (!name) { toast('Give the meal a name.'); return; }
+    if (!(kcal > 0)) { toast('Add the calories, or tap Estimate.'); return; }
+    doc.meals.push({ id: Date.now().toString(36), name, kcal: Math.round(kcal), protein: Number($('#mealP').value) || 0, carbs: Number($('#mealC').value) || 0, fat: Number($('#mealF').value) || 0, at: new Date().toISOString() });
+    await persist(); render(); ['#mealName', '#mealK', '#mealP', '#mealC', '#mealF'].forEach((id) => { $(id).value = ''; }); toast('Meal added');
+  };
+  $('#mealEst').onclick = async (ev) => {
+    const name = $('#mealName').value.trim(); if (!name) { toast('Describe the meal first.'); return; }
+    const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
+    try { const r = await api('/api/estimate-meal', { description: name }); $('#mealK').value = r.kcal; $('#mealP').value = r.protein; $('#mealC').value = r.carbs; $('#mealF').value = r.fat; toast('Estimated — adjust if needed'); }
+    catch (e) { toast(e.message); }
+    b.disabled = false; b.textContent = 'Estimate from name';
+  };
 }
 function viewProfile(el) {
   const p = state.profile;
@@ -1010,10 +1141,47 @@ function viewProfile(el) {
     </div>
     <div class="card">
       <div class="list">
+        <div class="li"><div><div>Calendar feed</div><span class="muted">Subscribe in Google or Apple Calendar to get your sessions with a 1-hour reminder.</span></div><button class="btn sm secondary" id="btnCal">Get link</button></div>
+        <div class="li" id="installRow"><div><div>Install Cadence</div><span class="muted" id="installHint">Add it to your home screen for the full app experience.</span></div><button class="btn sm secondary hidden" id="btnInstall">Install</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="list">
         <div class="li"><span>Signed in as</span><span class="muted">${esc(state.user.email || 'Google account')}</span></div>
+        <div class="li"><div><div>Export my data</div><span class="muted">Everything Cadence stores about you, as a JSON file.</span></div><button class="btn sm secondary" id="btnExport">Export</button></div>
+        <div class="li"><div><div>Delete my account</div><span class="muted">Removes your profile, plans, logs and meals permanently.</span></div><button class="btn sm secondary" id="btnDelete" style="color:var(--red)">Delete</button></div>
       </div>
       <button class="btn ghost" id="btnSignOut" style="margin-top:8px;padding-left:0">Sign out</button>
     </div>`);
+  $('#btnCal').onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true;
+    try {
+      const ref = db.doc('users/' + state.user.uid);
+      let tok = (await ref.get()).data()?.calToken;
+      if (!tok) { tok = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join(''); await ref.set({ calToken: tok }, { merge: true }); }
+      const url = `${location.origin}/api/calendar?u=${state.user.uid}&t=${tok}`;
+      const row = b.parentElement; row.innerHTML = `<div style="flex:1"><div>Calendar feed</div><span class="muted" style="word-break:break-all">${url}</span><div class="row" style="margin-top:8px"><button class="btn sm secondary" id="btnCalCopy">Copy link</button><a class="btn sm secondary" href="${url.replace(/^https?/, 'webcal')}" style="text-decoration:none">Open in calendar app</a></div><span class="muted small">Google Calendar: Other calendars → + → From URL → paste. iPhone: Settings → Calendar → Accounts → Add Subscribed Calendar.</span></div>`;
+      $('#btnCalCopy').onclick = () => { navigator.clipboard.writeText(url).then(() => toast('Link copied')); };
+    } catch (e) { toast('Could not create the link.'); b.disabled = false; }
+  };
+  setupInstall();
+  $('#btnExport').onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
+    try {
+      const uid = state.user.uid; const out = { exportedAt: new Date().toISOString(), user: (await db.doc('users/' + uid).get()).data() };
+      for (const c of ['plans', 'logs', 'reviews', 'nutrition', 'weights']) { const q = await db.collection('users/' + uid + '/' + c).get(); out[c] = q.docs.map((d) => ({ id: d.id, ...d.data() })); }
+      delete out.user?.calToken;
+      const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cadence-export-' + dateKey() + '.json'; a.click(); toast('Export ready');
+    } catch (e) { toast('Export failed.'); }
+    b.disabled = false; b.textContent = 'Export';
+  };
+  $('#btnDelete').onclick = async (ev) => {
+    if (!confirm('Delete your Cadence account and all data? This cannot be undone.')) return;
+    if (prompt('Type DELETE to confirm') !== 'DELETE') return;
+    const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
+    try { await api('/api/delete-account'); toast('Account deleted'); await auth.signOut(); }
+    catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Delete'; }
+  };
   $('#btnEdit').onclick = () => startOnboarding(profileToOb(p));
   $('#btnSignOut').onclick = () => auth.signOut();
   setupPushToggle();
@@ -1053,6 +1221,17 @@ async function setupPushToggle() {
 }
 function urlB64(s) { const p = '='.repeat((4 - s.length % 4) % 4); const b = (s + p).replace(/-/g, '+').replace(/_/g, '/'); const r = atob(b); return Uint8Array.from([...r].map((c) => c.charCodeAt(0))); }
 
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (state.view === 'profile') setupInstall(); });
+function setupInstall() {
+  const row = $('#installRow'); if (!row) return;
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (standalone) { $('#installHint').textContent = 'Installed. Reminders and offline access are active.'; $('#btnInstall').classList.add('hidden'); return; }
+  if (installEvt) { const b = $('#btnInstall'); b.classList.remove('hidden'); b.onclick = async () => { installEvt.prompt(); const r = await installEvt.userChoice; if (r.outcome === 'accepted') toast('Installed'); installEvt = null; b.classList.add('hidden'); }; }
+  else if (ios) $('#installHint').textContent = 'Safari: tap Share, then "Add to Home Screen".';
+  else $('#installHint').textContent = 'Use your browser menu → "Install app" or "Add to Home screen".';
+}
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 </script>
 </body>

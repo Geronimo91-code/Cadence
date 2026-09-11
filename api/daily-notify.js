@@ -1,6 +1,6 @@
 // GET /api/daily-notify — Vercel cron, once per day. Sends each opted-in user today's session.
 import webpush from 'web-push';
-import { requireCron, db } from './_lib.js';
+import { requireCron, db, weekId } from './_lib.js';
 
 export default async function handler(req, res) {
   if (!requireCron(req, res)) return;
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const uid = subDoc.ref.parent.parent.id;
     const sub = subDoc.data();
     const today = todayInZone(sub.timezone || 'Europe/Brussels');
-    const plan = await latestPlan(uid);
+    const plan = await planForWeek(uid, today.weekId);
     const session = plan?.sessions?.find((s) => s.day === today.weekday);
     if (!session) continue;
     if (session.type === 'rest' && sub.skipRestDays) continue;
@@ -34,13 +34,15 @@ export default async function handler(req, res) {
   res.status(200).json({ sent, removed });
 }
 
-async function latestPlan(uid) {
-  const q = await db().collection(`users/${uid}/plans`).orderBy('createdAt', 'desc').limit(1).get();
-  return q.empty ? null : q.docs[0].data();
+async function planForWeek(uid, id) {
+  const d = await db().doc(`users/${uid}/plans/${id}`).get();
+  return d.exists ? d.data() : null;
 }
 
 function todayInZone(tz) {
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short' }).format(new Date());
+  const f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const parts = Object.fromEntries(f.formatToParts(new Date()).map((x) => [x.type, x.value]));
   const map = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
-  return { weekday: map[parts] };
+  const local = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+  return { weekday: map[parts.weekday], weekId: weekId(local) };
 }

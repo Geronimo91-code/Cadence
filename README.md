@@ -8,9 +8,13 @@ Weekly training plans built from your profile, logged in the app, rebuilt every 
 - `api/_lib.js` — Firebase Admin, token check, OpenRouter call
 - `api/generate-plan.js` — POST, builds a weekly plan from the profile
 - `api/weekly-review.js` — POST, closes a week: review + next week's plan from the logs
+- `api/weekly-close.js` — Monday cron, auto-closes last week for users who logged sessions
+- `api/estimate-meal.js` — POST, macro estimate from a meal description
+- `api/calendar.js` — GET, per-user iCal feed (token in the URL)
+- `api/delete-account.js` — POST, erases the user's data and auth account
 - `api/daily-notify.js` — daily cron, sends today's session by Web Push
 - `firestore.rules` — each user can only read/write `users/{uid}/**`
-- `vercel.json` — cron schedule (06:00 UTC, fires within that hour on Hobby)
+- `vercel.json` — crons: daily notify 06:00 UTC, weekly close Monday 04:00 UTC (Hobby fires within the hour)
 
 ## Setup checklist
 1. **Firebase console**
@@ -32,6 +36,7 @@ users/{uid}/reviews/{wk}   weekly feedback         (step 4)
 users/{uid}/nutrition/{d}  targets + meals         (step 5)
 users/{uid}/weights/{id}   weight history
 users/{uid}/push/main      Web Push subscription + timezone
+usage/{uid}                server-only daily API counters (not readable by clients)
 ```
 
 ## Roadmap
@@ -39,5 +44,5 @@ users/{uid}/push/main      Web Push subscription + timezone
 2. ✅ Plan generation prompt + full session view
 3. ✅ Session logging + weight tracking
 4. ✅ Weekly review + next week
-5. Nutrition targets + meal logging
-6. Rate limiting, iCal feed, offline polish
+5. ✅ Nutrition targets + meal logging + estimate
+6. ✅ Rate limiting, iCal feed, install prompt, export/delete, auto-close cron

@@ -1,5 +1,7 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets } from './_lib.js';
+
+export { reviewWeek };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -11,10 +13,22 @@ export default async function handler(req, res) {
   const userDoc = await db().doc(`users/${uid}`).get();
   const profile = userDoc.data()?.profile;
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
+  if (!(await checkLimit(uid, 'review', 4))) return res.status(429).json({ error: 'Review limit reached for today.' });
+  const wk = (req.body && req.body.weekId) || weekId();
+  try {
+    const out = await reviewWeek(uid, profile, wk);
+    if (out.error) return res.status(400).json({ error: out.error });
+    return res.status(200).json(out);
+  } catch (e) {
+    console.error(e);
+    const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions/i.test(e.message);
+    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy right now. Try again in a minute.' : 'Could not build the review right now' });
+  }
+}
 
-  const reviewWeek = (req.body && req.body.weekId) || weekId();
+async function reviewWeek(uid, profile, reviewWeek) {
   const planDoc = await db().doc(`users/${uid}/plans/${reviewWeek}`).get();
-  if (!planDoc.exists) return res.status(400).json({ error: 'No plan found for that week' });
+  if (!planDoc.exists) return { error: 'No plan found for that week' };
   const plan = planDoc.data();
   const nextId = weekIdOffset(reviewWeek, 1);
 
@@ -48,10 +62,25 @@ export default async function handler(req, res) {
   stats.avgRpe = rpes.length ? Math.round((rpes.reduce((a, b) => a + b, 0) / rpes.length) * 10) / 10 : null;
   stats.adherence = stats.planned ? Math.round(((stats.done + stats.partial * 0.5) / stats.planned) * 100) : 0;
 
+  // nutrition adherence for the week (if enabled)
+  let nutritionLine = 'Nutrition tracking: off.';
+  if (profile.nutrition) {
+    const mon = mondayOf(reviewWeek); const days = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setUTCDate(mon.getUTCDate() + i); days.push(d.toISOString().slice(0, 10)); }
+    const docs = await Promise.all(days.map((d) => db().doc(`users/${uid}/nutrition/${d}`).get()));
+    const logged = docs.map((d, i) => d.exists ? { ...d.data(), day: i } : null).filter((x) => x && x.meals?.length);
+    if (logged.length) {
+      const tot = logged.reduce((a, d) => { const t = d.meals.reduce((m, x) => ({ kcal: m.kcal + (x.kcal || 0), protein: m.protein + (x.protein || 0) }), { kcal: 0, protein: 0 }); const tg = nutritionTargets(profile, plan.sessions[d.day]?.type !== 'rest'); return { kcal: a.kcal + t.kcal, protein: a.protein + t.protein, tk: a.tk + tg.kcal, tp: a.tp + tg.protein }; }, { kcal: 0, protein: 0, tk: 0, tp: 0 });
+      const n = logged.length;
+      nutritionLine = `Nutrition (${n} of 7 days logged, goal: ${profile.nutrition.goal}): avg ${Math.round(tot.kcal / n)} kcal vs target ${Math.round(tot.tk / n)}; avg protein ${Math.round(tot.protein / n)} g vs target ${Math.round(tot.tp / n)} g.`;
+    } else nutritionLine = `Nutrition tracking on (goal: ${profile.nutrition.goal}) but no meals logged this week.`;
+  }
   const weightLine = weights.length > 1 ? `Weight trend: ${weights.map((w) => `${w.kg} kg (${w.at.slice(5, 10)})`).join(' → ')}` : `Weight: ${profile.weightKg} kg (no trend yet)`;
   const nextMonday = mondayOf(nextId);
 
   const system = `You are the athlete's strength & conditioning coach. You are closing out a training week and writing (1) a short honest review and (2) the plan for next week.
+
+Nutrition (only if the athlete has a nutrition goal): compare the weight trend with the goal — maintain (±0.3 kg), slow gain (+0.2–0.3 kg/week), slow loss (−0.3–0.5 kg/week). If it drifts, set nutritionKcalAdjust to +100 or −100 (never more); otherwise 0.
 
 Review principles:
 - Base everything on what was actually logged. Praise what was done, name what was missed without moralising, and interpret notes (pain, fatigue, schedule) literally.
@@ -68,6 +97,8 @@ Return ONLY a JSON object with this shape:
  "wins": ["1–3 short bullets"],
  "watchouts": ["0–3 short bullets: fatigue, pain, missed patterns"],
  "adjustments": ["2–4 short bullets: exactly what changes next week and why"],
+ "nutritionNote": "one sentence on eating for next week, based on the nutrition line and weight trend; empty string if tracking is off",
+ "nutritionKcalAdjust": 0,
  "nextWeek": ${planShape(nextId)}
 }`;
 
@@ -76,6 +107,7 @@ Return ONLY a JSON object with this shape:
 Week under review: ${reviewWeek} (phase: ${plan.phase}; focus: ${plan.focus})
 Adherence: ${stats.adherence}% — ${stats.done} done, ${stats.partial} partial, ${stats.skipped} skipped, ${stats.missed} not logged, of ${stats.planned} planned. ${stats.setsTotal ? `Sets: ${stats.setsDone}/${stats.setsTotal}.` : ''} ${stats.avgRpe ? `Average session RPE: ${stats.avgRpe}.` : 'No RPE logged.'}
 ${weightLine}
+${nutritionLine}
 ${prevReview.exists ? `Previous week's adjustments were: ${(prevReview.data().adjustments || []).join('; ')}` : 'This is the first review.'}
 Plan's own hint for next week: ${plan.nextWeekHint || 'none'}
 
@@ -84,23 +116,25 @@ ${sessionLines.join('\n')}
 
 Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slice(0, 10)}.`;
 
-  try {
+  {
     const out = await callModel({ system, user: userMsg, maxTokens: 8000 });
     const next = validatePlan(out.nextWeek);
     next.weekId = nextId; next.createdAt = new Date().toISOString(); next.source = 'review'; next.reviewOf = reviewWeek;
     const review = {
       weekId: reviewWeek, nextWeekId: nextId, createdAt: next.createdAt, stats,
-      summary: String(out.summary || ''), wins: arr(out.wins), watchouts: arr(out.watchouts), adjustments: arr(out.adjustments),
+      summary: String(out.summary || ''), wins: arr(out.wins), watchouts: arr(out.watchouts), adjustments: arr(out.adjustments), nutritionNote: String(out.nutritionNote || ''),
     };
     const batch = db().batch();
     batch.set(db().doc(`users/${uid}/reviews/${reviewWeek}`), review);
     batch.set(db().doc(`users/${uid}/plans/${nextId}`), next);
+    const adj = Number(out.nutritionKcalAdjust) || 0;
+    if (profile.nutrition && (adj === 100 || adj === -100)) {
+      const kcalAdjust = Math.max(-400, Math.min(400, (profile.nutrition.kcalAdjust || 0) + adj));
+      review.kcalAdjust = kcalAdjust;
+      batch.set(db().doc(`users/${uid}`), { profile: { nutrition: { kcalAdjust } } }, { merge: true });
+    }
     await batch.commit();
-    return res.status(200).json({ review, plan: next });
-  } catch (e) {
-    console.error(e);
-    const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions/i.test(e.message);
-    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy right now. Try again in a minute.' : 'Could not build the review right now' });
+    return { review, plan: next };
   }
 }
 function arr(v) { return Array.isArray(v) ? v.map(String).filter(Boolean).slice(0, 5) : []; }

@@ -193,3 +193,34 @@ export function mondayOf(id) {
   return monday;
 }
 export function weekIdOffset(id, n) { const d = mondayOf(id); d.setUTCDate(d.getUTCDate() + n * 7); return weekId(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }
+
+// ---------------- Nutrition targets (mirrored in index.html — keep in sync) ----------------
+export function nutritionTargets(p, trainingDay) {
+  const n = p.nutrition; if (!n) return null;
+  const w = p.weightKg, h = p.heightCm, a = p.age;
+  const base = 10 * w + 6.25 * h - 5 * a;
+  const bmr = p.sex === 'Male' ? base + 5 : p.sex === 'Female' ? base - 161 : base - 78;
+  const sessions = (p.days || []).length, hours = sessions * ((p.sessionMin || 60) / 60);
+  const activity = Math.min(1.9, 1.4 + hours * 0.06);
+  const goalDelta = n.goal === 'gain' ? 250 : n.goal === 'lose' ? -400 : 0;
+  const tdee = bmr * activity + goalDelta + (n.kcalAdjust || 0);
+  const kcal = Math.round(tdee * (trainingDay ? 1.08 : 0.92) / 10) * 10;
+  const protein = Math.round(w * (n.goal === 'lose' ? 2.2 : n.goal === 'gain' ? 2.0 : 1.8));
+  const fat = Math.round(w * 0.9);
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  return { kcal, protein, carbs, fat, trainingDay };
+}
+
+// ---------------- Per-user daily rate limit (usage/{uid}, server-only collection) ----------------
+export async function checkLimit(uid, key, max) {
+  const ref = db().doc(`usage/${uid}`);
+  const day = new Date().toISOString().slice(0, 10);
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const d = snap.exists ? snap.data() : {};
+    const cur = d.day === day ? (d[key] || 0) : 0;
+    if (cur >= max) return false;
+    tx.set(ref, { day, ...(d.day === day ? d : {}), [key]: cur + 1 }, { merge: true });
+    return true;
+  });
+}

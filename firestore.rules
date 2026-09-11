@@ -2,6 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Each user owns their own subtree and nothing else
+    // usage/{uid} is written only by the server (Admin SDK); no client access on purpose
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       match /{document=**} {
