@@ -177,9 +177,9 @@ textarea.input { min-height: 90px; resize: vertical; }
 .tabs {
   position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--tab-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom); background: var(--white); border-top: 1.5px solid var(--line);
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(6, 1fr);
 }
-.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: .72rem; color: var(--ink-3); font-weight: 500; }
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: .68rem; color: var(--ink-3); font-weight: 500; }
 .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tab[aria-current="page"] { color: var(--green); }
 
@@ -294,6 +294,27 @@ textarea.input { min-height: 90px; resize: vertical; }
 .pr .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr .v { font-family: var(--font-display); font-weight: 700; white-space: nowrap; }
 .pr .d { font-size: .8rem; color: var(--green); white-space: nowrap; }
+.lb { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.lb:last-child { border-bottom: 0; }
+.lb .rank { width: 26px; font-family: var(--font-display); font-weight: 700; color: var(--ink-3); }
+.lb .rank.top { color: var(--amber); }
+.lb .who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb .who.me { font-weight: 600; }
+.lb .n { font-family: var(--font-display); font-weight: 700; }
+.lb .sub { font-size: .8rem; color: var(--ink-2); white-space: nowrap; }
+.feed { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.feed:last-child { border-bottom: 0; }
+.feed .av, .member .av { width: 34px; height: 34px; border-radius: 50%; background: var(--sage); color: var(--green-2); display: grid; place-items: center; font-weight: 700; flex: 0 0 auto; }
+.feed .t { flex: 1; min-width: 0; }
+.feed .t span { color: var(--ink-2); font-size: .85rem; }
+.code { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; letter-spacing: .12em; }
+.member { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.member:last-child { border-bottom: 0; }
+.member .who { flex: 1; min-width: 0; }
+.member .who b { display: block; font-weight: 600; }
+.member .who span { font-size: .8rem; color: var(--ink-2); }
+.adh { width: 54px; height: 8px; border-radius: 4px; background: var(--sage-2); overflow: hidden; flex: 0 0 auto; }
+.adh i { display: block; height: 100%; background: var(--green); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -318,6 +339,7 @@ textarea.input { min-height: 90px; resize: vertical; }
       <div class="li"><span data-i18n="Daily calorie and protein targets that follow your training days">Daily calorie and protein targets that follow your training days</span></div>
     </div>
 
+    <p class="muted small" style="margin:-14px 0 22px" data-i18n="Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.">Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.</p>
     <button class="btn secondary" id="btnGoogle">
       <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.5-5.8c-2.1 1.4-4.8 2.3-8.1 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
       <span data-i18n="Continue with Google">Continue with Google</span>
@@ -361,6 +383,7 @@ textarea.input { min-height: 90px; resize: vertical; }
     <button class="tab" data-view="plan"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span data-i18n="Plan">Plan</span></button>
     <button class="tab" data-view="log"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span data-i18n="Log">Log</span></button>
     <button class="tab" data-view="nutrition"><svg viewBox="0 0 24 24"><path d="M12 21c-4 0-7-3-7-7 0-3 2-5 4-7 1 2 3 2 3 2s0-2 2-4c2 2 5 4 5 9 0 4-3 7-7 7z"/></svg data-i18n="Nutrition">Nutrition</button>
+    <button class="tab" data-view="club"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M14 19c0-3 2-5 5-5s3 1 3 3"/></svg><span data-i18n="Club">Club</span></button>
     <button class="tab" data-view="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg data-i18n="Profile">Profile</button>
   </nav>
 </section>
@@ -414,7 +437,7 @@ function translateStatic() {
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const state = { user: null, profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null };
+const state = { user: null, profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null, clubId: null, club: null, me: null };
 
 function show(id) { translateStatic(); ['auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
 let toastTimer;
@@ -497,6 +520,7 @@ auth.onAuthStateChanged(async (user) => {
   try {
     const snap = await db.doc('users/' + user.uid).get();
     state.profile = snap.exists ? snap.data().profile : null;
+    state.clubId = snap.exists ? (snap.data().clubId || null) : null;
     if (state.profile?.lang && LANGS[state.profile.lang]) setLang(state.profile.lang);
   } catch (e) { console.error(e); state.profile = null; }
   if (!state.profile) { startOnboarding(); return; }
@@ -825,9 +849,9 @@ $$('.tab').forEach((t) => { t.onclick = () => navigate(t.dataset.view); });
 function navigate(view) {
   state.view = view;
   $$('.tab').forEach((t) => { if (t.dataset.view === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
-  $('#topTitle').textContent = { today: T('Today'), plan: T('This week'), log: 'Log', nutrition: T('Nutrition'), profile: T('Profile') }[view];
+  $('#topTitle').textContent = { today: T('Today'), plan: T('This week'), log: T('Log'), nutrition: T('Nutrition'), club: T('Club'), profile: T('Profile') }[view];
   const el = $('#view'); el.innerHTML = '';
-  ({ today: viewToday, plan: viewPlan, log: viewLog, nutrition: viewNutrition, profile: viewProfile }[view])(el);
+  ({ today: viewToday, plan: viewPlan, log: viewLog, nutrition: viewNutrition, club: viewClub, profile: viewProfile }[view])(el);
   window.scrollTo(0, 0);
 }
 
@@ -1028,6 +1052,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     try {
       await db.doc('users/' + state.user.uid + '/logs/' + wk + '-' + sess.day).set(rec);
       if (wk === state.plan?.weekId) state.logs[wk + '-' + sess.day] = rec;
+      postActivity(rec).catch(() => {});
       toast(rec.status === 'skipped' ? T('Saved as skipped') : T('Session saved'));
       history.back();
     } catch (e) { console.error(e); toast(T('Could not save. Check your connection.')); btn.disabled = false; btn.textContent = T('Save session'); }
@@ -1265,6 +1290,151 @@ async function viewNutrition(el) {
     b.disabled = false; b.textContent = T('Photo'); $('#mealFile').value = '';
   };
 }
+/* ============================================================
+   Club
+   ============================================================ */
+async function loadClub() {
+  if (!state.clubId) { state.club = null; state.me = null; return; }
+  try {
+    const [c, m] = await Promise.all([db.doc('clubs/' + state.clubId).get(), db.doc('clubs/' + state.clubId + '/members/' + state.user.uid).get()]);
+    if (!c.exists || !m.exists) { state.clubId = null; state.club = null; state.me = null; await db.doc('users/' + state.user.uid).set({ clubId: null }, { merge: true }); return; }
+    state.club = { id: c.id, ...c.data() }; state.me = m.data();
+  } catch (e) { console.error(e); state.club = null; }
+}
+async function postActivity(rec) {
+  if (!state.clubId) return;
+  if (!state.me) await loadClub();
+  if (!state.me || state.me.hidden) return;
+  const id = state.user.uid + '-' + rec.weekId + '-' + rec.day;
+  await db.doc('clubs/' + state.clubId + '/activity/' + id).set({ uid: state.user.uid, name: state.profile.name, weekId: rec.weekId, day: rec.day, title: rec.title, type: rec.type, status: rec.status, sessionRpe: rec.sessionRpe || null, at: new Date().toISOString() });
+}
+function initials(n) { return (n || '?').trim().split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase(); }
+function makeCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return [...crypto.getRandomValues(new Uint8Array(6))].map((x) => A[x % A.length]).join(''); }
+
+async function viewClub(el) {
+  await loadClub();
+  if (!state.club) { renderClubJoin(el); return; }
+  const c = state.club, me = state.me, coach = me.role === 'coach';
+  el.innerHTML = `
+    <div class="card" style="margin-top:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>${esc(c.name)}</h3><span class="badge">${esc(T(c.sport || ''))}</span></div>
+      ${coach ? `<div class="muted small" style="margin-top:8px">${T('Invite code')}</div><div style="display:flex;align-items:center;gap:12px"><span class="code">${esc(c.inviteCode)}</span><button class="btn sm secondary" id="btnCopyCode">${T('Copy')}</button></div><div class="muted small">${T('Share it with players. They join from the Club tab.')}</div>` : `<div class="muted small" style="margin-top:6px">${T('You are a member.')}</div>`}
+    </div>
+    ${coach ? `<div class="card"><h3>${T('Coach view')}</h3><div class="muted small">${T('This week, per player. Tap for plan, logs and a note for their next review.')}</div><div id="coachList" style="margin-top:8px" class="muted small">${T('Loading…')}</div></div>` : ''}
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>${T('Leaderboard')}</h3><span class="muted small">${new Date().toLocaleDateString(localeTag(), { month: 'long' })}</span></div><div id="lbList" class="muted small" style="margin-top:6px">${T('Loading…')}</div></div>
+    <div class="card"><h3>${T('Recent sessions')}</h3><div id="feedList" class="muted small" style="margin-top:6px">${T('Loading…')}</div></div>
+    <div class="card"><h3>${T('Members')}</h3><div id="memberList" class="muted small" style="margin-top:6px">${T('Loading…')}</div></div>
+    <div class="card">
+      <div class="list">
+        <div class="li"><div><div>${T('Show me in the feed and leaderboard')}</div><span class="muted">${T('Coaches can still see your training either way. Nutrition and weight are never shared.')}</span></div><button class="switch" id="swVisible" role="switch" aria-checked="${!me.hidden}"></button></div>
+      </div>
+      <button class="btn ghost" id="btnLeave" style="margin-top:8px;padding-left:0;color:var(--red)">${T('Leave club')}</button>
+    </div>`;
+  if (coach) $('#btnCopyCode').onclick = () => navigator.clipboard.writeText(c.inviteCode).then(() => toast(T('Code copied')));
+  $('#swVisible').onclick = async (ev) => { const on = ev.currentTarget.getAttribute('aria-checked') !== 'true'; await db.doc('clubs/' + c.id + '/members/' + state.user.uid).set({ hidden: !on }, { merge: true }); state.me.hidden = !on; ev.currentTarget.setAttribute('aria-checked', on); };
+  $('#btnLeave').onclick = async () => {
+    if (!confirm(T('Leave this club? Coaches will no longer see your training.'))) return;
+    try { await db.doc('clubs/' + c.id + '/members/' + state.user.uid).delete(); await db.doc('users/' + state.user.uid).set({ clubId: null }, { merge: true }); state.clubId = null; state.club = null; toast(T('You left the club')); navigate('club'); } catch (e) { toast(T('Could not leave.')); }
+  };
+
+  const [mq, aq] = await Promise.all([
+    db.collection('clubs/' + c.id + '/members').get(),
+    db.collection('clubs/' + c.id + '/activity').orderBy('at', 'desc').limit(120).get(),
+  ]);
+  const members = mq.docs.map((d) => d.data());
+  const acts = aq.docs.map((d) => d.data());
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+  const hiddenIds = new Set(members.filter((m) => m.hidden).map((m) => m.uid));
+  const score = new Map();
+  acts.filter((a) => new Date(a.at) >= monthStart && !hiddenIds.has(a.uid)).forEach((a) => { const sc = score.get(a.uid) || { name: a.name, done: 0, total: 0 }; sc.total++; if (a.status === 'done') sc.done += 1; else if (a.status === 'partial') sc.done += 0.5; score.set(a.uid, sc); });
+  const board = [...score.entries()].map(([uid, v]) => ({ uid, ...v, adh: v.total ? Math.round((v.done / v.total) * 100) : 0 })).sort((a, b) => b.done - a.done || b.adh - a.adh).slice(0, 15);
+  const lb = $('#lbList'); lb.className = '';
+  lb.innerHTML = board.length ? board.map((b, i) => `<div class="lb"><span class="rank ${i < 3 ? 'top' : ''}">${i + 1}</span><span class="who ${b.uid === state.user.uid ? 'me' : ''}">${esc(b.name)}</span><span class="sub">${b.adh}% ${T('done')}</span><span class="n">${b.done}</span></div>`).join('') : `<span class="muted small">${T('No sessions logged this month yet.')}</span>`;
+  const feed = $('#feedList'); feed.className = '';
+  const visibleActs = acts.filter((a) => !hiddenIds.has(a.uid) && a.status !== 'skipped').slice(0, 30);
+  feed.innerHTML = visibleActs.length ? visibleActs.map((a) => `<div class="feed"><div class="av">${initials(a.name)}</div><div class="t"><div><b>${esc(a.name)}</b> ${a.status === 'partial' ? T('partly finished') : T('finished')} <b>${esc(a.title)}</b></div><span>${esc(T(a.type))}${a.sessionRpe ? ' · RPE ' + a.sessionRpe : ''} · ${new Date(a.at).toLocaleDateString(localeTag(), { weekday: 'short', day: 'numeric', month: 'short' })}</span></div></div>`).join('') : `<span class="muted small">${T('Nothing yet. Finished sessions show up here.')}</span>`;
+  const ml = $('#memberList'); ml.className = '';
+  ml.innerHTML = members.sort((a, b) => (a.role === 'coach' ? 0 : 1) - (b.role === 'coach' ? 0 : 1) || a.name.localeCompare(b.name)).map((m) => `<div class="member"><div class="av" style="width:30px;height:30px;border-radius:50%;background:var(--sage);color:var(--green-2);display:grid;place-items:center;font-weight:700;font-size:.8rem">${initials(m.name)}</div><div class="who"><b>${esc(m.name)}${m.uid === state.user.uid ? ' (' + T('you') + ')' : ''}</b><span>${m.role === 'coach' ? T('Coach') : T('Member')}${m.hidden ? ' · ' + T('hidden') : ''}</span></div>${coach && m.uid !== state.user.uid ? `<button class="btn sm secondary" data-role="${m.uid}">${m.role === 'coach' ? T('Make member') : T('Make coach')}</button><button class="btn ghost sm" data-remove="${m.uid}" style="color:var(--red)">✕</button>` : ''}</div>`).join('');
+  $$('[data-role]', ml).forEach((b) => { b.onclick = async () => { const m = members.find((x) => x.uid === b.dataset.role); const role = m.role === 'coach' ? 'member' : 'coach'; if (!confirm((role === 'coach' ? T('Give coaching rights to') : T('Remove coaching rights from')) + ' ' + m.name + '?')) return; await db.doc('clubs/' + c.id + '/members/' + m.uid).set({ role }, { merge: true }); navigate('club'); }; });
+  $$('[data-remove]', ml).forEach((b) => { b.onclick = async () => { const m = members.find((x) => x.uid === b.dataset.remove); if (!confirm(T('Remove') + ' ' + m.name + '?')) return; await db.doc('clubs/' + c.id + '/members/' + m.uid).delete(); navigate('club'); }; });
+
+  if (coach) renderCoachList($('#coachList'), c, members).catch((e) => { console.error(e); $('#coachList').textContent = T('Could not load'); });
+}
+
+async function renderCoachList(el, c, members) {
+  const wk = isoWeekId();
+  const rows = await Promise.all(members.map(async (m) => {
+    let plan = null, logs = [];
+    try { const p = await db.doc('users/' + m.uid + '/plans/' + wk).get(); plan = p.exists ? p.data() : null; } catch (_) {}
+    try { const l = await db.collection('users/' + m.uid + '/logs').where('weekId', '==', wk).get(); logs = l.docs.map((d) => d.data()); } catch (_) {}
+    const planned = plan ? plan.sessions.filter((s) => s.type !== 'rest').length : 0;
+    const done = logs.reduce((a, l) => a + (l.status === 'done' ? 1 : l.status === 'partial' ? 0.5 : 0), 0);
+    const last = logs.sort((a, b) => (b.loggedAt || '').localeCompare(a.loggedAt || ''))[0];
+    return { m, plan, logs, planned, done, adh: planned ? Math.round((done / planned) * 100) : null, last };
+  }));
+  el.className = ''; el.innerHTML = '';
+  rows.sort((a, b) => a.m.name.localeCompare(b.m.name)).forEach((r) => {
+    const row = document.createElement('button'); row.type = 'button'; row.className = 'member'; row.style.width = '100%'; row.style.textAlign = 'left';
+    row.innerHTML = `<div class="who"><b>${esc(r.m.name)}</b><span>${r.plan ? `${r.done}/${r.planned} ${T('sessions')}` : T('No plan this week')}${r.last ? ' · ' + esc(r.last.title) + (r.last.sessionRpe ? ' RPE ' + r.last.sessionRpe : '') : ''}</span></div>${r.adh != null ? `<div class="adh"><i style="width:${r.adh}%"></i></div><span class="small muted" style="width:36px;text-align:right">${r.adh}%</span>` : ''}<span class="chev">›</span>`;
+    row.onclick = () => openMember(c, r);
+    el.append(row);
+  });
+}
+
+async function openMember(c, r) {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
+  const t = todayIndex();
+  const logBy = new Map(r.logs.map((l) => [l.day, l]));
+  let review = null; try { const q = await db.collection('users/' + r.m.uid + '/reviews').orderBy('weekId', 'desc').limit(1).get(); review = q.empty ? null : q.docs[0].data(); } catch (_) {}
+  let note = ''; try { const n = await db.doc('clubs/' + c.id + '/notes/' + r.m.uid).get(); note = n.exists ? (n.data().text || '') : ''; } catch (_) {}
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${esc(r.m.name)}</h2></div>
+    <h1>${T('This week')}</h1>
+    ${r.plan ? `<p class="muted small"><span class="badge">${esc(r.plan.phase)}</span> &nbsp;${esc(r.plan.focus)}</p><div class="card">${[...r.plan.sessions].sort((a, b) => a.day - b.day).map((s) => { const l = logBy.get(s.day); const isRest = s.type === 'rest'; return `<div class="session-row ${s.day === t ? 'today' : ''}" style="cursor:default"><span class="dow">${T(DAYS[s.day])}</span><span class="main"><strong>${esc(s.title)}</strong><span>${isRest ? esc(s.intent || '') : esc(T(s.type)) + ' · ' + s.durationMin + ' ' + T('min') + (l?.sessionRpe ? ' · RPE ' + l.sessionRpe : '') + (l?.note ? ' · ' + esc(l.note) : '')}</span></span>${l ? statusHtml(l) : ''}</div>`; }).join('')}</div>` : `<div class="card"><p class="muted">${T('No plan this week')}</p></div>`}
+    ${review ? `<div class="card sage"><h3>${T('Last review')} · ${esc(review.weekId)}</h3><p class="muted" style="margin-top:6px">${esc(review.summary)}</p>${review.adjustments?.length ? `<ul class="review-list">${review.adjustments.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+    <div class="card"><h3>${T('Coach note')}</h3><p class="muted small" style="margin:4px 0 10px">${T('Goes into this player\'s next weekly review as an instruction. They can read it too.')}</p><textarea class="input" id="coachNote" placeholder="${T('e.g. Add one extra throwing session, keep sprints short, knee is still sensitive')}">${esc(note)}</textarea><button class="btn" id="btnSaveNote" style="margin-top:10px">${T('Save note')}</button></div>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  $('#btnSaveNote', sheet).onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; try { await db.doc('clubs/' + c.id + '/notes/' + r.m.uid).set({ text: $('#coachNote', sheet).value.trim(), by: state.user.uid, byName: state.profile.name, at: new Date().toISOString() }); toast(T('Note saved')); } catch (e) { toast(T('Could not save.')); } b.disabled = false; };
+}
+
+function renderClubJoin(el) {
+  el.innerHTML = `
+    <div class="card" style="margin-top:0"><h3>${T('Join a club')}</h3><p class="muted small" style="margin:4px 0 10px">${T('Got a code from your coach? Enter it here.')}</p>
+      <div class="row"><input class="input" id="joinCode" placeholder="ABC123" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.1em"><button class="btn" id="btnJoin" style="flex:0 0 auto">${T('Join')}</button></div></div>
+    <div class="card"><h3>${T('Create a club')}</h3><p class="muted small" style="margin:4px 0 10px">${T('You become its first coach and get an invite code to share.')}</p>
+      <div class="field"><input class="input" id="clubName" placeholder="${T('Club name')}"></div>
+      <div class="field"><input class="input" id="clubSport" placeholder="${T('Sport')}" value="${esc(state.profile.sports?.[0] || '')}"></div>
+      <button class="btn secondary" id="btnCreate">${T('Create club')}</button></div>
+    <p class="muted small" style="margin-top:14px">${T('In a club, coaches can see your plans, logged sessions and reviews and leave you notes. Other members only see the sessions you finish, if you choose to appear. Nutrition and weight are never shared.')}</p>`;
+  $('#btnJoin').onclick = async (ev) => {
+    const code = $('#joinCode').value.trim().toUpperCase(); if (code.length < 4) { toast(T('Enter the invite code.')); return; }
+    const b = ev.currentTarget; b.disabled = true;
+    try {
+      const q = await db.collection('clubs').where('inviteCode', '==', code).limit(1).get();
+      if (q.empty) { toast(T('No club with that code.')); b.disabled = false; return; }
+      const club = q.docs[0];
+      await db.doc('clubs/' + club.id + '/members/' + state.user.uid).set({ uid: state.user.uid, name: state.profile.name, role: 'member', code, hidden: false, joinedAt: new Date().toISOString() });
+      await db.doc('users/' + state.user.uid).set({ clubId: club.id }, { merge: true });
+      state.clubId = club.id; toast(T('Welcome to') + ' ' + club.data().name); navigate('club');
+    } catch (e) { console.error(e); toast(T('Could not join. Check the code.')); b.disabled = false; }
+  };
+  $('#btnCreate').onclick = async (ev) => {
+    const name = $('#clubName').value.trim(), sport = $('#clubSport').value.trim(); if (!name) { toast(T('Give the club a name.')); return; }
+    const b = ev.currentTarget; b.disabled = true;
+    try {
+      const code = makeCode();
+      const ref = await db.collection('clubs').add({ name, sport, inviteCode: code, createdBy: state.user.uid, createdAt: new Date().toISOString() });
+      await db.doc('clubs/' + ref.id + '/members/' + state.user.uid).set({ uid: state.user.uid, name: state.profile.name, role: 'coach', code, hidden: false, joinedAt: new Date().toISOString() });
+      await db.doc('users/' + state.user.uid).set({ clubId: ref.id }, { merge: true });
+      state.clubId = ref.id; toast(T('Club created')); navigate('club');
+    } catch (e) { console.error(e); toast(T('Could not create the club.')); b.disabled = false; }
+  };
+}
+
 function viewProfile(el) {
   const p = state.profile;
   el.insertAdjacentHTML('beforeend', `

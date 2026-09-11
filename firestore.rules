@@ -1,12 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each user owns their own subtree and nothing else
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function clubOf(uid) { return get(/databases/$(database)/documents/users/$(uid)).data.clubId; }
+    function memberDoc(clubId, uid) { return get(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid)); }
+    function isMember(clubId) { return signedIn() && exists(/databases/$(database)/documents/clubs/$(clubId)/members/$(request.auth.uid)); }
+    function isCoach(clubId) { return isMember(clubId) && memberDoc(clubId, request.auth.uid).data.role == 'coach'; }
+    // A coach of the club the user belongs to may read that user's training data (never nutrition or weights)
+    function isCoachOf(uid) { return signedIn() && clubOf(uid) != null && isCoach(clubOf(uid)); }
+
     // usage/{uid} is written only by the server (Admin SDK); no client access on purpose
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isOwner(uid);
+      match /plans/{doc}   { allow read: if isOwner(uid) || isCoachOf(uid); allow write: if isOwner(uid); }
+      match /logs/{doc}    { allow read: if isOwner(uid) || isCoachOf(uid); allow write: if isOwner(uid); }
+      match /reviews/{doc} { allow read: if isOwner(uid) || isCoachOf(uid); allow write: if isOwner(uid); }
+      match /{document=**} { allow read, write: if isOwner(uid); }
+    }
+
+    match /clubs/{clubId} {
+      // Club docs hold only name, sport, invite code and creator; readable by any signed-in user so people can join by code
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isCoach(clubId);
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isMember(clubId);
+        // Join: create your own member doc, as a plain member, with the correct invite code
+        allow create: if isOwner(uid)
+          && request.resource.data.uid == uid
+          && (request.resource.data.role == 'member' || get(/databases/$(database)/documents/clubs/$(clubId)).data.createdBy == uid)
+          && request.resource.data.code == get(/databases/$(database)/documents/clubs/$(clubId)).data.inviteCode;
+        // Members may change only their own visibility; coaches may change roles / remove people
+        allow update: if (isOwner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hidden', 'name']))
+          || (isCoach(clubId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']));
+        allow delete: if isOwner(uid) || isCoach(clubId);
+      }
+      match /activity/{id} {
+        allow read: if isMember(clubId);
+        allow create, update: if isMember(clubId) && request.resource.data.uid == request.auth.uid;
+        allow delete: if isMember(clubId) && resource.data.uid == request.auth.uid;
+      }
+      match /notes/{uid} {
+        allow read: if isCoach(clubId) || isOwner(uid);
+        allow write: if isCoach(clubId);
       }
     }
   }

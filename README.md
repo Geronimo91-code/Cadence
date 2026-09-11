@@ -37,6 +37,10 @@ users/{uid}/nutrition/{d}  targets + meals         (step 5)
 users/{uid}/weights/{id}   weight history
 users/{uid}/push/main      Web Push subscription + timezone
 usage/{uid}                server-only daily API counters (not readable by clients)
+clubs/{clubId}             name, sport, inviteCode, createdBy
+clubs/{clubId}/members/{uid}   role (coach|member), name, hidden
+clubs/{clubId}/activity/{id}   finished sessions for feed + leaderboard
+clubs/{clubId}/notes/{uid}     coach note fed into the member's next review
 ```
 
 ## Roadmap

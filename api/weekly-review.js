@@ -37,6 +37,11 @@ async function reviewWeek(uid, profile, reviewWeek) {
   const weightsSnap = await db().collection(`users/${uid}/weights`).orderBy('at', 'desc').limit(6).get();
   const weights = weightsSnap.docs.map((d) => d.data()).reverse();
   const prevReview = await db().doc(`users/${uid}/reviews/${weekIdOffset(reviewWeek, -1)}`).get();
+  let coachNote = '';
+  try {
+    const clubId = (await db().doc(`users/${uid}`).get()).data()?.clubId;
+    if (clubId) { const n = await db().doc(`clubs/${clubId}/notes/${uid}`).get(); if (n.exists && n.data().text) coachNote = `Coach's note for next week (from ${n.data().byName || 'coach'}): "${n.data().text}"`; }
+  } catch (_) {}
 
   // ---- adherence, computed here so the numbers are exact ----
   const planned = plan.sessions.filter((s) => s.type !== 'rest');
@@ -87,6 +92,7 @@ Review principles:
 - Progression: if a session was DONE and session RPE ≤ 8, progress it next week (small load or volume increase, or harder variation). RPE 9–10: hold. Adherence below 50% or repeated fatigue/soreness notes: make next week lighter (deload) and say so. Skip reasons that point to schedule problems: move sessions, don't add more.
 - When the athlete logged real loads (kg), use those numbers to prescribe next week's loads explicitly.
 - Injury or pain mentioned in a note overrides progression for that movement.
+- If a coach's note is given, treat it as an instruction from the athlete's coach and follow it, mentioning it in the adjustments.
 - Stay in the periodisation phase given for next week.
 
 ${PLAN_RULES}
@@ -110,6 +116,7 @@ ${weightLine}
 ${nutritionLine}
 ${prevReview.exists ? `Previous week's adjustments were: ${(prevReview.data().adjustments || []).join('; ')}` : 'This is the first review.'}
 Plan's own hint for next week: ${plan.nextWeekHint || 'none'}
+${coachNote}
 
 Session log:
 ${sessionLines.join('\n')}
