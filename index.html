@@ -833,71 +833,55 @@ function viewPlan(el) {
   };
 }
 
-function openSession(raw) {
+function openSession(raw, weekIdOverride, logOverride) {
+  const wk = weekIdOverride || state.plan?.weekId;
   const sess = { warmup: [], exercises: [], cooldown: [], intent: '', fixed: false, durationMin: 0, type: 'conditioning', ...raw };
   sess.warmup = Array.isArray(sess.warmup) ? sess.warmup : []; sess.cooldown = Array.isArray(sess.cooldown) ? sess.cooldown : []; sess.exercises = Array.isArray(sess.exercises) ? sess.exercises : [];
+  const existing = logOverride || (wk === state.plan?.weekId ? logFor(sess) : null);
+  const isPastWeek = wk < isoWeekId();
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', sess.title);
   const list = (items) => items.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="muted small">None</p>';
   const rest = (sec) => sec ? (sec >= 60 ? `${Math.round(sec / 60 * 10) / 10} min rest` : `${sec} s rest`) : '';
+  const svgCheck = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>';
+
+  // Draft: from existing log if it has set data, otherwise from the prescription
+  const draft = existing && Array.isArray(existing.exercises) ? JSON.parse(JSON.stringify(existing)) : {
+    status: existing?.status || null, durationMin: existing?.durationMin || sess.durationMin, sessionRpe: existing?.sessionRpe || null, note: existing?.note || '',
+    exercises: sess.exercises.map((x) => ({ name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null,
+      sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: numOnly(x.reps), load: numOnly(x.load), done: false })) })),
+  };
+
   sheet.innerHTML = `<div class="container">
-    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>${DAYS[sess.day]}</h2></div>
-    <span class="badge ${esc(sess.type)}">${esc(sess.type)}${sess.fixed ? ' · fixed' : ''}</span>
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>${DAYS[sess.day]}${wk !== isoWeekId() ? ' · ' + weekLabel(wk) : ''}</h2></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(sess.type)}">${esc(sess.type)}${sess.fixed ? ' · fixed' : ''}</span><span id="sheetStatus">${statusHtml(existing)}</span></div>
     <h1>${esc(sess.title)}</h1>
-    <div class="muted small">${sess.durationMin} min</div>
+    <div class="muted small">${sess.durationMin} min planned</div>
     ${sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
     <div class="block"><h3>Warm-up</h3>${list(sess.warmup)}</div>
-    <div class="block"><h3>Main work</h3>${sess.exercises.length ? sess.exercises.map((x) => `
-      <div class="ex">
-        <div class="name"><span>${esc(x.name)}</span><span class="rx">${x.sets ? x.sets + '×' : ''}${esc(x.reps)}</span></div>
-        <div class="meta">${[x.load, rest(x.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
-        ${x.cues ? `<div class="cues">${esc(x.cues)}</div>` : ''}
-      </div>`).join('') : '<p class="muted small">Follow your club session.</p>'}</div>
+    <div class="block"><h3>Main work</h3><p class="muted small" style="margin-bottom:4px">${sess.exercises.length ? 'Reps and load are prefilled from the plan. Change them to what you did and tap ✓ per set.' : 'Follow your club session, then log how it went below.'}</p><div id="logEx"></div></div>
     <div class="block"><h3>Cool-down</h3>${list(sess.cooldown)}</div>
-    <div class="block" id="logBlock"></div>
+    <div class="block">
+      <div class="field"><label>How hard was the whole session? (RPE 1–10)</label><div class="rpe" id="sessRpe"></div></div>
+      <div class="field"><label for="logDur">Actual duration</label><div class="unit-input"><input class="input" id="logDur" type="number" inputmode="numeric" value="${draft.durationMin || ''}"><span>min</span></div></div>
+      <div class="field"><label for="logNote">Notes <span class="muted">(optional — pain, energy, what to change)</span></label><textarea class="input" id="logNote" placeholder="e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6">${esc(draft.note || '')}</textarea></div>
+      <button class="btn" id="btnSaveLog">${existing ? 'Update log' : 'Save session'}</button>
+      <button class="btn ghost" id="btnSkip" style="width:100%;margin-top:6px">${existing?.status === 'skipped' ? 'Saved as skipped' : 'I skipped this session'}</button>
+    </div>
   </div>`;
   document.body.append(sheet); document.body.style.overflow = 'hidden';
   const close = () => { sheet.remove(); document.body.style.overflow = ''; if (state.view) navigate(state.view); };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') history.back(); });
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
-  renderLogBlock(sheet, sess);
-}
 
-function renderLogBlock(sheet, sess) {
-  const block = $('#logBlock', sheet); block.innerHTML = '';
-  const existing = state.plan ? logFor(sess) : null;
-  if (existing) {
-    block.innerHTML = `<div class="card sage" style="margin-top:0">${statusHtml(existing)}<div class="muted small" style="margin-top:4px">${existing.durationMin ? existing.durationMin + ' min · ' : ''}${existing.sessionRpe ? 'RPE ' + existing.sessionRpe : ''}${existing.note ? '<br>' + esc(existing.note) : ''}</div></div>
-      <button class="btn secondary" id="btnEditLog" style="margin-top:12px">Edit log</button>`;
-    $('#btnEditLog', sheet).onclick = () => renderLogForm(sheet, sess, existing);
-    return;
-  }
-  block.innerHTML = `<button class="btn" id="btnStartLog">Log this session</button><button class="btn ghost" id="btnSkip" style="width:100%;margin-top:6px">I skipped this one</button>`;
-  $('#btnStartLog', sheet).onclick = () => renderLogForm(sheet, sess, null);
-  $('#btnSkip', sheet).onclick = () => renderLogForm(sheet, sess, { status: 'skipped' });
-}
-
-function renderLogForm(sheet, sess, existing) {
-  const block = $('#logBlock', sheet);
-  const skipping = existing?.status === 'skipped' && !existing.exercises;
-  const draft = existing && existing.exercises ? JSON.parse(JSON.stringify(existing)) : {
-    status: skipping ? 'skipped' : 'done', durationMin: sess.durationMin, sessionRpe: null, note: '',
-    exercises: sess.exercises.map((x) => ({ name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null,
-      sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: numOnly(x.reps), load: numOnly(x.load), done: false }) ) })),
-  };
-  const svgCheck = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>';
-  block.innerHTML = `<h3 style="margin-bottom:6px">${skipping ? 'Skipped session' : 'Log'}</h3>
-    ${skipping ? '' : `<p class="muted small">Tap ✓ per set as you go. Reps and load are prefilled from the plan; change them to what you actually did.</p>` }
-    <div id="logEx"></div>
-    ${skipping ? '' : `<div class="field" style="margin-top:22px"><label>How hard was the whole session? (RPE 1–10)</label><div class="rpe" id="sessRpe"></div></div>
-    <div class="field"><label for="logDur">Actual duration</label><div class="unit-input"><input class="input" id="logDur" type="number" inputmode="numeric" value="${draft.durationMin || ''}"><span>min</span></div></div>`}
-    <div class="field"><label for="logNote">${skipping ? 'Why? (helps next week\'s plan)' : 'Notes'} <span class="muted">(optional)</span></label><textarea class="input" id="logNote" placeholder="${skipping ? 'e.g. Sick, work ran late, too sore from Tuesday' : 'e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6'}">${esc(draft.note || '')}</textarea></div>
-    <button class="btn" id="btnSaveLog">${skipping ? 'Save as skipped' : 'Save session'}</button>
-    <button class="btn ghost" id="btnCancelLog" style="width:100%;margin-top:6px">Cancel</button>`;
+  // ---- exercise rows with set inputs ----
   const exWrap = $('#logEx', sheet);
-  if (!skipping) draft.exercises.forEach((ex, ei) => {
+  sess.exercises.forEach((px, ei) => {
+    const ex = draft.exercises[ei] || (draft.exercises[ei] = { name: px.name, prescribed: `${px.sets}×${px.reps}`, rpe: null, sets: [{ reps: numOnly(px.reps), load: numOnly(px.load), done: false }] });
     const card = document.createElement('div'); card.className = 'ex';
-    card.innerHTML = `<div class="name"><span>${esc(ex.name)}</span><span class="muted small">${esc(ex.prescribed)}</span></div>
+    card.innerHTML = `<div class="name"><span>${esc(px.name)}</span><span class="rx">${px.sets ? px.sets + '×' : ''}${esc(px.reps)}</span></div>
+      <div class="meta">${[px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
+      ${px.cues ? `<div class="cues">${esc(px.cues)}</div>` : ''}
       <div class="setgrid"><span class="h">Set</span><span class="h">Reps</span><span class="h">Load (kg)</span><span></span></div>`;
     const grid = card.querySelector('.setgrid');
     ex.sets.forEach((st, si) => {
@@ -905,36 +889,37 @@ function renderLogForm(sheet, sess, existing) {
       const r = document.createElement('input'); r.className = 'input'; r.type = 'number'; r.inputMode = 'decimal'; r.value = st.reps ?? ''; r.placeholder = '–'; r.oninput = () => { st.reps = r.value === '' ? null : Number(r.value); };
       const l = document.createElement('input'); l.className = 'input'; l.type = 'number'; l.inputMode = 'decimal'; l.step = '0.5'; l.value = st.load ?? ''; l.placeholder = '–'; l.oninput = () => { st.load = l.value === '' ? null : Number(l.value); };
       const c = document.createElement('button'); c.type = 'button'; c.className = 'check'; c.setAttribute('aria-pressed', st.done); c.setAttribute('aria-label', 'Set ' + (si + 1) + ' done'); c.innerHTML = svgCheck;
-      c.onclick = () => { st.done = !st.done; c.setAttribute('aria-pressed', st.done); if (st.done && si + 1 < ex.sets.length) { const nx = ex.sets[si + 1]; if (nx.reps == null) nx.reps = st.reps; if (nx.load == null) nx.load = st.load; grid.querySelectorAll('input')[(si + 1) * 2].value = nx.reps ?? ''; grid.querySelectorAll('input')[(si + 1) * 2 + 1].value = nx.load ?? ''; } };
+      c.onclick = () => { st.done = !st.done; c.setAttribute('aria-pressed', st.done); if (st.done && si + 1 < ex.sets.length) { const nx = ex.sets[si + 1]; if (nx.reps == null) nx.reps = st.reps; if (nx.load == null) nx.load = st.load; const ins = grid.querySelectorAll('input'); ins[(si + 1) * 2].value = nx.reps ?? ''; ins[(si + 1) * 2 + 1].value = nx.load ?? ''; } };
       grid.append(n, r, l, c);
     });
-    const rpe = document.createElement('div'); rpe.className = 'rpe'; rpe.style.marginTop = '10px';
+    const rpe = document.createElement('div'); rpe.className = 'rpe';
     for (let i = 6; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'RPE ' + i; b.setAttribute('aria-pressed', ex.rpe === i); b.onclick = () => { ex.rpe = ex.rpe === i ? null : i; $$('button', rpe).forEach((x) => x.setAttribute('aria-pressed', x === b && ex.rpe === i)); }; rpe.append(b); }
     card.append(rpe); exWrap.append(card);
   });
-  if (!skipping) {
-    const sr = $('#sessRpe', sheet);
-    for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', draft.sessionRpe === i); b.onclick = () => { draft.sessionRpe = i; $$('button', sr).forEach((x) => x.setAttribute('aria-pressed', x === b)); }; sr.append(b); }
-  }
-  $('#btnCancelLog', sheet).onclick = () => renderLogBlock(sheet, sess);
-  $('#btnSaveLog', sheet).onclick = async (ev) => {
-    const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-    draft.note = $('#logNote', sheet).value.trim();
-    if (!skipping) {
-      draft.durationMin = Number($('#logDur', sheet).value) || 0;
+  const sr = $('#sessRpe', sheet);
+  for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', draft.sessionRpe === i); b.onclick = () => { draft.sessionRpe = draft.sessionRpe === i ? null : i; $$('button', sr).forEach((x) => x.setAttribute('aria-pressed', x === b && draft.sessionRpe === i)); }; sr.append(b); }
+
+  const save = async (btn, skipped) => {
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    const rec = { weekId: wk, day: sess.day, title: sess.title, type: sess.type, loggedAt: existing?.loggedAt || new Date().toISOString(), updatedAt: new Date().toISOString(), note: $('#logNote', sheet).value.trim() };
+    if (skipped) { Object.assign(rec, { status: 'skipped', exercises: null, durationMin: 0, sessionRpe: null, setsDone: 0, setsTotal: 0 }); }
+    else {
       const total = draft.exercises.reduce((a, x) => a + x.sets.length, 0);
       const done = draft.exercises.reduce((a, x) => a + x.sets.filter((st) => st.done).length, 0);
-      draft.status = total === 0 ? 'done' : done === 0 ? 'skipped' : done < total ? 'partial' : 'done';
-      draft.setsDone = done; draft.setsTotal = total;
-    } else { draft.exercises = null; draft.durationMin = 0; draft.sessionRpe = null; }
-    const rec = { ...draft, weekId: state.plan.weekId, day: sess.day, title: sess.title, type: sess.type, loggedAt: new Date().toISOString() };
+      Object.assign(rec, { exercises: draft.exercises, durationMin: Number($('#logDur', sheet).value) || 0, sessionRpe: draft.sessionRpe, setsDone: done, setsTotal: total,
+        status: total === 0 ? 'done' : done === 0 ? 'skipped' : done < total ? 'partial' : 'done' });
+      if (total > 0 && done === 0 && !confirm('No sets ticked — save this as skipped?')) { btn.disabled = false; btn.textContent = existing ? 'Update log' : 'Save session'; return; }
+    }
     try {
-      await db.doc('users/' + state.user.uid + '/logs/' + logId(sess)).set(rec);
-      state.logs[logId(sess)] = rec; toast(rec.status === 'skipped' ? 'Saved as skipped' : 'Session saved'); renderLogBlock(sheet, sess);
-      sheet.scrollTo({ top: sheet.scrollHeight, behavior: 'smooth' });
-    } catch (e) { console.error(e); toast('Could not save. Check your connection.'); b.disabled = false; b.textContent = 'Save session'; }
+      await db.doc('users/' + state.user.uid + '/logs/' + wk + '-' + sess.day).set(rec);
+      if (wk === state.plan?.weekId) state.logs[wk + '-' + sess.day] = rec;
+      toast(rec.status === 'skipped' ? 'Saved as skipped' : 'Session saved');
+      history.back();
+    } catch (e) { console.error(e); toast('Could not save. Check your connection.'); btn.disabled = false; btn.textContent = 'Save session'; }
   };
-  block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#btnSaveLog', sheet).onclick = (ev) => save(ev.currentTarget, false);
+  $('#btnSkip', sheet).onclick = (ev) => { if (existing?.status === 'skipped') return; save(ev.currentTarget, true); };
+  if (existing && !isPastWeek) sheet.querySelector('#logEx')?.scrollIntoView({ block: 'start' });
 }
 function numOnly(v) { const m = String(v ?? '').match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
 
@@ -975,7 +960,12 @@ async function viewLog(el) {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'log-item';
       const d = new Date(l.loggedAt);
       row.innerHTML = `<span class="d">${DAYS[l.day]}<br>${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span><span class="m"><strong>${esc(l.title)}</strong><span>${esc(l.type)}${l.setsTotal ? ' · ' + l.setsDone + '/' + l.setsTotal + ' sets' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}${l.note ? ' · ' + esc(l.note) : ''}</span></span>${statusHtml(l)}`;
-      row.onclick = () => openLog(l);
+      row.onclick = async () => {
+        let plan = state.plans.find((x) => x.weekId === l.weekId);
+        if (!plan) { try { const d = await db.doc('users/' + state.user.uid + '/plans/' + l.weekId).get(); plan = d.exists ? d.data() : null; } catch (_) {} }
+        const sess = plan?.sessions?.find((x) => x.day === l.day);
+        if (sess) openSession(sess, l.weekId, l); else openLog(l);
+      };
       hist.append(row);
     });
   } catch (e) { console.error(e); hist.innerHTML = '<h3>Sessions</h3><div class="muted small">Could not load history.</div>'; }
