@@ -1,0 +1,9 @@
+{
+  "crons": [
+    { "path": "/api/daily-notify", "schedule": "0 6 * * *" }
+  ],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

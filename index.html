@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cadence</title>
+<meta name="theme-color" content="#1E6B49">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F6F7F4;
+  --ink: #15201B;
+  --ink-2: #4A5A52;
+  --ink-3: #8A978F;
+  --line: #DCE3DE;
+  --sage: #D5E1D8;
+  --sage-2: #E9F0EB;
+  --green: #1E6B49;
+  --green-2: #16543A;
+  --amber: #D9962E;
+  --amber-2: #FFF3DF;
+  --red: #B84A3C;
+  --white: #FFFFFF;
+  --r-s: 8px;
+  --r-m: 14px;
+  --r-l: 22px;
+  --tab-h: 64px;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Instrument Sans', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-body); color: var(--ink); background: var(--bg);
+  -webkit-font-smoothing: antialiased; line-height: 1.5; font-size: 16px;
+  overscroll-behavior-y: none;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.1; letter-spacing: -0.015em; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.1rem; }
+p.muted, .muted { color: var(--ink-2); }
+.small { font-size: 0.875rem; }
+.hidden { display: none !important; }
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Screens */
+.screen { min-height: 100dvh; display: flex; flex-direction: column; }
+.container { width: 100%; max-width: 560px; margin: 0 auto; padding: 0 20px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 15px 20px; border-radius: var(--r-m); font-weight: 600;
+  background: var(--green); color: var(--white); transition: background .15s, transform .1s;
+}
+.btn:hover { background: var(--green-2); }
+.btn:active { transform: scale(.985); }
+.btn:disabled { background: var(--sage); color: var(--ink-3); cursor: default; transform: none; }
+.btn.secondary { background: var(--white); color: var(--ink); border: 1.5px solid var(--line); }
+.btn.secondary:hover { background: var(--sage-2); }
+.btn.ghost { background: transparent; color: var(--ink-2); width: auto; padding: 10px 14px; }
+.btn.ghost:hover { background: var(--sage-2); }
+.btn.sm { width: auto; padding: 9px 14px; font-size: .9rem; border-radius: 10px; }
+
+/* Fields */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.field label { font-weight: 500; font-size: .95rem; }
+.field .hint { color: var(--ink-3); font-size: .85rem; }
+.input {
+  width: 100%; padding: 13px 14px; border-radius: var(--r-s); border: 1.5px solid var(--line);
+  background: var(--white); transition: border-color .15s;
+}
+.input:focus { border-color: var(--green); outline: none; }
+textarea.input { min-height: 90px; resize: vertical; }
+.row { display: flex; gap: 12px; }
+.row > * { flex: 1; }
+.unit-input { position: relative; }
+.unit-input span { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-3); font-size: .9rem; pointer-events: none; }
+
+/* Chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 9px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--white);
+  font-size: .95rem; transition: all .12s;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.chip.add { border-style: dashed; color: var(--ink-2); }
+
+/* Option cards (single choice) */
+.options { display: grid; gap: 10px; }
+.option {
+  text-align: left; padding: 14px 16px; border-radius: var(--r-m); border: 1.5px solid var(--line);
+  background: var(--white); display: flex; flex-direction: column; gap: 2px; transition: all .12s;
+}
+.option strong { font-weight: 600; }
+.option span { color: var(--ink-2); font-size: .9rem; }
+.option[aria-checked="true"] { border-color: var(--green); background: var(--sage-2); box-shadow: inset 0 0 0 1px var(--green); }
+
+/* Week strip — the signature element */
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.week .day { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.week .day .lbl { font-size: .8rem; color: var(--ink-3); font-weight: 500; }
+.week .bar {
+  width: 100%; aspect-ratio: 1 / 2.4; border-radius: 10px; background: var(--sage); border: 0;
+  transition: background .15s, transform .12s; position: relative;
+}
+.week .bar[aria-pressed="true"] { background: var(--green); }
+.week .bar.today::after {
+  content: ''; position: absolute; left: 50%; bottom: -12px; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--amber); transform: translateX(-50%);
+}
+.week .bar:active { transform: scaleY(.96); }
+.week.readonly .bar { pointer-events: none; }
+.week.small .bar { aspect-ratio: 1 / 1.6; border-radius: 6px; }
+.week.small .day { gap: 5px; }
+.week.small .day .lbl { font-size: .7rem; }
+
+/* ---------- Auth ---------- */
+#auth { justify-content: center; padding: 40px 0; }
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+.brand svg { width: 44px; height: 44px; }
+.brand h1 { font-size: 2.2rem; }
+.auth-lead { font-family: var(--font-display); font-weight: 500; font-size: 1.7rem; line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 8px; }
+.auth-lead + p { margin-bottom: 30px; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: .85rem; margin: 20px 0; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.auth-switch { text-align: center; margin-top: 18px; font-size: .95rem; color: var(--ink-2); }
+.auth-switch button { color: var(--green); font-weight: 600; }
+.error { color: var(--red); font-size: .9rem; margin-top: 10px; min-height: 1.3em; }
+
+/* ---------- Onboarding ---------- */
+#onboarding { padding-bottom: 120px; }
+.ob-top { padding: 18px 0 8px; display: flex; align-items: center; justify-content: space-between; }
+.ob-progress { display: flex; gap: 4px; flex: 1; max-width: 200px; }
+.ob-progress i { flex: 1; height: 4px; border-radius: 2px; background: var(--sage); }
+.ob-progress i.done { background: var(--green); }
+.ob-step { padding-top: 18px; }
+.ob-step h2 { font-size: 1.75rem; margin-bottom: 6px; }
+.ob-step > p.muted { margin-bottom: 24px; }
+.ob-actions {
+  position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.ob-actions .container { display: flex; gap: 10px; }
+.ob-actions .btn.secondary { flex: 0 0 auto; width: auto; padding-inline: 18px; }
+
+/* Review list */
+.review { display: grid; gap: 10px; }
+.review .item { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.review .item b { font-weight: 500; color: var(--ink-2); flex: 0 0 38%; }
+.review .item span { text-align: right; }
+
+/* ---------- App shell ---------- */
+#app { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
+.topbar { padding: 18px 0 6px; display: flex; align-items: baseline; justify-content: space-between; }
+.topbar .date { color: var(--ink-3); font-size: .9rem; }
+.view { padding-top: 10px; }
+.view h1 { margin-bottom: 4px; }
+.card { background: var(--white); border: 1.5px solid var(--line); border-radius: var(--r-l); padding: 18px; margin-top: 16px; }
+.card.amber { background: var(--amber-2); border-color: transparent; }
+.card.sage { background: var(--sage-2); border-color: transparent; }
+.empty { text-align: center; padding: 40px 12px; color: var(--ink-2); }
+.empty h3 { color: var(--ink); margin-bottom: 6px; }
+.empty p { margin-bottom: 18px; }
+
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom); background: var(--white); border-top: 1.5px solid var(--line);
+  display: grid; grid-template-columns: repeat(5, 1fr);
+}
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: .72rem; color: var(--ink-3); font-weight: 500; }
+.tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab[aria-current="page"] { color: var(--green); }
+
+.list { display: grid; gap: 0; }
+.list .li { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); gap: 12px; }
+.list .li:last-child { border-bottom: 0; }
+.list .li span.muted { font-size: .9rem; }
+.switch { width: 46px; height: 28px; border-radius: 14px; background: var(--sage); position: relative; flex: 0 0 auto; transition: background .15s; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--white); transition: left .15s; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.switch[aria-checked="true"] { background: var(--green); }
+.switch[aria-checked="true"]::after { left: 21px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--tab-h) + 16px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
+  background: var(--ink); color: var(--white); padding: 12px 18px; border-radius: 12px; font-size: .95rem;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100% - 40px); z-index: 50;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
+#loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div></div>
+
+<!-- ================= AUTH ================= -->
+<section id="auth" class="screen hidden">
+  <div class="container">
+    <div class="brand">
+      <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1E6B49"/><g fill="#F6F7F4"><rect x="96" y="256" width="40" height="120" rx="14"/><rect x="164" y="200" width="40" height="176" rx="14"/><rect x="232" y="136" width="40" height="240" rx="14"/><rect x="300" y="200" width="40" height="176" rx="14"/><rect x="368" y="256" width="40" height="120" rx="14"/></g></svg>
+      <h1>Cadence</h1>
+    </div>
+    <p class="auth-lead">A training week that is built for you and rebuilt every Sunday.</p>
+    <p class="muted">Tell Cadence how you train, what you're aiming for, and when. It plans your week, you log what you did, and it adjusts.</p>
+
+    <button class="btn secondary" id="btnGoogle">
+      <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.5-5.8c-2.1 1.4-4.8 2.3-8.1 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider">or with email</div>
+    <div class="field"><input class="input" id="authEmail" type="email" placeholder="Email" autocomplete="email"></div>
+    <div class="field"><input class="input" id="authPass" type="password" placeholder="Password (8+ characters)" autocomplete="current-password"></div>
+    <button class="btn" id="btnEmail">Sign in</button>
+    <div class="error" id="authError"></div>
+    <div class="auth-switch" id="authSwitch">New here? <button id="btnToggleMode">Create an account</button></div>
+  </div>
+</section>
+
+<!-- ================= ONBOARDING ================= -->
+<section id="onboarding" class="screen hidden">
+  <div class="container">
+    <div class="ob-top">
+      <div class="ob-progress" id="obProgress"></div>
+      <button class="btn ghost sm" id="btnObSignOut">Sign out</button>
+    </div>
+    <div id="obStep" class="ob-step"></div>
+  </div>
+  <div class="ob-actions"><div class="container">
+    <button class="btn secondary" id="btnObBack">Back</button>
+    <button class="btn" id="btnObNext">Continue</button>
+  </div></div>
+</section>
+
+<!-- ================= APP ================= -->
+<section id="app" class="screen hidden">
+  <div class="container">
+    <div class="topbar">
+      <h2 id="topTitle">Today</h2>
+      <span class="date" id="topDate"></span>
+    </div>
+    <div class="view" id="view"></div>
+  </div>
+  <nav class="tabs" aria-label="Main">
+    <button class="tab" data-view="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Today</button>
+    <button class="tab" data-view="plan"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Plan</button>
+    <button class="tab" data-view="log"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Log</button>
+    <button class="tab" data-view="nutrition"><svg viewBox="0 0 24 24"><path d="M12 21c-4 0-7-3-7-7 0-3 2-5 4-7 1 2 3 2 3 2s0-2 2-4c2 2 5 4 5 9 0 4-3 7-7 7z"/></svg>Nutrition</button>
+    <button class="tab" data-view="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</button>
+  </nav>
+</section>
+
+<div class="toast" id="toast" role="status"></div>
+
+<!-- Firebase (compat build keeps the single-file setup simple) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+/* ============================================================
+   CONFIG — paste your Firebase web app config here
+   (Firebase console → Project settings → Your apps → SDK setup)
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+const VAPID_PUBLIC_KEY = ""; // same value as VAPID_PUBLIC_KEY in Vercel env (step 6)
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+/* ============================================================
+   State & helpers
+   ============================================================ */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const state = { user: null, profile: null, plan: null, view: 'today' };
+
+function show(id) { ['auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
+let toastTimer;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600); }
+function todayIndex() { return (new Date().getDay() + 6) % 7; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+async function api(path, body) {
+  const token = await auth.currentUser.getIdToken();
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(body || {}) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Something went wrong');
+  return data;
+}
+function weekStrip(activeDays, { small = false, readonly = true, onToggle } = {}) {
+  const t = todayIndex();
+  const el = document.createElement('div');
+  el.className = 'week' + (small ? ' small' : '') + (readonly ? ' readonly' : '');
+  DAYS.forEach((d, i) => {
+    const day = document.createElement('div'); day.className = 'day';
+    const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'bar' + (i === t ? ' today' : '');
+    bar.setAttribute('aria-pressed', activeDays.includes(i)); bar.setAttribute('aria-label', d);
+    if (onToggle) bar.onclick = () => { const on = bar.getAttribute('aria-pressed') !== 'true'; bar.setAttribute('aria-pressed', on); onToggle(i, on); };
+    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = d;
+    day.append(bar, lbl); el.append(day);
+  });
+  return el;
+}
+
+/* ============================================================
+   Auth
+   ============================================================ */
+let signUpMode = false;
+function toggleAuthMode() {
+  signUpMode = !signUpMode;
+  $('#btnEmail').textContent = signUpMode ? 'Create account' : 'Sign in';
+  $('#authSwitch').innerHTML = signUpMode ? 'Already have an account? <button id="btnToggleMode">Sign in</button>' : 'New here? <button id="btnToggleMode">Create an account</button>';
+  $('#btnToggleMode').onclick = toggleAuthMode;
+  $('#authPass').autocomplete = signUpMode ? 'new-password' : 'current-password';
+}
+$('#btnToggleMode').onclick = toggleAuthMode;
+$('#btnGoogle').onclick = async () => {
+  $('#authError').textContent = '';
+  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+  catch (e) { if (e.code === 'auth/popup-blocked') auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()); else $('#authError').textContent = friendlyAuthError(e); }
+};
+$('#btnEmail').onclick = async () => {
+  const email = $('#authEmail').value.trim(), pass = $('#authPass').value;
+  $('#authError').textContent = '';
+  if (!email || pass.length < 8) { $('#authError').textContent = 'Enter your email and a password of at least 8 characters.'; return; }
+  try {
+    if (signUpMode) await auth.createUserWithEmailAndPassword(email, pass);
+    else await auth.signInWithEmailAndPassword(email, pass);
+  } catch (e) { $('#authError').textContent = friendlyAuthError(e); }
+};
+$('#authPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnEmail').click(); });
+function friendlyAuthError(e) {
+  const m = {
+    'auth/invalid-credential': 'Email or password is incorrect.',
+    'auth/user-not-found': 'No account with that email. Create one below.',
+    'auth/wrong-password': 'Email or password is incorrect.',
+    'auth/email-already-in-use': 'That email already has an account. Sign in instead.',
+    'auth/invalid-email': 'That email address doesn\'t look right.',
+    'auth/weak-password': 'Use a longer password (8+ characters).',
+    'auth/too-many-requests': 'Too many attempts. Wait a minute and try again.',
+  };
+  return m[e.code] || 'Could not sign in. Check your connection and try again.';
+}
+
+auth.onAuthStateChanged(async (user) => {
+  state.user = user;
+  if (!user) { state.profile = null; show('auth'); return; }
+  try {
+    const snap = await db.doc('users/' + user.uid).get();
+    state.profile = snap.exists ? snap.data().profile : null;
+  } catch (e) { console.error(e); state.profile = null; }
+  if (!state.profile) { startOnboarding(); return; }
+  await loadPlan();
+  enterApp();
+});
+$('#btnObSignOut').onclick = () => auth.signOut();
+
+/* ============================================================
+   Onboarding wizard
+   ============================================================ */
+const SPORTS = ['Ultimate Frisbee', 'Running', 'Cycling', 'Football', 'Basketball', 'Swimming', 'Climbing', 'Tennis', 'Volleyball', 'CrossFit', 'Martial arts', 'Hiking'];
+const GOALS = [
+  ['speed', 'Speed & explosiveness', 'Faster sprints, quicker cuts, higher jumps'],
+  ['strength', 'Strength', 'Lift more, build a solid base'],
+  ['endurance', 'Endurance', 'Last longer at a high level'],
+  ['lean', 'Lean mass', 'Add muscle without much fat'],
+  ['fat', 'Lose fat', 'Get lighter while keeping strength'],
+  ['general', 'General fitness', 'Feel good and stay consistent'],
+];
+const LEVELS = [['beginner', 'Beginner', 'Under a year of regular training'], ['intermediate', 'Intermediate', '1–3 years, know the basics'], ['advanced', 'Advanced', '3+ years, structured training'], ['competitive', 'Competitive', 'Compete regularly, periodised training']];
+const EQUIPMENT = ['Full gym', 'Barbell & rack', 'Dumbbells', 'Kettlebells', 'Bands', 'Pull-up bar', 'Field or track', 'Bike', 'Pool', 'Bodyweight only'];
+const NUTRITION_GOALS = [['maintain', 'Maintain weight', 'Fuel training, stay where you are'], ['gain', 'Slow gain', 'Add lean mass, ~0.25 kg a week'], ['lose', 'Slow loss', 'Drop fat, ~0.5 kg a week'], ['none', 'Skip nutrition for now', 'You can turn it on later']];
+const DIETS = ['No restrictions', 'Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Gluten-free', 'Lactose-free'];
+
+let ob = { step: 0, data: {} };
+const STEPS = [
+  { key: 'basics', title: 'Let\'s start with you', sub: 'These numbers shape loads, volumes and nutrition targets.', render: renderBasics, validate: () => {
+      const d = ob.data; if (!d.name) return 'Add your first name.'; if (!(d.age >= 13 && d.age <= 90)) return 'Enter an age between 13 and 90.';
+      if (!(d.heightCm >= 120 && d.heightCm <= 230)) return 'Enter your height in cm.'; if (!(d.weightKg >= 30 && d.weightKg <= 250)) return 'Enter your weight in kg.'; if (!d.sex) return 'Choose an option for sex.'; } },
+  { key: 'sports', title: 'What do you play or train?', sub: 'Pick everything you do regularly. Your main sport goes first.', render: renderSports, validate: () => { if (!ob.data.sports?.length) return 'Pick at least one sport.'; if (!ob.data.level) return 'Choose your training level.'; } },
+  { key: 'goal', title: 'What are you working toward?', sub: 'One main goal keeps the plan focused. You can change it any time.', render: renderGoal, validate: () => { if (!ob.data.goal) return 'Choose a main goal.'; } },
+  { key: 'availability', title: 'When can you train?', sub: 'Tap the days you can commit to. Club practices and matches count too.', render: renderAvailability, validate: () => { if (!ob.data.days?.length) return 'Pick at least one day.'; if (!ob.data.sessionMin) return 'Choose a session length.'; } },
+  { key: 'setup', title: 'What do you have access to?', sub: 'And anything the plan should work around.', render: renderSetup, validate: () => { if (!ob.data.equipment?.length) return 'Pick at least one option.'; } },
+  { key: 'deadline', title: 'Anything on the calendar?', sub: 'A tournament, a race, a season start. Cadence builds toward it and tapers before it.', render: renderDeadline, validate: () => { if (ob.data.hasDeadline && (!ob.data.deadlineDate || !ob.data.deadlineName)) return 'Add the event name and date.'; } },
+  { key: 'nutrition', title: 'Eating to match', sub: 'Daily calorie and protein targets, adjusted with your training week.', render: renderNutrition, validate: () => { if (!ob.data.nutritionGoal) return 'Choose an option.'; } },
+  { key: 'review', title: 'Here is your setup', sub: 'Check it over. You can edit any of this later from Profile.', render: renderReview },
+];
+
+function startOnboarding() {
+  ob = { step: 0, data: { name: state.user.displayName?.split(' ')[0] || '', days: [], sports: [], equipment: [], injuries: '', hasDeadline: false, diet: ['No restrictions'] } };
+  renderStep(); show('onboarding');
+}
+function renderStep() {
+  const s = STEPS[ob.step];
+  $('#obProgress').innerHTML = STEPS.map((_, i) => `<i class="${i <= ob.step ? 'done' : ''}"></i>`).join('');
+  const el = $('#obStep'); el.innerHTML = `<h2>${s.title}</h2><p class="muted">${s.sub}</p>`;
+  s.render(el);
+  $('#btnObBack').classList.toggle('hidden', ob.step === 0);
+  $('#btnObNext').textContent = ob.step === STEPS.length - 1 ? 'Save and start' : 'Continue';
+  window.scrollTo(0, 0);
+  const first = el.querySelector('input:not([type=hidden])'); if (first && ob.step === 0) first.focus();
+}
+$('#btnObBack').onclick = () => { if (ob.step > 0) { ob.step--; renderStep(); } };
+$('#btnObNext').onclick = async () => {
+  const s = STEPS[ob.step];
+  const err = s.validate ? s.validate() : null;
+  if (err) { toast(err); return; }
+  if (ob.step < STEPS.length - 1) { ob.step++; renderStep(); return; }
+  await saveProfile();
+};
+
+function chipGroup(items, selected, onChange, { multi = true } = {}) {
+  const wrap = document.createElement('div'); wrap.className = 'chips';
+  items.forEach((label) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = label;
+    b.setAttribute('aria-pressed', selected.includes(label));
+    b.onclick = () => {
+      let next;
+      if (multi) next = selected.includes(label) ? selected.filter((x) => x !== label) : [...selected, label];
+      else next = [label];
+      onChange(next);
+      $$('.chip', wrap).forEach((c) => c.setAttribute('aria-pressed', next.includes(c.textContent)));
+    };
+    wrap.append(b);
+  });
+  return wrap;
+}
+function optionGroup(items, selected, onChange) {
+  const wrap = document.createElement('div'); wrap.className = 'options'; wrap.setAttribute('role', 'radiogroup');
+  items.forEach(([val, title, desc]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'option'; b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', selected === val); b.innerHTML = `<strong>${title}</strong><span>${desc}</span>`;
+    b.onclick = () => { onChange(val); $$('.option', wrap).forEach((o) => o.setAttribute('aria-checked', o === b)); };
+    wrap.append(b);
+  });
+  return wrap;
+}
+function bind(el, key, transform = (v) => v) { el.value = ob.data[key] ?? ''; el.oninput = () => { ob.data[key] = transform(el.value); }; return el; }
+
+function renderBasics(el) {
+  el.insertAdjacentHTML('beforeend', `
+    <div class="field"><label for="fName">First name</label><input class="input" id="fName" autocomplete="given-name"></div>
+    <div class="row">
+      <div class="field"><label for="fAge">Age</label><input class="input" id="fAge" type="number" inputmode="numeric" min="13" max="90"></div>
+      <div class="field"><label>Sex</label><div class="chips" id="fSex"></div><span class="hint">Used for energy and load estimates.</span></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="fHeight">Height</label><div class="unit-input"><input class="input" id="fHeight" type="number" inputmode="decimal"><span>cm</span></div></div>
+      <div class="field"><label for="fWeight">Weight</label><div class="unit-input"><input class="input" id="fWeight" type="number" inputmode="decimal" step="0.1"><span>kg</span></div></div>
+    </div>`);
+  bind($('#fName'), 'name', (v) => v.trim()); bind($('#fAge'), 'age', Number); bind($('#fHeight'), 'heightCm', Number); bind($('#fWeight'), 'weightKg', Number);
+  $('#fSex').replaceWith(chipGroup(['Male', 'Female', 'Other'], ob.data.sex ? [ob.data.sex] : [], (v) => { ob.data.sex = v[0]; }, { multi: false }));
+}
+function renderSports(el) {
+  const d = ob.data;
+  const custom = d.sports.filter((s) => !SPORTS.includes(s));
+  el.append(chipGroup([...SPORTS, ...custom], d.sports, (v) => { d.sports = v; }));
+  const add = document.createElement('button'); add.type = 'button'; add.className = 'chip add'; add.textContent = '+ Other'; add.style.marginTop = '8px';
+  add.onclick = () => { const s = prompt('Which sport?'); if (s?.trim()) { d.sports.push(s.trim()); renderStep(); } };
+  el.append(add);
+  const h = document.createElement('h3'); h.textContent = 'Your training level'; h.style.margin = '28px 0 10px';
+  el.append(h, optionGroup(LEVELS, d.level, (v) => { d.level = v; }));
+}
+function renderGoal(el) {
+  el.append(optionGroup(GOALS, ob.data.goal, (v) => { ob.data.goal = v; }));
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fGoalNote">Anything specific? <span class="muted">(optional)</span></label><textarea class="input" id="fGoalNote" placeholder="e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half"></textarea></div>`);
+  bind($('#fGoalNote'), 'goalNote');
+}
+function renderAvailability(el) {
+  const d = ob.data;
+  el.append(weekStrip(d.days, { readonly: false, onToggle: (i, on) => { d.days = on ? [...new Set([...d.days, i])].sort() : d.days.filter((x) => x !== i); } }));
+  const h = document.createElement('h3'); h.textContent = 'Typical session length'; h.style.margin = '30px 0 10px'; el.append(h);
+  el.append(chipGroup(['30 min', '45 min', '60 min', '75 min', '90+ min'], d.sessionMin ? [d.sessionMin + ' min'] : [], (v) => { d.sessionMin = parseInt(v[0]); }, { multi: false }));
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">Fixed commitments <span class="muted">(optional)</span></label><textarea class="input" id="fFixed" placeholder="e.g. Club practice Tue & Thu 19:30, matches most Sundays"></textarea><span class="hint">Cadence plans around these instead of replacing them.</span></div>`);
+  bind($('#fFixed'), 'fixed');
+}
+function renderSetup(el) {
+  const d = ob.data;
+  el.append(chipGroup(EQUIPMENT, d.equipment, (v) => { d.equipment = v; }));
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:26px"><label for="fInjuries">Injuries or limits <span class="muted">(optional)</span></label><textarea class="input" id="fInjuries" placeholder="e.g. Left knee, no deep jumps for now. Lower back gets sore with heavy deadlifts."></textarea></div>`);
+  bind($('#fInjuries'), 'injuries');
+}
+function renderDeadline(el) {
+  const d = ob.data;
+  el.append(optionGroup([[true, 'Yes, I have a date', 'Build up to it and arrive fresh'], [false, 'No date right now', 'Train in rolling 4-week blocks']], d.hasDeadline, (v) => { d.hasDeadline = v; renderStep(); }));
+  if (d.hasDeadline) {
+    const min = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+    el.insertAdjacentHTML('beforeend', `
+      <div class="field" style="margin-top:22px"><label for="fEvent">Event</label><input class="input" id="fEvent" placeholder="e.g. Belgian Championship, Spring Half Marathon"></div>
+      <div class="field"><label for="fDate">Date</label><input class="input" id="fDate" type="date" min="${min}"></div>`);
+    bind($('#fEvent'), 'deadlineName', (v) => v.trim()); bind($('#fDate'), 'deadlineDate');
+  }
+}
+function renderNutrition(el) {
+  const d = ob.data;
+  el.append(optionGroup(NUTRITION_GOALS, d.nutritionGoal, (v) => { d.nutritionGoal = v; renderStep(); }));
+  if (d.nutritionGoal && d.nutritionGoal !== 'none') {
+    const h = document.createElement('h3'); h.textContent = 'Diet'; h.style.margin = '26px 0 10px'; el.append(h);
+    el.append(chipGroup(DIETS, d.diet, (v) => { d.diet = v.length ? v : ['No restrictions']; }));
+  }
+}
+function renderReview(el) {
+  const d = ob.data;
+  const rows = [
+    ['You', `${d.name}, ${d.age}, ${d.heightCm} cm, ${d.weightKg} kg`],
+    ['Sports', d.sports.join(', ')],
+    ['Level', LEVELS.find((l) => l[0] === d.level)?.[1]],
+    ['Goal', GOALS.find((g) => g[0] === d.goal)?.[1] + (d.goalNote ? ` — ${d.goalNote}` : '')],
+    ['Days', d.days.map((i) => DAYS[i]).join(', ') + ` · ${d.sessionMin} min`],
+    ['Equipment', d.equipment.join(', ')],
+    ['Limits', d.injuries || 'None'],
+    ['Deadline', d.hasDeadline ? `${d.deadlineName}, ${new Date(d.deadlineDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'None, rolling blocks'],
+    ['Nutrition', NUTRITION_GOALS.find((n) => n[0] === d.nutritionGoal)?.[1] + (d.nutritionGoal !== 'none' ? ` · ${d.diet.join(', ')}` : '')],
+  ];
+  const wrap = document.createElement('div'); wrap.className = 'review';
+  wrap.innerHTML = rows.map(([k, v]) => `<div class="item"><b>${k}</b><span>${esc(v)}</span></div>`).join('');
+  el.append(wrap);
+}
+
+async function saveProfile() {
+  const btn = $('#btnObNext'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  const d = ob.data;
+  const profile = {
+    name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg,
+    sports: d.sports, level: d.level, goal: d.goal, goalNote: d.goalNote || '',
+    days: d.days, sessionMin: d.sessionMin, fixed: d.fixed || '',
+    equipment: d.equipment, injuries: d.injuries || '',
+    deadline: d.hasDeadline ? { name: d.deadlineName, date: d.deadlineDate } : null,
+    nutrition: d.nutritionGoal === 'none' ? null : { goal: d.nutritionGoal, diet: d.diet },
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    updatedAt: new Date().toISOString(),
+  };
+  try {
+    await db.doc('users/' + state.user.uid).set({
+      profile, email: state.user.email || null, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    await db.collection('users/' + state.user.uid + '/weights').add({ kg: d.weightKg, at: new Date().toISOString() });
+    state.profile = profile;
+    enterApp();
+  } catch (e) {
+    console.error(e); toast('Could not save. Check your connection and try again.');
+    btn.disabled = false; btn.textContent = 'Save and start';
+  }
+}
+
+/* ============================================================
+   App shell & views
+   ============================================================ */
+async function loadPlan() {
+  try {
+    const q = await db.collection('users/' + state.user.uid + '/plans').orderBy('createdAt', 'desc').limit(1).get();
+    state.plan = q.empty ? null : q.docs[0].data();
+  } catch (e) { console.error(e); state.plan = null; }
+}
+function enterApp() {
+  show('app');
+  $('#topDate').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const params = new URLSearchParams(location.search);
+  navigate(params.get('view') || 'today');
+}
+$$('.tab').forEach((t) => { t.onclick = () => navigate(t.dataset.view); });
+function navigate(view) {
+  state.view = view;
+  $$('.tab').forEach((t) => { if (t.dataset.view === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+  $('#topTitle').textContent = { today: 'Today', plan: 'This week', log: 'Log', nutrition: 'Nutrition', profile: 'Profile' }[view];
+  const el = $('#view'); el.innerHTML = '';
+  ({ today: viewToday, plan: viewPlan, log: viewLog, nutrition: viewNutrition, profile: viewProfile }[view])(el);
+  window.scrollTo(0, 0);
+}
+
+function viewToday(el) {
+  const p = state.profile;
+  const hello = document.createElement('h1'); hello.textContent = greeting() + ', ' + p.name; el.append(hello);
+  if (p.deadline) {
+    const days = Math.ceil((new Date(p.deadline.date) - Date.now()) / 864e5);
+    const c = document.createElement('div'); c.className = 'card amber';
+    c.innerHTML = `<strong>${esc(p.deadline.name)}</strong><div class="muted small">${days > 0 ? days + ' days to go' : 'Today'}</div>`;
+    el.append(c);
+  }
+  if (!state.plan) {
+    const c = document.createElement('div'); c.className = 'card';
+    c.innerHTML = `<div class="empty"><h3>No plan yet</h3><p>Cadence will build your first week from the setup you just completed.</p><button class="btn" id="btnGen">Build my first week</button></div>`;
+    el.append(c);
+    $('#btnGen').onclick = async (ev) => {
+      const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
+      try { state.plan = await api('/api/generate-plan'); toast('Your week is ready'); navigate('today'); }
+      catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Build my first week'; }
+    };
+    return;
+  }
+  const t = todayIndex();
+  const session = state.plan.sessions?.find((s) => s.day === t);
+  const c = document.createElement('div'); c.className = 'card';
+  if (!session || session.type === 'rest') {
+    c.innerHTML = `<h3>Rest day</h3><p class="muted">Nothing scheduled. Recover, eat well, move lightly if you feel like it.</p>`;
+  } else {
+    c.innerHTML = `<div class="muted small">${esc(session.type)} · ${session.durationMin} min</div><h3 style="margin:4px 0 12px">${esc(session.title)}</h3>
+      <div class="list">${session.exercises.map((x) => `<div class="li"><span>${esc(x.name)}</span><span class="muted">${esc(x.sets)}×${esc(x.reps)}${x.load ? ' · ' + esc(x.load) : ''}</span></div>`).join('')}</div>
+      <p class="muted small" style="margin-top:14px">Logging comes in the next release.</p>`;
+  }
+  el.append(c);
+  const strip = document.createElement('div'); strip.style.marginTop = '22px';
+  strip.append(weekStrip(state.plan.sessions.filter((s) => s.type !== 'rest').map((s) => s.day), { small: true }));
+  el.append(strip);
+}
+function viewPlan(el) {
+  if (!state.plan) { el.innerHTML = `<div class="card"><div class="empty"><h3>No plan yet</h3><p>Build your first week from Today.</p></div></div>`; return; }
+  const p = state.plan;
+  el.insertAdjacentHTML('beforeend', `<p class="muted">${esc(p.phase)} phase · ${esc(p.focus)}</p>`);
+  const t = todayIndex();
+  [...p.sessions].sort((a, b) => a.day - b.day).forEach((s) => {
+    const c = document.createElement('div'); c.className = 'card' + (s.day === t ? ' sage' : '');
+    c.innerHTML = `<div class="muted small">${DAYS[s.day]}${s.day === t ? ' · today' : ''} · ${esc(s.type)}${s.durationMin ? ' · ' + s.durationMin + ' min' : ''}</div><h3 style="margin-top:4px">${esc(s.title)}</h3>`;
+    el.append(c);
+  });
+  if (p.rationale) el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin-top:18px">${esc(p.rationale)}</p>`);
+}
+function viewLog(el) {
+  el.innerHTML = `<div class="card"><div class="empty"><h3>Nothing logged yet</h3><p>Once you finish a session from Today, your sets, loads and notes land here.</p></div></div>`;
+}
+function viewNutrition(el) {
+  const n = state.profile.nutrition;
+  if (!n) { el.innerHTML = `<div class="card"><div class="empty"><h3>Nutrition is off</h3><p>Turn it on from Profile to get daily calorie and protein targets.</p></div></div>`; return; }
+  el.innerHTML = `<div class="card"><div class="empty"><h3>Targets coming soon</h3><p>Your daily calorie and macro targets, plus quick meal logging, arrive with the nutrition release.</p></div></div>`;
+}
+function viewProfile(el) {
+  const p = state.profile;
+  el.insertAdjacentHTML('beforeend', `
+    <div class="card">
+      <h3>${esc(p.name)}</h3>
+      <div class="muted small">${p.age} · ${p.heightCm} cm · ${p.weightKg} kg · ${esc(p.sports[0])}</div>
+      <div class="list" style="margin-top:12px">
+        <div class="li"><span>Goal</span><span class="muted">${esc(GOALS.find((g) => g[0] === p.goal)?.[1])}</span></div>
+        <div class="li"><span>Training days</span><span class="muted">${p.days.map((i) => DAYS[i]).join(', ')}</span></div>
+        <div class="li"><span>Deadline</span><span class="muted">${p.deadline ? esc(p.deadline.name) : 'None'}</span></div>
+        <div class="li"><span>Nutrition</span><span class="muted">${p.nutrition ? esc(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1]) : 'Off'}</span></div>
+      </div>
+      <button class="btn secondary" id="btnEdit" style="margin-top:14px">Edit setup</button>
+    </div>
+    <div class="card">
+      <div class="list">
+        <div class="li"><div><div>Daily reminder</div><span class="muted">One notification each morning with today's session</span></div><button class="switch" id="swPush" role="switch" aria-checked="false" aria-label="Daily reminder"></button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="list">
+        <div class="li"><span>Signed in as</span><span class="muted">${esc(state.user.email || 'Google account')}</span></div>
+      </div>
+      <button class="btn ghost" id="btnSignOut" style="margin-top:8px;padding-left:0">Sign out</button>
+    </div>`);
+  $('#btnEdit').onclick = () => { startOnboarding(); ob.data = profileToOb(p); ob.step = 0; renderStep(); };
+  $('#btnSignOut').onclick = () => auth.signOut();
+  setupPushToggle();
+}
+function profileToOb(p) {
+  return { ...p, hasDeadline: !!p.deadline, deadlineName: p.deadline?.name, deadlineDate: p.deadline?.date, nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
+}
+function greeting() { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 18 ? 'Afternoon' : 'Evening'; }
+
+/* ============================================================
+   Push notifications (opt-in; requires VAPID_PUBLIC_KEY)
+   ============================================================ */
+async function setupPushToggle() {
+  const sw = $('#swPush');
+  const supported = 'serviceWorker' in navigator && 'PushManager' in window && VAPID_PUBLIC_KEY;
+  if (!supported) { sw.disabled = true; sw.parentElement.querySelector('.muted').textContent = 'Install Cadence to your home screen to enable reminders.'; return; }
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+  sw.setAttribute('aria-checked', !!existing);
+  sw.onclick = async () => {
+    const on = sw.getAttribute('aria-checked') !== 'true';
+    try {
+      if (on) {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') { toast('Notifications are blocked in your browser settings.'); return; }
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64(VAPID_PUBLIC_KEY) });
+        await db.doc('users/' + state.user.uid + '/push/main').set({ subscription: sub.toJSON(), timezone: state.profile.timezone, skipRestDays: false, updatedAt: new Date().toISOString() });
+        toast('Reminders on');
+      } else {
+        const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe();
+        await db.doc('users/' + state.user.uid + '/push/main').delete();
+        toast('Reminders off');
+      }
+      sw.setAttribute('aria-checked', on);
+    } catch (e) { console.error(e); toast('Could not update reminders.'); }
+  };
+}
+function urlB64(s) { const p = '='.repeat((4 - s.length % 4) % 4); const b = (s + p).replace(/-/g, '+').replace(/_/g, '/'); const r = atob(b); return Uint8Array.from([...r].map((c) => c.charCodeAt(0))); }
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+</script>
+</body>
+</html>
