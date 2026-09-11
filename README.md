@@ -6,7 +6,8 @@ Weekly training plans built from your profile, logged in the app, rebuilt every 
 - `index.html` — the whole app (auth, onboarding, views)
 - `sw.js`, `manifest.json`, `icon.svg` — PWA
 - `api/_lib.js` — Firebase Admin, token check, OpenRouter call
-- `api/generate-plan.js` — POST, builds a weekly plan (step 2 refines the prompt)
+- `api/generate-plan.js` — POST, builds a weekly plan from the profile
+- `api/weekly-review.js` — POST, closes a week: review + next week's plan from the logs
 - `api/daily-notify.js` — daily cron, sends today's session by Web Push
 - `firestore.rules` — each user can only read/write `users/{uid}/**`
 - `vercel.json` — cron schedule (06:00 UTC, fires within that hour on Hobby)
@@ -37,6 +38,6 @@ users/{uid}/push/main      Web Push subscription + timezone
 1. ✅ Auth, onboarding, profile
 2. ✅ Plan generation prompt + full session view
 3. ✅ Session logging + weight tracking
-4. Weekly review + next week
+4. ✅ Weekly review + next week
 5. Nutrition targets + meal logging
 6. Rate limiting, iCal feed, offline polish

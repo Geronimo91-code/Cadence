@@ -248,6 +248,17 @@ textarea.input { min-height: 90px; resize: vertical; }
 .wchart { display: flex; align-items: flex-end; gap: 4px; height: 70px; margin-top: 12px; }
 .wchart i { flex: 1; background: var(--sage); border-radius: 4px 4px 0 0; min-height: 4px; }
 .wchart i:last-child { background: var(--green); }
+.review-list { list-style: none; margin-top: 6px; }
+.review-list li { padding: 6px 0 6px 18px; position: relative; color: var(--ink-2); }
+.review-list li::before { content: ''; position: absolute; left: 4px; top: 13px; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.review-list.warn li::before { background: var(--amber); }
+.stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.stat div { background: var(--white); border: 1.5px solid var(--line); border-radius: var(--r-m); padding: 10px 12px; }
+.stat b { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; display: block; }
+.stat span { font-size: .8rem; color: var(--ink-2); }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 10px; }
+.seg button { padding: 7px 14px; font-size: .9rem; font-weight: 500; background: var(--white); color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -345,12 +356,14 @@ db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const state = { user: null, profile: null, plan: null, logs: {}, view: 'today' };
+const state = { user: null, profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null };
 
 function show(id) { ['auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
 let toastTimer;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600); }
 function todayIndex() { return (new Date().getDay() + 6) % 7; }
+function isoWeekId(d = new Date()) { const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = date.getUTCDay() || 7; date.setUTCDate(date.getUTCDate() + 4 - day); const ys = new Date(Date.UTC(date.getUTCFullYear(), 0, 1)); return `${date.getUTCFullYear()}-W${String(Math.ceil(((date - ys) / 864e5 + 1) / 7)).padStart(2, '0')}`; }
+function weekLabel(id) { const [y, w] = id.split('-W').map(Number); const jan4 = new Date(Date.UTC(y, 0, 4)); const mon = new Date(jan4); mon.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() || 7) - 1) + (w - 1) * 7); const sun = new Date(mon); sun.setUTCDate(mon.getUTCDate() + 6); const f = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }); return `${f(mon)} – ${f(sun)}`; }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 async function api(path, body) {
   const token = await auth.currentUser.getIdToken();
@@ -645,16 +658,55 @@ async function saveProfile() {
 /* ============================================================
    App shell & views
    ============================================================ */
-async function loadPlan() {
+async function loadPlan(preferWeek) {
   try {
-    const q = await db.collection('users/' + state.user.uid + '/plans').orderBy('createdAt', 'desc').limit(1).get();
-    state.plan = q.empty ? null : q.docs[0].data();
+    const q = await db.collection('users/' + state.user.uid + '/plans').orderBy('weekId', 'desc').limit(4).get();
+    state.plans = q.docs.map((d) => d.data());
+    const thisWeek = isoWeekId();
+    const pick = (preferWeek && state.plans.find((p) => p.weekId === preferWeek)) || state.plans.find((p) => p.weekId === thisWeek) || state.plans[0] || null;
+    state.plan = pick; state.planWeek = pick?.weekId || null;
     state.logs = {};
     if (state.plan) {
       const lq = await db.collection('users/' + state.user.uid + '/logs').where('weekId', '==', state.plan.weekId).get();
       lq.forEach((d) => { state.logs[d.id] = d.data(); });
     }
+    const rq = await db.collection('users/' + state.user.uid + '/reviews').orderBy('weekId', 'desc').limit(1).get();
+    state.review = rq.empty ? null : rq.docs[0].data();
   } catch (e) { console.error(e); state.plan = null; }
+}
+function planIsCurrent() { return state.plan && state.plan.weekId === isoWeekId(); }
+function planIsPast() { return state.plan && state.plan.weekId < isoWeekId(); }
+function planIsFuture() { return state.plan && state.plan.weekId > isoWeekId(); }
+async function runReview(btn, weekIdToClose) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  try {
+    const out = await api('/api/weekly-review', { weekId: weekIdToClose });
+    await loadPlan();
+    state.review = out.review;
+    toast('Week closed. Next week is ready.');
+    navigate('today'); openReview(out.review);
+  } catch (e) { toast(e.message); if (btn) { btn.disabled = false; btn.textContent = 'Close the week'; } }
+}
+function openReview(r) {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
+  const li = (items, cls = '') => items?.length ? `<ul class="review-list ${cls}">${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="muted small">Nothing to note.</p>';
+  const st = r.stats || {};
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>Week review</h2></div>
+    <span class="badge">${esc(r.weekId)} · ${weekLabel(r.weekId)}</span>
+    <h1>How the week went</h1>
+    <div class="stat"><div><b>${st.adherence ?? 0}%</b><span>adherence</span></div><div><b>${st.done ?? 0}/${st.planned ?? 0}</b><span>sessions done</span></div><div><b>${st.avgRpe ?? '–'}</b><span>avg RPE</span></div></div>
+    <div class="intent" style="margin-top:16px">${esc(r.summary)}</div>
+    <div class="block"><h3>What went well</h3>${li(r.wins)}</div>
+    <div class="block"><h3>Watch out for</h3>${li(r.watchouts, 'warn')}</div>
+    <div class="block"><h3>Changes next week</h3>${li(r.adjustments)}</div>
+    <div class="block"><button class="btn" id="btnGoNext">See next week's plan</button></div>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  $('#btnGoNext', sheet).onclick = async () => { history.back(); await loadPlan(r.nextWeekId); navigate('plan'); };
+  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
 }
 function logId(sess) { return state.plan.weekId + '-' + sess.day; }
 function logFor(sess) { return state.logs[logId(sess)]; }
@@ -682,7 +734,9 @@ function navigate(view) {
   window.scrollTo(0, 0);
 }
 
-function viewToday(el) {
+async function viewToday(el) {
+  // Today always works from this week's plan, even if the Plan tab is showing next week
+  if (state.plan && state.plan.weekId !== isoWeekId() && state.plans.some((x) => x.weekId === isoWeekId())) { await loadPlan(isoWeekId()); if (state.view !== 'today') return; }
   const p = state.profile;
   const hello = document.createElement('h1'); hello.textContent = greeting() + ', ' + p.name; el.append(hello);
   if (p.deadline) {
@@ -701,6 +755,23 @@ function viewToday(el) {
       catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Build my first week'; }
     };
     return;
+  }
+  // Week closed but no next plan yet → prompt review
+  if (planIsFuture()) {
+    const c = document.createElement('div'); c.className = 'card sage';
+    c.innerHTML = `<strong>Next week is ready</strong><p class="muted small" style="margin:4px 0 0">Your plan starts Monday. Rest up until then.</p>`;
+    el.append(c); return;
+  }
+  if (planIsPast()) {
+    const c = document.createElement('div'); c.className = 'card amber';
+    c.innerHTML = `<strong>Your week ${esc(state.plan.weekId)} is over</strong><p class="muted small" style="margin:4px 0 12px">Close it to get feedback and next week's plan built from what you logged.</p><button class="btn" id="btnReviewNow">Close the week</button>`;
+    el.append(c); $('#btnReviewNow').onclick = (ev) => runReview(ev.currentTarget, state.plan.weekId);
+    return;
+  }
+  if (state.review && (todayIndex() <= 1 || state.review.createdAt > new Date(Date.now() - 2 * 864e5).toISOString())) {
+    const c = document.createElement('div'); c.className = 'card sage';
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong>Last week's review</strong><span class="badge">${state.review.stats?.adherence ?? 0}% adherence</span></div><p class="muted small" style="margin:6px 0 10px">${esc((state.review.summary || '').split('. ')[0])}.</p><button class="btn secondary sm" id="btnOpenReview">Read the review</button>`;
+    el.append(c); $('#btnOpenReview').onclick = () => openReview(state.review);
   }
   const t = todayIndex();
   const session = state.plan.sessions?.find((s) => s.day === t);
@@ -726,7 +797,12 @@ function viewToday(el) {
 function viewPlan(el) {
   if (!state.plan) { el.innerHTML = `<div class="card"><div class="empty"><h3>No plan yet</h3><p>Build your first week from Today.</p></div></div>`; return; }
   const p = state.plan;
-  el.insertAdjacentHTML('beforeend', `<p class="muted"><span class="badge">${esc(p.phase)} phase</span> &nbsp;${esc(p.focus)}</p>`);
+  if (state.plans.length > 1) {
+    const seg = document.createElement('div'); seg.className = 'seg';
+    state.plans.slice(0, 3).reverse().forEach((pl) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = pl.weekId === isoWeekId() ? 'This week' : pl.weekId > isoWeekId() ? 'Next week' : weekLabel(pl.weekId); b.setAttribute('aria-pressed', pl.weekId === p.weekId); b.onclick = async () => { await loadPlan(pl.weekId); navigate('plan'); }; seg.append(b); });
+    el.append(seg);
+  }
+  el.insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:10px"><span class="badge">${esc(p.phase)} phase</span> &nbsp;${esc(weekLabel(p.weekId))}${planIsFuture() ? ' · starts Monday' : ''}</p><p class="muted">${esc(p.focus)}</p>`);
   if (!p.sessions.some((x) => Array.isArray(x.warmup))) el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>This plan is in an older format</strong><div class="muted small">Use Rebuild this week below to get full session details.</div></div>`);
   const t = todayIndex();
   const card = document.createElement('div'); card.className = 'card';
@@ -740,12 +816,20 @@ function viewPlan(el) {
   });
   el.append(card);
   if (p.rationale) el.insertAdjacentHTML('beforeend', `<div class="card sage"><h3 style="margin-bottom:6px">Why this week</h3><p class="muted">${esc(p.rationale)}</p></div>`);
-  el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnRebuild" style="margin-top:16px">Rebuild this week</button><p class="muted small" style="margin-top:8px;text-align:center">Use this if your setup changed or the week doesn't fit.</p>`);
-  $('#btnRebuild').onclick = async (ev) => {
+  const reviewed = state.review && state.review.weekId === p.weekId;
+  if (!planIsFuture() && !reviewed) {
+    const soon = todayIndex() >= 5 || planIsPast();
+    el.insertAdjacentHTML('beforeend', `<button class="btn${soon ? '' : ' secondary'}" id="btnClose" style="margin-top:16px">Close the week</button><p class="muted small" style="margin-top:8px;text-align:center">${soon ? 'Get feedback on this week and next week\'s plan.' : 'Best done on the weekend, once your sessions are logged.'}</p>`);
+    $('#btnClose').onclick = (ev) => { if (todayIndex() < 5 && !planIsPast() && !confirm('The week isn\'t over yet. Close it anyway?')) return; runReview(ev.currentTarget, p.weekId); };
+  }
+  if (reviewed) el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnSeeReview" style="margin-top:16px">Read this week's review</button>`);
+  if (reviewed) $('#btnSeeReview').onclick = () => openReview(state.review);
+  if (planIsCurrent() && p.source !== 'review') el.insertAdjacentHTML('beforeend', `<button class="btn ghost" id="btnRebuild" style="width:100%;margin-top:8px">Rebuild this week from my profile</button>`);
+  if ($('#btnRebuild')) $('#btnRebuild').onclick = async (ev) => {
     if (!confirm('Replace this week with a new plan?')) return;
     const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
     try { state.plan = await api('/api/generate-plan'); await loadPlan(); toast('New week ready'); navigate('plan'); }
-    catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Rebuild this week'; }
+    catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Rebuild this week from my profile'; }
   };
 }
 
