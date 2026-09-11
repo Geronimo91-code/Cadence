@@ -1136,7 +1136,7 @@ async function viewLog(el) {
   // Weight card
   const wc = document.createElement('div'); wc.className = 'card';
   wc.innerHTML = `<h3>${T('Weight')}</h3><div class="muted small" id="wLatest">${T('Loading…')}</div><div class="wchart" id="wChart"></div>
-    <div class="row" style="margin-top:12px;align-items:stretch"><div class="unit-input"><input class="input" id="wIn" type="number" inputmode="decimal" step="0.1" placeholder="${p.weightKg}"><span>kg</span></div><button class="btn sm" id="wAdd" style="flex:0 0 auto">${T('Add today')}</button></div>`;
+    <div class="row" style="margin-top:12px;align-items:stretch"><div class="unit-input" style="min-width:0"><input class="input" id="wIn" type="number" inputmode="decimal" step="0.1" placeholder="${p.weightKg}"><span>kg</span></div><button class="btn sm" id="wAdd" style="flex:0 0 auto">${T('Add today')}</button></div>`;
   el.append(wc);
   const prog = document.createElement('div'); prog.className = 'card'; prog.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>${T('Progress')}</h3><div class="seg" style="margin:0"><button type="button" data-m="3" aria-pressed="${progMonths === 3}">3</button><button type="button" data-m="6" aria-pressed="${progMonths === 6}">6</button><button type="button" data-m="12" aria-pressed="${progMonths === 12}">12</button></div></div><div id="progBody" class="muted small" style="margin-top:8px">${T('Loading…')}</div>`; el.append(prog);
   $$('.seg button', prog).forEach((b) => { b.onclick = () => { progMonths = Number(b.dataset.m); navigate('log'); }; });
@@ -1404,7 +1404,7 @@ async function openMember(c, r) {
 function renderClubJoin(el) {
   el.innerHTML = `
     <div class="card" style="margin-top:0"><h3>${T('Join a club')}</h3><p class="muted small" style="margin:4px 0 10px">${T('Got a code from your coach? Enter it here.')}</p>
-      <div class="row"><input class="input" id="joinCode" placeholder="ABC123" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.1em"><button class="btn" id="btnJoin" style="flex:0 0 auto">${T('Join')}</button></div></div>
+      <div class="row" style="align-items:stretch"><input class="input" id="joinCode" placeholder="ABC123" autocapitalize="characters" maxlength="8" style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-display);font-weight:700;font-size:1.1rem;min-width:0"><button class="btn" id="btnJoin" style="flex:0 0 auto;width:auto;padding-inline:22px">${T('Join')}</button></div></div>
     <div class="card"><h3>${T('Create a club')}</h3><p class="muted small" style="margin:4px 0 10px">${T('You become its first coach and get an invite code to share.')}</p>
       <div class="field"><input class="input" id="clubName" placeholder="${T('Club name')}"></div>
       <div class="field"><input class="input" id="clubSport" placeholder="${T('Sport')}" value="${esc(state.profile.sports?.[0] || '')}"></div>
