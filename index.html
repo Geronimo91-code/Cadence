@@ -227,6 +227,27 @@ textarea.input { min-height: 90px; resize: vertical; }
 .ex .meta { color: var(--ink-2); font-size: .9rem; margin-top: 2px; }
 .ex .cues { margin-top: 6px; font-size: .9rem; color: var(--ink-2); padding-left: 10px; border-left: 2px solid var(--sage); }
 .intent { background: var(--sage-2); border-radius: var(--r-m); padding: 12px 14px; margin-top: 14px; color: var(--ink-2); }
+.setgrid { display: grid; grid-template-columns: 34px 1fr 1fr 44px; gap: 8px; align-items: center; margin-top: 8px; }
+.setgrid .h { font-size: .75rem; color: var(--ink-3); font-weight: 500; }
+.setgrid .n { font-family: var(--font-display); font-weight: 700; color: var(--ink-3); text-align: center; }
+.setgrid .input { padding: 9px 10px; text-align: center; }
+.check { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--white); display: grid; place-items: center; color: transparent; transition: all .12s; }
+.check[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--white); }
+.check svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.rpe { display: flex; gap: 5px; margin-top: 10px; }
+.rpe button { flex: 1; padding: 8px 0; border-radius: 8px; border: 1.5px solid var(--line); background: var(--white); font-size: .85rem; font-weight: 600; }
+.rpe button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.status { display: inline-flex; align-items: center; gap: 5px; font-size: .8rem; font-weight: 600; }
+.status.done { color: var(--green); } .status.skipped { color: var(--ink-3); } .status.partial { color: var(--amber); }
+.log-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.log-item:last-child { border-bottom: 0; }
+.log-item .d { width: 52px; font-size: .8rem; color: var(--ink-3); line-height: 1.2; }
+.log-item .m { flex: 1; min-width: 0; }
+.log-item .m strong { display: block; font-weight: 600; }
+.log-item .m span { font-size: .85rem; color: var(--ink-2); }
+.wchart { display: flex; align-items: flex-end; gap: 4px; height: 70px; margin-top: 12px; }
+.wchart i { flex: 1; background: var(--sage); border-radius: 4px 4px 0 0; min-height: 4px; }
+.wchart i:last-child { background: var(--green); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -324,7 +345,7 @@ db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const state = { user: null, profile: null, plan: null, view: 'today' };
+const state = { user: null, profile: null, plan: null, logs: {}, view: 'today' };
 
 function show(id) { ['auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
 let toastTimer;
@@ -628,7 +649,20 @@ async function loadPlan() {
   try {
     const q = await db.collection('users/' + state.user.uid + '/plans').orderBy('createdAt', 'desc').limit(1).get();
     state.plan = q.empty ? null : q.docs[0].data();
+    state.logs = {};
+    if (state.plan) {
+      const lq = await db.collection('users/' + state.user.uid + '/logs').where('weekId', '==', state.plan.weekId).get();
+      lq.forEach((d) => { state.logs[d.id] = d.data(); });
+    }
   } catch (e) { console.error(e); state.plan = null; }
+}
+function logId(sess) { return state.plan.weekId + '-' + sess.day; }
+function logFor(sess) { return state.logs[logId(sess)]; }
+function statusHtml(log) {
+  if (!log) return '';
+  const icon = log.status === 'done' ? '✓' : log.status === 'skipped' ? '–' : '½';
+  const label = log.status === 'done' ? 'Done' : log.status === 'skipped' ? 'Skipped' : 'Partly done';
+  return `<span class="status ${log.status}">${icon} ${label}</span>`;
 }
 function enterApp() {
   show('app');
@@ -663,7 +697,7 @@ function viewToday(el) {
     el.append(c);
     $('#btnGen').onclick = async (ev) => {
       const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-      try { state.plan = await api('/api/generate-plan'); toast('Your week is ready'); navigate('today'); }
+      try { state.plan = await api('/api/generate-plan'); await loadPlan(); toast('Your week is ready'); navigate('today'); }
       catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Build my first week'; }
     };
     return;
@@ -675,11 +709,12 @@ function viewToday(el) {
   if (!session || session.type === 'rest') {
     c.innerHTML = `<span class="badge rest">Rest day</span><h3 style="margin:10px 0 6px">${esc(session?.title || 'Rest')}</h3><p class="muted">${esc(session?.intent || 'Nothing scheduled. Recover, eat well, move lightly if you feel like it.')}</p>`;
   } else {
-    c.innerHTML = `<span class="badge ${esc(session.type)}">${esc(session.type)}${session.fixed ? ' · fixed' : ''}</span>
+    const lg = logFor(session);
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(session.type)}">${esc(session.type)}${session.fixed ? ' · fixed' : ''}</span>${statusHtml(lg)}</div>
       <h3 style="margin:10px 0 2px">${esc(session.title)}</h3>
       <div class="muted small">${session.durationMin} min · ${session.exercises.length} exercise${session.exercises.length === 1 ? '' : 's'}</div>
       <p class="muted" style="margin:10px 0 14px">${esc(session.intent)}</p>
-      <button class="btn" id="btnOpenToday">Open session</button>`;
+      <button class="btn${lg ? ' secondary' : ''}" id="btnOpenToday">${lg ? 'View session' : 'Open session'}</button>`;
   }
   el.append(c);
   if (session && session.type !== 'rest') $('#btnOpenToday').onclick = () => openSession(session);
@@ -698,7 +733,8 @@ function viewPlan(el) {
   [...p.sessions].sort((a, b) => a.day - b.day).forEach((sess) => {
     const row = document.createElement('button'); row.type = 'button'; row.className = 'session-row' + (sess.day === t ? ' today' : '');
     const isRest = sess.type === 'rest';
-    row.innerHTML = `<span class="dow">${DAYS[sess.day]}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || 'Recovery') : esc(sess.type) + ' · ' + sess.durationMin + ' min' + (sess.fixed ? ' · fixed' : '')}</span></span>${isRest ? '' : '<span class="chev">›</span>'}`;
+    const lg = isRest ? null : logFor(sess);
+    row.innerHTML = `<span class="dow">${DAYS[sess.day]}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || 'Recovery') : esc(sess.type) + ' · ' + sess.durationMin + ' min' + (sess.fixed ? ' · fixed' : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
     if (!isRest) row.onclick = () => openSession(sess);
     card.append(row);
   });
@@ -708,7 +744,7 @@ function viewPlan(el) {
   $('#btnRebuild').onclick = async (ev) => {
     if (!confirm('Replace this week with a new plan?')) return;
     const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-    try { state.plan = await api('/api/generate-plan'); toast('New week ready'); navigate('plan'); }
+    try { state.plan = await api('/api/generate-plan'); await loadPlan(); toast('New week ready'); navigate('plan'); }
     catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Rebuild this week'; }
   };
 }
@@ -733,17 +769,146 @@ function openSession(raw) {
         ${x.cues ? `<div class="cues">${esc(x.cues)}</div>` : ''}
       </div>`).join('') : '<p class="muted small">Follow your club session.</p>'}</div>
     <div class="block"><h3>Cool-down</h3>${list(sess.cooldown)}</div>
-    <div class="block"><button class="btn" disabled>Log this session</button><p class="muted small" style="text-align:center;margin-top:8px">Logging arrives in the next release.</p></div>
+    <div class="block" id="logBlock"></div>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; if (state.view) navigate(state.view); };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') history.back(); });
+  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  renderLogBlock(sheet, sess);
+}
+
+function renderLogBlock(sheet, sess) {
+  const block = $('#logBlock', sheet); block.innerHTML = '';
+  const existing = state.plan ? logFor(sess) : null;
+  if (existing) {
+    block.innerHTML = `<div class="card sage" style="margin-top:0">${statusHtml(existing)}<div class="muted small" style="margin-top:4px">${existing.durationMin ? existing.durationMin + ' min · ' : ''}${existing.sessionRpe ? 'RPE ' + existing.sessionRpe : ''}${existing.note ? '<br>' + esc(existing.note) : ''}</div></div>
+      <button class="btn secondary" id="btnEditLog" style="margin-top:12px">Edit log</button>`;
+    $('#btnEditLog', sheet).onclick = () => renderLogForm(sheet, sess, existing);
+    return;
+  }
+  block.innerHTML = `<button class="btn" id="btnStartLog">Log this session</button><button class="btn ghost" id="btnSkip" style="width:100%;margin-top:6px">I skipped this one</button>`;
+  $('#btnStartLog', sheet).onclick = () => renderLogForm(sheet, sess, null);
+  $('#btnSkip', sheet).onclick = () => renderLogForm(sheet, sess, { status: 'skipped' });
+}
+
+function renderLogForm(sheet, sess, existing) {
+  const block = $('#logBlock', sheet);
+  const skipping = existing?.status === 'skipped' && !existing.exercises;
+  const draft = existing && existing.exercises ? JSON.parse(JSON.stringify(existing)) : {
+    status: skipping ? 'skipped' : 'done', durationMin: sess.durationMin, sessionRpe: null, note: '',
+    exercises: sess.exercises.map((x) => ({ name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null,
+      sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: numOnly(x.reps), load: numOnly(x.load), done: false }) ) })),
+  };
+  const svgCheck = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>';
+  block.innerHTML = `<h3 style="margin-bottom:6px">${skipping ? 'Skipped session' : 'Log'}</h3>
+    ${skipping ? '' : `<p class="muted small">Tap ✓ per set as you go. Reps and load are prefilled from the plan; change them to what you actually did.</p>` }
+    <div id="logEx"></div>
+    ${skipping ? '' : `<div class="field" style="margin-top:22px"><label>How hard was the whole session? (RPE 1–10)</label><div class="rpe" id="sessRpe"></div></div>
+    <div class="field"><label for="logDur">Actual duration</label><div class="unit-input"><input class="input" id="logDur" type="number" inputmode="numeric" value="${draft.durationMin || ''}"><span>min</span></div></div>`}
+    <div class="field"><label for="logNote">${skipping ? 'Why? (helps next week\'s plan)' : 'Notes'} <span class="muted">(optional)</span></label><textarea class="input" id="logNote" placeholder="${skipping ? 'e.g. Sick, work ran late, too sore from Tuesday' : 'e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6'}">${esc(draft.note || '')}</textarea></div>
+    <button class="btn" id="btnSaveLog">${skipping ? 'Save as skipped' : 'Save session'}</button>
+    <button class="btn ghost" id="btnCancelLog" style="width:100%;margin-top:6px">Cancel</button>`;
+  const exWrap = $('#logEx', sheet);
+  if (!skipping) draft.exercises.forEach((ex, ei) => {
+    const card = document.createElement('div'); card.className = 'ex';
+    card.innerHTML = `<div class="name"><span>${esc(ex.name)}</span><span class="muted small">${esc(ex.prescribed)}</span></div>
+      <div class="setgrid"><span class="h">Set</span><span class="h">Reps</span><span class="h">Load (kg)</span><span></span></div>`;
+    const grid = card.querySelector('.setgrid');
+    ex.sets.forEach((st, si) => {
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = si + 1;
+      const r = document.createElement('input'); r.className = 'input'; r.type = 'number'; r.inputMode = 'decimal'; r.value = st.reps ?? ''; r.placeholder = '–'; r.oninput = () => { st.reps = r.value === '' ? null : Number(r.value); };
+      const l = document.createElement('input'); l.className = 'input'; l.type = 'number'; l.inputMode = 'decimal'; l.step = '0.5'; l.value = st.load ?? ''; l.placeholder = '–'; l.oninput = () => { st.load = l.value === '' ? null : Number(l.value); };
+      const c = document.createElement('button'); c.type = 'button'; c.className = 'check'; c.setAttribute('aria-pressed', st.done); c.setAttribute('aria-label', 'Set ' + (si + 1) + ' done'); c.innerHTML = svgCheck;
+      c.onclick = () => { st.done = !st.done; c.setAttribute('aria-pressed', st.done); if (st.done && si + 1 < ex.sets.length) { const nx = ex.sets[si + 1]; if (nx.reps == null) nx.reps = st.reps; if (nx.load == null) nx.load = st.load; grid.querySelectorAll('input')[(si + 1) * 2].value = nx.reps ?? ''; grid.querySelectorAll('input')[(si + 1) * 2 + 1].value = nx.load ?? ''; } };
+      grid.append(n, r, l, c);
+    });
+    const rpe = document.createElement('div'); rpe.className = 'rpe'; rpe.style.marginTop = '10px';
+    for (let i = 6; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'RPE ' + i; b.setAttribute('aria-pressed', ex.rpe === i); b.onclick = () => { ex.rpe = ex.rpe === i ? null : i; $$('button', rpe).forEach((x) => x.setAttribute('aria-pressed', x === b && ex.rpe === i)); }; rpe.append(b); }
+    card.append(rpe); exWrap.append(card);
+  });
+  if (!skipping) {
+    const sr = $('#sessRpe', sheet);
+    for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', draft.sessionRpe === i); b.onclick = () => { draft.sessionRpe = i; $$('button', sr).forEach((x) => x.setAttribute('aria-pressed', x === b)); }; sr.append(b); }
+  }
+  $('#btnCancelLog', sheet).onclick = () => renderLogBlock(sheet, sess);
+  $('#btnSaveLog', sheet).onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
+    draft.note = $('#logNote', sheet).value.trim();
+    if (!skipping) {
+      draft.durationMin = Number($('#logDur', sheet).value) || 0;
+      const total = draft.exercises.reduce((a, x) => a + x.sets.length, 0);
+      const done = draft.exercises.reduce((a, x) => a + x.sets.filter((st) => st.done).length, 0);
+      draft.status = total === 0 ? 'done' : done === 0 ? 'skipped' : done < total ? 'partial' : 'done';
+      draft.setsDone = done; draft.setsTotal = total;
+    } else { draft.exercises = null; draft.durationMin = 0; draft.sessionRpe = null; }
+    const rec = { ...draft, weekId: state.plan.weekId, day: sess.day, title: sess.title, type: sess.type, loggedAt: new Date().toISOString() };
+    try {
+      await db.doc('users/' + state.user.uid + '/logs/' + logId(sess)).set(rec);
+      state.logs[logId(sess)] = rec; toast(rec.status === 'skipped' ? 'Saved as skipped' : 'Session saved'); renderLogBlock(sheet, sess);
+      sheet.scrollTo({ top: sheet.scrollHeight, behavior: 'smooth' });
+    } catch (e) { console.error(e); toast('Could not save. Check your connection.'); b.disabled = false; b.textContent = 'Save session'; }
+  };
+  block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function numOnly(v) { const m = String(v ?? '').match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
+
+async function viewLog(el) {
+  const p = state.profile;
+  // Weight card
+  const wc = document.createElement('div'); wc.className = 'card';
+  wc.innerHTML = `<h3>Weight</h3><div class="muted small" id="wLatest">Loading…</div><div class="wchart" id="wChart"></div>
+    <div class="row" style="margin-top:12px;align-items:stretch"><div class="unit-input"><input class="input" id="wIn" type="number" inputmode="decimal" step="0.1" placeholder="${p.weightKg}"><span>kg</span></div><button class="btn sm" id="wAdd" style="flex:0 0 auto">Add today</button></div>`;
+  el.append(wc);
+  const hist = document.createElement('div'); hist.className = 'card'; hist.innerHTML = '<h3>Sessions</h3><div class="muted small">Loading…</div>'; el.append(hist);
+  try {
+    const wq = await db.collection('users/' + state.user.uid + '/weights').orderBy('at', 'desc').limit(30).get();
+    const ws = wq.docs.map((d) => d.data()).reverse();
+    if (ws.length) {
+      const last = ws[ws.length - 1]; const first = ws[0];
+      const diff = ws.length > 1 ? (last.kg - first.kg) : 0;
+      $('#wLatest').textContent = `${last.kg} kg · ${new Date(last.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` + (ws.length > 1 ? ` · ${diff >= 0 ? '+' : ''}${diff.toFixed(1)} kg since ${new Date(first.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : '');
+      const min = Math.min(...ws.map((w) => w.kg)) - 1, max = Math.max(...ws.map((w) => w.kg)) + 1;
+      $('#wChart').innerHTML = ws.map((w) => `<i style="height:${Math.round(((w.kg - min) / (max - min)) * 100)}%" title="${w.kg} kg"></i>`).join('');
+    } else $('#wLatest').textContent = 'No entries yet';
+  } catch (e) { $('#wLatest').textContent = 'Could not load'; }
+  $('#wAdd').onclick = async () => {
+    const kg = Number($('#wIn').value); if (!(kg > 30 && kg < 250)) { toast('Enter your weight in kg.'); return; }
+    try {
+      await db.collection('users/' + state.user.uid + '/weights').add({ kg, at: new Date().toISOString() });
+      await db.doc('users/' + state.user.uid).set({ profile: { weightKg: kg } }, { merge: true }); state.profile.weightKg = kg;
+      toast('Weight saved'); navigate('log');
+    } catch (e) { toast('Could not save.'); }
+  };
+  try {
+    const lq = await db.collection('users/' + state.user.uid + '/logs').orderBy('loggedAt', 'desc').limit(40).get();
+    const logs = lq.docs.map((d) => d.data());
+    if (!logs.length) { hist.innerHTML = '<div class="empty"><h3>Nothing logged yet</h3><p>Open today\'s session and tap Log this session when you\'re done.</p></div>'; return; }
+    const weeksDone = logs.filter((l) => l.status !== 'skipped').length;
+    hist.innerHTML = `<h3>Sessions</h3><div class="muted small">${weeksDone} completed · ${logs.length - weeksDone} skipped (last ${logs.length})</div>`;
+    logs.forEach((l) => {
+      const row = document.createElement('button'); row.type = 'button'; row.className = 'log-item';
+      const d = new Date(l.loggedAt);
+      row.innerHTML = `<span class="d">${DAYS[l.day]}<br>${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span><span class="m"><strong>${esc(l.title)}</strong><span>${esc(l.type)}${l.setsTotal ? ' · ' + l.setsDone + '/' + l.setsTotal + ' sets' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}${l.note ? ' · ' + esc(l.note) : ''}</span></span>${statusHtml(l)}`;
+      row.onclick = () => openLog(l);
+      hist.append(row);
+    });
+  } catch (e) { console.error(e); hist.innerHTML = '<h3>Sessions</h3><div class="muted small">Could not load history.</div>'; }
+}
+function openLog(l) {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>${DAYS[l.day]} · ${new Date(l.loggedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</h2></div>
+    ${statusHtml(l)}<h1>${esc(l.title)}</h1>
+    <div class="muted small">${l.durationMin ? l.durationMin + ' min' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}</div>
+    ${l.note ? `<div class="intent">${esc(l.note)}</div>` : ''}
+    ${l.exercises ? `<div class="block"><h3>What you did</h3>${l.exercises.map((x) => `<div class="ex"><div class="name"><span>${esc(x.name)}</span><span class="muted small">${x.rpe ? 'RPE ' + x.rpe : ''}</span></div><div class="meta">${x.sets.map((st) => (st.done ? '' : '<s>') + (st.reps ?? '–') + (st.load ? '×' + st.load + 'kg' : '') + (st.done ? '' : '</s>')).join(' · ')}</div></div>`).join('')}</div>` : ''}
   </div>`;
   document.body.append(sheet); document.body.style.overflow = 'hidden';
   const close = () => { sheet.remove(); document.body.style.overflow = ''; };
-  $('#btnCloseSheet', sheet).onclick = close;
-  sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
-}
-
-function viewLog(el) {
-  el.innerHTML = `<div class="card"><div class="empty"><h3>Nothing logged yet</h3><p>Once you finish a session from Today, your sets, loads and notes land here.</p></div></div>`;
 }
 function viewNutrition(el) {
   const n = state.profile.nutrition;
