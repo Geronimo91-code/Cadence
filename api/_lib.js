@@ -96,6 +96,7 @@ export function weekId(d = new Date()) {
 }
 
 // ---------------- Plan prompt & validation (shared by generate-plan and weekly-review) ----------------
+export const LANG_NAMES = { en: 'English', fr: 'French', nl: 'Dutch', tr: 'Turkish', es: 'Spanish' };
 export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export function phaseFor(profile, ref = new Date()) {
@@ -155,7 +156,8 @@ export function athleteBlock(p, id, ref = new Date()) {
 - Equipment: ${p.equipment.join(', ')}
 - Injuries / limits: ${p.injuries || 'none'}
 - ${phaseFor(p, ref).text}
-- Today: ${DAY_NAMES[(ref.getDay() + 6) % 7]} ${ref.toISOString().slice(0, 10)}; the plan is for ISO week ${id}, Monday to Sunday.`;
+- Today: ${DAY_NAMES[(ref.getDay() + 6) % 7]} ${ref.toISOString().slice(0, 10)}; the plan is for ISO week ${id}, Monday to Sunday.
+- Language: write EVERY athlete-facing string (titles, intent, warm-up, cues, cool-down, rationale, review text) in ${LANG_NAMES[p.lang] || 'English'}. Keep JSON keys and the "type" values in English.`;
 }
 
 export function validatePlan(plan) {
