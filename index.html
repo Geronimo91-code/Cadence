@@ -149,7 +149,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .ob-step h2 { font-size: 1.75rem; margin-bottom: 6px; }
 .ob-step > p.muted { margin-bottom: 24px; }
 .ob-actions {
-  position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg) 70%, transparent);
 }
 .ob-actions .container { display: flex; gap: 10px; }
@@ -193,7 +193,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .switch[aria-checked="true"]::after { left: 21px; }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(var(--tab-h) + 16px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
+  position: fixed; left: 50%; bottom: calc(var(--tab-h) + 26px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
   background: var(--ink); color: var(--white); padding: 12px 18px; border-radius: 12px; font-size: .95rem;
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100% - 40px); z-index: 50;
 }
@@ -236,6 +236,7 @@ textarea.input { min-height: 90px; resize: vertical; }
   <div class="container">
     <div class="ob-top">
       <div class="ob-progress" id="obProgress"></div>
+      <button class="btn ghost sm hidden" id="btnObCancel">Cancel</button>
       <button class="btn ghost sm" id="btnObSignOut">Sign out</button>
     </div>
     <div id="obStep" class="ob-step"></div>
@@ -377,6 +378,7 @@ auth.onAuthStateChanged(async (user) => {
   enterApp();
 });
 $('#btnObSignOut').onclick = () => auth.signOut();
+$('#btnObCancel').onclick = () => enterApp();
 
 /* ============================================================
    Onboarding wizard
@@ -401,7 +403,7 @@ const STEPS = [
       const d = ob.data; if (!d.name) return 'Add your first name.'; if (!(d.age >= 13 && d.age <= 90)) return 'Enter an age between 13 and 90.';
       if (!(d.heightCm >= 120 && d.heightCm <= 230)) return 'Enter your height in cm.'; if (!(d.weightKg >= 30 && d.weightKg <= 250)) return 'Enter your weight in kg.'; if (!d.sex) return 'Choose an option for sex.'; } },
   { key: 'sports', title: 'What do you play or train?', sub: 'Pick everything you do regularly. Your main sport goes first.', render: renderSports, validate: () => { if (!ob.data.sports?.length) return 'Pick at least one sport.'; if (!ob.data.level) return 'Choose your training level.'; } },
-  { key: 'goal', title: 'What are you working toward?', sub: 'One main goal keeps the plan focused. You can change it any time.', render: renderGoal, validate: () => { if (!ob.data.goal) return 'Choose a main goal.'; } },
+  { key: 'goal', title: 'What are you working toward?', sub: 'Pick up to three, in order of importance. The first one leads the plan.', render: renderGoal, validate: () => { if (!ob.data.goals?.length) return 'Choose at least one goal.'; } },
   { key: 'availability', title: 'When can you train?', sub: 'Tap the days you can commit to. Club practices and matches count too.', render: renderAvailability, validate: () => { if (!ob.data.days?.length) return 'Pick at least one day.'; if (!ob.data.sessionMin) return 'Choose a session length.'; } },
   { key: 'setup', title: 'What do you have access to?', sub: 'And anything the plan should work around.', render: renderSetup, validate: () => { if (!ob.data.equipment?.length) return 'Pick at least one option.'; } },
   { key: 'deadline', title: 'Anything on the calendar?', sub: 'A tournament, a race, a season start. Cadence builds toward it and tapers before it.', render: renderDeadline, validate: () => { if (ob.data.hasDeadline && (!ob.data.deadlineDate || !ob.data.deadlineName)) return 'Add the event name and date.'; } },
@@ -409,9 +411,12 @@ const STEPS = [
   { key: 'review', title: 'Here is your setup', sub: 'Check it over. You can edit any of this later from Profile.', render: renderReview },
 ];
 
-function startOnboarding() {
-  ob = { step: 0, data: { name: state.user.displayName?.split(' ')[0] || '', days: [], sports: [], equipment: [], injuries: '', hasDeadline: false, diet: ['No restrictions'] } };
-  renderStep(); show('onboarding');
+function startOnboarding(existing) {
+  const fresh = { name: state.user.displayName?.split(' ')[0] || '', days: [], sports: [], equipment: [], goals: [], injuries: '', hasDeadline: false, diet: ['No restrictions'] };
+  ob = { step: 0, editing: !!existing, data: existing ? { ...fresh, ...existing } : fresh };
+  $('#btnObCancel').classList.toggle('hidden', !existing);
+  const next = $('#btnObNext'); next.disabled = false;
+  show('onboarding'); renderStep();
 }
 function renderStep() {
   const s = STEPS[ob.step];
@@ -425,11 +430,13 @@ function renderStep() {
 }
 $('#btnObBack').onclick = () => { if (ob.step > 0) { ob.step--; renderStep(); } };
 $('#btnObNext').onclick = async () => {
-  const s = STEPS[ob.step];
-  const err = s.validate ? s.validate() : null;
-  if (err) { toast(err); return; }
-  if (ob.step < STEPS.length - 1) { ob.step++; renderStep(); return; }
-  await saveProfile();
+  try {
+    const s = STEPS[ob.step];
+    const err = s.validate ? s.validate() : null;
+    if (err) { toast(err); return; }
+    if (ob.step < STEPS.length - 1) { ob.step++; renderStep(); return; }
+    await saveProfile();
+  } catch (e) { console.error('onboarding step failed', e); toast('Something went wrong on this screen. Try again.'); }
 };
 
 function chipGroup(items, selected, onChange, { multi = true } = {}) {
@@ -485,7 +492,25 @@ function renderSports(el) {
   el.append(h, optionGroup(LEVELS, d.level, (v) => { d.level = v; }));
 }
 function renderGoal(el) {
-  el.append(optionGroup(GOALS, ob.data.goal, (v) => { ob.data.goal = v; }));
+  const d = ob.data; d.goals = d.goals || [];
+  const wrap = document.createElement('div'); wrap.className = 'options';
+  const paint = () => $$('.option', wrap).forEach((o) => {
+    const i = d.goals.indexOf(o.dataset.val);
+    o.setAttribute('aria-checked', i >= 0);
+    o.querySelector('.rank').textContent = i >= 0 ? (i === 0 ? 'Main goal' : `Focus ${i + 1}`) : '';
+  });
+  GOALS.forEach(([val, title, desc]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'option'; b.dataset.val = val;
+    b.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px"><strong>${title}</strong><em class="rank small" style="color:var(--green);font-style:normal;font-weight:600"></em></div><span>${desc}</span>`;
+    b.onclick = () => {
+      if (d.goals.includes(val)) d.goals = d.goals.filter((g) => g !== val);
+      else if (d.goals.length < 3) d.goals = [...d.goals, val];
+      else toast('Three goals is the limit. Remove one to swap.');
+      paint();
+    };
+    wrap.append(b);
+  });
+  paint(); el.append(wrap);
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fGoalNote">Anything specific? <span class="muted">(optional)</span></label><textarea class="input" id="fGoalNote" placeholder="e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half"></textarea></div>`);
   bind($('#fGoalNote'), 'goalNote');
 }
@@ -528,7 +553,7 @@ function renderReview(el) {
     ['You', `${d.name}, ${d.age}, ${d.heightCm} cm, ${d.weightKg} kg`],
     ['Sports', d.sports.join(', ')],
     ['Level', LEVELS.find((l) => l[0] === d.level)?.[1]],
-    ['Goal', GOALS.find((g) => g[0] === d.goal)?.[1] + (d.goalNote ? ` — ${d.goalNote}` : '')],
+    ['Goals', (d.goals || []).map((g) => GOALS.find((x) => x[0] === g)?.[1]).join(', ') + (d.goalNote ? ` — ${d.goalNote}` : '')],
     ['Days', d.days.map((i) => DAYS[i]).join(', ') + ` · ${d.sessionMin} min`],
     ['Equipment', d.equipment.join(', ')],
     ['Limits', d.injuries || 'None'],
@@ -545,7 +570,7 @@ async function saveProfile() {
   const d = ob.data;
   const profile = {
     name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg,
-    sports: d.sports, level: d.level, goal: d.goal, goalNote: d.goalNote || '',
+    sports: d.sports, level: d.level, goals: d.goals, goal: d.goals[0], goalNote: d.goalNote || '',
     days: d.days, sessionMin: d.sessionMin, fixed: d.fixed || '',
     equipment: d.equipment, injuries: d.injuries || '',
     deadline: d.hasDeadline ? { name: d.deadlineName, date: d.deadlineDate } : null,
@@ -554,12 +579,14 @@ async function saveProfile() {
     updatedAt: new Date().toISOString(),
   };
   try {
-    await db.doc('users/' + state.user.uid).set({
-      profile, email: state.user.email || null, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-    await db.collection('users/' + state.user.uid + '/weights').add({ kg: d.weightKg, at: new Date().toISOString() });
+    const ref = db.doc('users/' + state.user.uid);
+    const payload = { profile, email: state.user.email || null };
+    if (!ob.editing) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    await ref.set(payload, { merge: true });
+    if (!ob.editing || state.profile?.weightKg !== d.weightKg) await db.collection('users/' + state.user.uid + '/weights').add({ kg: d.weightKg, at: new Date().toISOString() });
+    const wasEditing = ob.editing;
     state.profile = profile;
-    enterApp();
+    enterApp(); if (wasEditing) { navigate('profile'); toast('Setup saved'); }
   } catch (e) {
     console.error(e); toast('Could not save. Check your connection and try again.');
     btn.disabled = false; btn.textContent = 'Save and start';
@@ -653,7 +680,7 @@ function viewProfile(el) {
       <h3>${esc(p.name)}</h3>
       <div class="muted small">${p.age} · ${p.heightCm} cm · ${p.weightKg} kg · ${esc(p.sports[0])}</div>
       <div class="list" style="margin-top:12px">
-        <div class="li"><span>Goal</span><span class="muted">${esc(GOALS.find((g) => g[0] === p.goal)?.[1])}</span></div>
+        <div class="li"><span>Goals</span><span class="muted">${esc((p.goals || [p.goal]).map((g) => GOALS.find((x) => x[0] === g)?.[1]).join(', '))}</span></div>
         <div class="li"><span>Training days</span><span class="muted">${p.days.map((i) => DAYS[i]).join(', ')}</span></div>
         <div class="li"><span>Deadline</span><span class="muted">${p.deadline ? esc(p.deadline.name) : 'None'}</span></div>
         <div class="li"><span>Nutrition</span><span class="muted">${p.nutrition ? esc(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1]) : 'Off'}</span></div>
@@ -671,12 +698,12 @@ function viewProfile(el) {
       </div>
       <button class="btn ghost" id="btnSignOut" style="margin-top:8px;padding-left:0">Sign out</button>
     </div>`);
-  $('#btnEdit').onclick = () => { startOnboarding(); ob.data = profileToOb(p); ob.step = 0; renderStep(); };
+  $('#btnEdit').onclick = () => startOnboarding(profileToOb(p));
   $('#btnSignOut').onclick = () => auth.signOut();
   setupPushToggle();
 }
 function profileToOb(p) {
-  return { ...p, hasDeadline: !!p.deadline, deadlineName: p.deadline?.name, deadlineDate: p.deadline?.date, nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
+  return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
 }
 function greeting() { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 18 ? 'Afternoon' : 'Evening'; }
 
