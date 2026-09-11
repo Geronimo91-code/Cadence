@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     return res.status(200).json(plan);
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: 'Could not generate a plan right now' });
+    const busy = /429|rate|no free|unavailable|did not return JSON/i.test(e.message);
+    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy right now. Try again in a minute.' : 'Could not generate a plan right now' });
   }
 }

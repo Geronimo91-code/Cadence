@@ -31,27 +31,49 @@ export function requireCron(req, res) {
   return ok;
 }
 
-export async function callModel({ system, user, maxTokens = 4000 }) {
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://cadence.app',
-      'X-Title': 'Cadence',
-    },
-    body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
-      max_tokens: maxTokens,
-      temperature: 0.4,
-      response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-    }),
-  });
-  if (!r.ok) throw new Error(`Model error ${r.status}: ${await r.text()}`);
-  const data = await r.json();
-  const text = data.choices?.[0]?.message?.content || '{}';
-  return JSON.parse(text.replace(/```json|```/g, '').trim());
+export async function callModel({ system, user, maxTokens = 4000, retries = 1 }) {
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://cadence.app',
+          'X-Title': 'Cadence',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTokens,
+          temperature: 0.4,
+          messages: [
+            { role: 'system', content: system + '\n\nRespond with a single JSON object and nothing else. No markdown, no commentary.' },
+            { role: 'user', content: user },
+          ],
+        }),
+      });
+      if (!r.ok) throw new Error(`Model error ${r.status}: ${(await r.text()).slice(0, 300)}`);
+      const data = await r.json();
+      const text = data.choices?.[0]?.message?.content || '';
+      return extractJson(text);
+    } catch (e) {
+      lastErr = e;
+      console.warn(`callModel attempt ${attempt + 1} failed:`, e.message);
+      if (attempt < retries) await new Promise((res) => setTimeout(res, 1500));
+    }
+  }
+  throw lastErr;
+}
+
+// Free/open models often wrap JSON in prose or code fences; pull out the first balanced object.
+function extractJson(text) {
+  const cleaned = text.replace(/```(?:json)?/gi, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('Model did not return JSON');
+  return JSON.parse(cleaned.slice(start, end + 1));
 }
 
 // ISO week id like 2026-W37, used as the plan document id
