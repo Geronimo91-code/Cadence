@@ -282,6 +282,18 @@ textarea.input { min-height: 90px; resize: vertical; }
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .grid4 .input { padding: 10px 8px; text-align: center; }
 .grid4 label { font-size: .75rem; color: var(--ink-3); display: block; text-align: center; margin-bottom: 4px; }
+.chart { width: 100%; height: auto; display: block; margin-top: 10px; }
+.chart text { font-family: var(--font-body); font-size: 10px; fill: var(--ink-3); }
+.chart .line { fill: none; stroke: var(--green); stroke-width: 2; stroke-linejoin: round; }
+.chart .area { fill: var(--sage-2); }
+.chart .bar { fill: var(--sage); } .chart .bar.hi { fill: var(--green); } .chart .bar.lo { fill: var(--amber); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .dot { fill: var(--green); }
+.pr { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); gap: 10px; }
+.pr:last-child { border-bottom: 0; }
+.pr .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr .v { font-family: var(--font-display); font-weight: 700; white-space: nowrap; }
+.pr .d { font-size: .8rem; color: var(--green); white-space: nowrap; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -1042,6 +1054,58 @@ function openRpeInfo() {
 }
 function numOnly(v) { const m = String(v ?? '').match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
 
+let progMonths = 3;
+function svgLine(points, { w = 340, h = 110, unit = '' } = {}) {
+  if (points.length < 2) return '';
+  const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys) - 0.5, y1 = Math.max(...ys) + 0.5;
+  const px = (x) => 28 + ((x - x0) / ((x1 - x0) || 1)) * (w - 36), py = (y) => 8 + (1 - (y - y0) / ((y1 - y0) || 1)) * (h - 26);
+  const d = points.map((p, i) => (i ? 'L' : 'M') + px(p.x).toFixed(1) + ' ' + py(p.y).toFixed(1)).join(' ');
+  const area = d + ` L${px(x1).toFixed(1)} ${h - 18} L${px(x0).toFixed(1)} ${h - 18} Z`;
+  const ticks = [y0 + 0.5, (y0 + y1) / 2, y1 - 0.5];
+  const f = (d) => new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' });
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${ticks.map((t) => `<line class="grid" x1="28" x2="${w - 8}" y1="${py(t).toFixed(1)}" y2="${py(t).toFixed(1)}"/><text x="0" y="${(py(t) + 3).toFixed(1)}">${t.toFixed(1)}</text>`).join('')}<path class="area" d="${area}"/><path class="line" d="${d}"/><circle class="dot" r="3" cx="${px(x1).toFixed(1)}" cy="${py(ys[ys.length - 1]).toFixed(1)}"/><text x="28" y="${h - 4}">${f(x0)}</text><text x="${w - 8}" y="${h - 4}" text-anchor="end">${f(x1)}</text></svg>`;
+}
+function svgBars(items, { w = 340, h = 110, max = 100, lo = 50, suffix = '' } = {}) {
+  if (!items.length) return '';
+  const bw = Math.max(4, Math.min(28, (w - 40) / items.length - 3));
+  const x = (i) => 30 + i * ((w - 40) / items.length);
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}"><line class="grid" x1="28" x2="${w - 8}" y1="8" y2="8"/><text x="0" y="11">${max}${suffix}</text><line class="grid" x1="28" x2="${w - 8}" y1="${h - 18}" y2="${h - 18}"/>${items.map((it, i) => { const bh = Math.max(2, (it.v / max) * (h - 26)); return `<rect class="bar ${it.v >= 80 ? 'hi' : it.v < lo ? 'lo' : ''}" x="${x(i).toFixed(1)}" y="${(h - 18 - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="3"><title>${it.label}: ${it.v}${suffix}</title></rect>`; }).join('')}<text x="30" y="${h - 4}">${items[0].label}</text><text x="${w - 8}" y="${h - 4}" text-anchor="end">${items[items.length - 1].label}</text></svg>`;
+}
+async function renderProgress(el) {
+  const uid = state.user.uid;
+  const since = new Date(); since.setMonth(since.getMonth() - progMonths); const sinceIso = since.toISOString();
+  const [wq, lq, rq] = await Promise.all([
+    db.collection('users/' + uid + '/weights').where('at', '>=', sinceIso).orderBy('at').limit(400).get(),
+    db.collection('users/' + uid + '/logs').where('loggedAt', '>=', sinceIso).orderBy('loggedAt').limit(600).get(),
+    db.collection('users/' + uid + '/reviews').orderBy('weekId', 'desc').limit(progMonths * 5).get(),
+  ]);
+  const weights = wq.docs.map((d) => d.data());
+  const logs = lq.docs.map((d) => d.data());
+  const reviews = rq.docs.map((d) => d.data()).reverse().filter((r) => new Date(r.createdAt) >= since);
+  if (weights.length < 2 && logs.length < 2) { el.textContent = T('Not enough data yet — log a few weeks to see trends.'); return; }
+  let html = '';
+  if (weights.length >= 2) {
+    const diff = weights[weights.length - 1].kg - weights[0].kg;
+    html += `<div style="margin-top:6px"><div class="lbl" style="display:flex;justify-content:space-between"><b>${T('Weight')}</b><span class="muted">${weights[weights.length - 1].kg} kg · ${diff >= 0 ? '+' : ''}${diff.toFixed(1)} kg</span></div>${svgLine(weights.map((w) => ({ x: new Date(w.at).getTime(), y: w.kg })))}</div>`;
+  }
+  // adherence per week: reviews first, fall back to logs count
+  const byWeek = new Map();
+  logs.forEach((l) => { const w = byWeek.get(l.weekId) || { done: 0, total: 0, rpes: [] }; w.total++; if (l.status !== 'skipped') w.done += l.status === 'partial' ? 0.5 : 1; if (l.sessionRpe) w.rpes.push(l.sessionRpe); byWeek.set(l.weekId, w); });
+  reviews.forEach((r) => { const w = byWeek.get(r.weekId) || { done: 0, total: 0, rpes: [] }; w.adherence = r.stats?.adherence; byWeek.set(r.weekId, w); });
+  const weeks = [...byWeek.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  if (weeks.length >= 2) {
+    html += `<div style="margin-top:16px"><b>${T('Adherence by week')}</b>${svgBars(weeks.map(([id, w]) => ({ label: id.slice(5), v: w.adherence ?? (w.total ? Math.round((w.done / w.total) * 100) : 0) })), { max: 100, suffix: '%' })}</div>`;
+    const rp = weeks.filter(([, w]) => w.rpes.length).map(([id, w]) => ({ label: id.slice(5), v: Math.round((w.rpes.reduce((a, b) => a + b, 0) / w.rpes.length) * 10) / 10 }));
+    if (rp.length >= 2) html += `<div style="margin-top:16px"><b>${T('Session RPE')}</b>${svgBars(rp, { max: 10, lo: 0 })}</div>`;
+  }
+  // best load by exercise
+  const best = new Map();
+  logs.forEach((l) => (l.exercises || []).forEach((ex) => { const key = ex.name.trim().toLowerCase(); ex.sets.forEach((st) => { if (!st.done || !st.load) return; const cur = best.get(key) || { name: ex.name, first: null, max: 0, maxAt: null }; if (cur.first == null) cur.first = st.load; if (st.load > cur.max) { cur.max = st.load; cur.maxAt = l.loggedAt; } best.set(key, cur); }); }));
+  const prs = [...best.values()].sort((a, b) => b.max - a.max).slice(0, 8);
+  if (prs.length) html += `<div style="margin-top:16px"><b>${T('Best load by exercise')}</b><div style="margin-top:4px">${prs.map((p) => `<div class="pr"><span class="n">${esc(p.name)}</span>${p.first && p.max > p.first ? `<span class="d">+${(p.max - p.first).toFixed(1)} kg</span>` : ''}<span class="v">${p.max} kg</span></div>`).join('')}</div></div>`;
+  el.className = ''; el.innerHTML = html || T('Not enough data yet — log a few weeks to see trends.');
+}
 async function viewLog(el) {
   const p = state.profile;
   // Weight card
@@ -1049,7 +1113,10 @@ async function viewLog(el) {
   wc.innerHTML = `<h3>${T('Weight')}</h3><div class="muted small" id="wLatest">${T('Loading…')}</div><div class="wchart" id="wChart"></div>
     <div class="row" style="margin-top:12px;align-items:stretch"><div class="unit-input"><input class="input" id="wIn" type="number" inputmode="decimal" step="0.1" placeholder="${p.weightKg}"><span>kg</span></div><button class="btn sm" id="wAdd" style="flex:0 0 auto">${T('Add today')}</button></div>`;
   el.append(wc);
+  const prog = document.createElement('div'); prog.className = 'card'; prog.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>${T('Progress')}</h3><div class="seg" style="margin:0"><button type="button" data-m="3" aria-pressed="${progMonths === 3}">3</button><button type="button" data-m="6" aria-pressed="${progMonths === 6}">6</button><button type="button" data-m="12" aria-pressed="${progMonths === 12}">12</button></div></div><div id="progBody" class="muted small" style="margin-top:8px">${T('Loading…')}</div>`; el.append(prog);
+  $$('.seg button', prog).forEach((b) => { b.onclick = () => { progMonths = Number(b.dataset.m); navigate('log'); }; });
   const hist = document.createElement('div'); hist.className = 'card'; hist.innerHTML = `<h3>${T('Sessions')}</h3><div class="muted small">${T('Loading…')}</div>`; el.append(hist);
+  renderProgress($('#progBody', prog)).catch((e) => { console.error(e); $('#progBody', prog).textContent = T('Could not load'); });
   try {
     const wq = await db.collection('users/' + state.user.uid + '/weights').orderBy('at', 'desc').limit(30).get();
     const ws = wq.docs.map((d) => d.data()).reverse();
