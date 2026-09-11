@@ -448,6 +448,7 @@ function chipGroup(items, selected, onChange, { multi = true } = {}) {
       let next;
       if (multi) next = selected.includes(label) ? selected.filter((x) => x !== label) : [...selected, label];
       else next = [label];
+      selected = next;
       onChange(next);
       $$('.chip', wrap).forEach((c) => c.setAttribute('aria-pressed', next.includes(c.textContent)));
     };
