@@ -4,8 +4,14 @@ import admin from 'firebase-admin';
 let app;
 export function getAdmin() {
   if (!app) {
-    const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
-    app = admin.apps.length ? admin.app() : admin.initializeApp({ credential: admin.credential.cert(sa) });
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (!raw) throw Object.assign(new Error('FIREBASE_SERVICE_ACCOUNT is not set in Vercel'), { code: 'config' });
+    let sa;
+    try { sa = JSON.parse(raw); } catch (e) { throw Object.assign(new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON: ' + e.message), { code: 'config' }); }
+    if (!sa.project_id || !sa.private_key || !sa.client_email) throw Object.assign(new Error('FIREBASE_SERVICE_ACCOUNT is missing project_id, private_key or client_email'), { code: 'config' });
+    // Restore newlines if the private key was flattened when pasting
+    if (!sa.private_key.includes('\n')) sa.private_key = sa.private_key.replace(/\\n/g, '\n');
+    app = admin.apps.length ? admin.app() : admin.initializeApp({ credential: admin.credential.cert(sa), projectId: sa.project_id });
   }
   return admin;
 }
@@ -20,7 +26,10 @@ export async function requireUser(req, res) {
   try {
     return await getAdmin().auth().verifyIdToken(token);
   } catch (e) {
-    res.status(401).json({ error: 'Session expired, sign in again' });
+    console.error('requireUser failed:', e.code || '', e.message);
+    if (e.code === 'config') { res.status(500).json({ error: 'Server setup problem: ' + e.message }); return null; }
+    if (/audience|project|aud/i.test(e.message)) { res.status(401).json({ error: 'Server is using a service account from a different Firebase project' }); return null; }
+    res.status(401).json({ error: 'Could not verify your session. Sign out and back in.' });
     return null;
   }
 }
