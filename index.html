@@ -200,6 +200,33 @@ textarea.input { min-height: 90px; resize: vertical; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--sage-2); color: var(--green-2); }
+.badge.rest { background: var(--bg); color: var(--ink-3); border: 1px solid var(--line); }
+.badge.match, .badge.skills { background: var(--amber-2); color: #8a5a10; }
+.session-row { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.session-row:last-child { border-bottom: 0; }
+.session-row .dow { width: 38px; font-family: var(--font-display); font-weight: 700; font-size: .95rem; color: var(--ink-3); }
+.session-row.today .dow { color: var(--amber); }
+.session-row .main { flex: 1; min-width: 0; }
+.session-row .main strong { display: block; font-weight: 600; }
+.session-row .main span { color: var(--ink-2); font-size: .85rem; }
+.session-row .chev { color: var(--ink-3); }
+.sheet { position: fixed; inset: 0; background: var(--bg); z-index: 40; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.sheet .container { padding-bottom: 60px; }
+.sheet-top { position: sticky; top: 0; background: var(--bg); padding: 14px 0 10px; display: flex; align-items: center; gap: 10px; z-index: 1; }
+.sheet-top h2 { flex: 1; font-size: 1.1rem; }
+.sheet h1 { font-size: 1.7rem; margin: 6px 0 4px; }
+.block { margin-top: 24px; }
+.block h3 { margin-bottom: 8px; }
+.block ul { list-style: none; }
+.block li { padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--ink-2); }
+.ex { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.ex:last-child { border-bottom: 0; }
+.ex .name { font-weight: 600; display: flex; justify-content: space-between; gap: 10px; }
+.ex .name .rx { font-family: var(--font-display); font-weight: 700; white-space: nowrap; }
+.ex .meta { color: var(--ink-2); font-size: .9rem; margin-top: 2px; }
+.ex .cues { margin-top: 6px; font-size: .9rem; color: var(--ink-2); padding-left: 10px; border-left: 2px solid var(--sage); }
+.intent { background: var(--sage-2); border-radius: var(--r-m); padding: 12px 14px; margin-top: 14px; color: var(--ink-2); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -284,7 +311,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "456825443370",
   appId: "1:456825443370:web:4c649d4475290d482ddf53"
 };
-const VAPID_PUBLIC_KEY = ""; // same value as VAPID_PUBLIC_KEY in Vercel env (step 6)
+const VAPID_PUBLIC_KEY = "BBt629pIQEF3bTIj366E1DyPSHctwC3p2VFPczInOVx4ozlXHGSlK7JDp64mTnqrE8IA0BvLjAXUd4jWdlLrY2M"; // must match VAPID_PUBLIC_KEY in Vercel env
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
@@ -608,6 +635,8 @@ function enterApp() {
   $('#topDate').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const params = new URLSearchParams(location.search);
   navigate(params.get('view') || 'today');
+  const deep = params.get('session');
+  if (deep && state.plan) { const day = Number(deep.split('-').pop()); const sess = state.plan.sessions.find((x) => x.day === day); if (sess && sess.type !== 'rest') openSession(sess); history.replaceState(null, '', '/'); }
 }
 $$('.tab').forEach((t) => { t.onclick = () => navigate(t.dataset.view); });
 function navigate(view) {
@@ -643,29 +672,72 @@ function viewToday(el) {
   const session = state.plan.sessions?.find((s) => s.day === t);
   const c = document.createElement('div'); c.className = 'card';
   if (!session || session.type === 'rest') {
-    c.innerHTML = `<h3>Rest day</h3><p class="muted">Nothing scheduled. Recover, eat well, move lightly if you feel like it.</p>`;
+    c.innerHTML = `<span class="badge rest">Rest day</span><h3 style="margin:10px 0 6px">${esc(session?.title || 'Rest')}</h3><p class="muted">${esc(session?.intent || 'Nothing scheduled. Recover, eat well, move lightly if you feel like it.')}</p>`;
   } else {
-    c.innerHTML = `<div class="muted small">${esc(session.type)} · ${session.durationMin} min</div><h3 style="margin:4px 0 12px">${esc(session.title)}</h3>
-      <div class="list">${session.exercises.map((x) => `<div class="li"><span>${esc(x.name)}</span><span class="muted">${esc(x.sets)}×${esc(x.reps)}${x.load ? ' · ' + esc(x.load) : ''}</span></div>`).join('')}</div>
-      <p class="muted small" style="margin-top:14px">Logging comes in the next release.</p>`;
+    c.innerHTML = `<span class="badge ${esc(session.type)}">${esc(session.type)}${session.fixed ? ' · fixed' : ''}</span>
+      <h3 style="margin:10px 0 2px">${esc(session.title)}</h3>
+      <div class="muted small">${session.durationMin} min · ${session.exercises.length} exercise${session.exercises.length === 1 ? '' : 's'}</div>
+      <p class="muted" style="margin:10px 0 14px">${esc(session.intent)}</p>
+      <button class="btn" id="btnOpenToday">Open session</button>`;
   }
   el.append(c);
+  if (session && session.type !== 'rest') $('#btnOpenToday').onclick = () => openSession(session);
   const strip = document.createElement('div'); strip.style.marginTop = '22px';
   strip.append(weekStrip(state.plan.sessions.filter((s) => s.type !== 'rest').map((s) => s.day), { small: true }));
   el.append(strip);
+  if (state.plan.focus) el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin-top:14px">This week: ${esc(state.plan.focus)}</p>`);
 }
 function viewPlan(el) {
   if (!state.plan) { el.innerHTML = `<div class="card"><div class="empty"><h3>No plan yet</h3><p>Build your first week from Today.</p></div></div>`; return; }
   const p = state.plan;
-  el.insertAdjacentHTML('beforeend', `<p class="muted">${esc(p.phase)} phase · ${esc(p.focus)}</p>`);
+  el.insertAdjacentHTML('beforeend', `<p class="muted"><span class="badge">${esc(p.phase)} phase</span> &nbsp;${esc(p.focus)}</p>`);
   const t = todayIndex();
-  [...p.sessions].sort((a, b) => a.day - b.day).forEach((s) => {
-    const c = document.createElement('div'); c.className = 'card' + (s.day === t ? ' sage' : '');
-    c.innerHTML = `<div class="muted small">${DAYS[s.day]}${s.day === t ? ' · today' : ''} · ${esc(s.type)}${s.durationMin ? ' · ' + s.durationMin + ' min' : ''}</div><h3 style="margin-top:4px">${esc(s.title)}</h3>`;
-    el.append(c);
+  const card = document.createElement('div'); card.className = 'card';
+  [...p.sessions].sort((a, b) => a.day - b.day).forEach((sess) => {
+    const row = document.createElement('button'); row.type = 'button'; row.className = 'session-row' + (sess.day === t ? ' today' : '');
+    const isRest = sess.type === 'rest';
+    row.innerHTML = `<span class="dow">${DAYS[sess.day]}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || 'Recovery') : esc(sess.type) + ' · ' + sess.durationMin + ' min' + (sess.fixed ? ' · fixed' : '')}</span></span>${isRest ? '' : '<span class="chev">›</span>'}`;
+    if (!isRest) row.onclick = () => openSession(sess);
+    card.append(row);
   });
-  if (p.rationale) el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin-top:18px">${esc(p.rationale)}</p>`);
+  el.append(card);
+  if (p.rationale) el.insertAdjacentHTML('beforeend', `<div class="card sage"><h3 style="margin-bottom:6px">Why this week</h3><p class="muted">${esc(p.rationale)}</p></div>`);
+  el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnRebuild" style="margin-top:16px">Rebuild this week</button><p class="muted small" style="margin-top:8px;text-align:center">Use this if your setup changed or the week doesn't fit.</p>`);
+  $('#btnRebuild').onclick = async (ev) => {
+    if (!confirm('Replace this week with a new plan?')) return;
+    const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
+    try { state.plan = await api('/api/generate-plan'); toast('New week ready'); navigate('plan'); }
+    catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Rebuild this week'; }
+  };
 }
+
+function openSession(sess) {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', sess.title);
+  const list = (items) => items.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="muted small">None</p>';
+  const rest = (sec) => sec ? (sec >= 60 ? `${Math.round(sec / 60 * 10) / 10} min rest` : `${sec} s rest`) : '';
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>${DAYS[sess.day]}</h2></div>
+    <span class="badge ${esc(sess.type)}">${esc(sess.type)}${sess.fixed ? ' · fixed' : ''}</span>
+    <h1>${esc(sess.title)}</h1>
+    <div class="muted small">${sess.durationMin} min</div>
+    ${sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
+    <div class="block"><h3>Warm-up</h3>${list(sess.warmup)}</div>
+    <div class="block"><h3>Main work</h3>${sess.exercises.length ? sess.exercises.map((x) => `
+      <div class="ex">
+        <div class="name"><span>${esc(x.name)}</span><span class="rx">${x.sets ? x.sets + '×' : ''}${esc(x.reps)}</span></div>
+        <div class="meta">${[x.load, rest(x.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
+        ${x.cues ? `<div class="cues">${esc(x.cues)}</div>` : ''}
+      </div>`).join('') : '<p class="muted small">Follow your club session.</p>'}</div>
+    <div class="block"><h3>Cool-down</h3>${list(sess.cooldown)}</div>
+    <div class="block"><button class="btn" disabled>Log this session</button><p class="muted small" style="text-align:center;margin-top:8px">Logging arrives in the next release.</p></div>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = close;
+  sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+}
+
 function viewLog(el) {
   el.innerHTML = `<div class="card"><div class="empty"><h3>Nothing logged yet</h3><p>Once you finish a session from Today, your sets, loads and notes land here.</p></div></div>`;
 }
