@@ -46,3 +46,9 @@ usage/{uid}                server-only daily API counters (not readable by clien
 4. ✅ Weekly review + next week
 5. ✅ Nutrition targets + meal logging + estimate
 6. ✅ Rate limiting, iCal feed, install prompt, export/delete, auto-close cron
+
+## Automated smoke test
+`.github/workflows/smoke.yml` runs a headless Chromium against the live site after every push. Add these repository secrets (GitHub → Settings → Secrets and variables → Actions):
+- `CADENCE_URL` — e.g. https://cadence-xi-one.vercel.app
+- `CADENCE_TEST_EMAIL` / `CADENCE_TEST_PASSWORD` — an email/password account created in Firebase → Authentication → Users → Add user
+Without the two account secrets the sign-in test is skipped and only the route checks run.

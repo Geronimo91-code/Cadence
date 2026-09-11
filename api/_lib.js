@@ -40,7 +40,7 @@ export function requireCron(req, res) {
   return ok;
 }
 
-export async function callModel({ system, user, maxTokens = 4000, retries = 1 }) {
+export async function callModel({ system, user, image, maxTokens = 4000, retries = 1 }) {
   const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -59,7 +59,7 @@ export async function callModel({ system, user, maxTokens = 4000, retries = 1 })
           temperature: 0.4,
           messages: [
             { role: 'system', content: system + '\n\nRespond with a single JSON object and nothing else. No markdown, no commentary.' },
-            { role: 'user', content: user },
+            { role: 'user', content: image ? [{ type: 'text', text: user }, { type: 'image_url', image_url: { url: image } }] : user },
           ],
         }),
       });
