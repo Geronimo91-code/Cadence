@@ -35,8 +35,8 @@ users/{uid}/push/main      Web Push subscription + timezone
 
 ## Roadmap
 1. ✅ Auth, onboarding, profile
-2. Plan generation prompt + full session view
-3. Session logging
+2. ✅ Plan generation prompt + full session view
+3. ✅ Session logging + weight tracking
 4. Weekly review + next week
 5. Nutrition targets + meal logging
 6. Rate limiting, iCal feed, offline polish
