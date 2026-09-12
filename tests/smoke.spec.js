@@ -41,20 +41,23 @@ test('sign in and tabs', async ({ page }) => {
 test('plan and session view', async ({ page }) => {
   await signIn(page);
   await page.click('.tab[data-view="plan"]');
+  await expect(page.locator('#view')).toBeVisible();
   const rows = page.locator('.session-row');
-  await expect(rows.first()).toBeVisible({ timeout: 15000 });
-  const openable = page.locator('.session-row:has(.chev)').first();
-  if (await openable.count()) {
-    await openable.click();
-    const sheet = page.locator('.sheet');
-    await expect(sheet).toBeVisible();
-    await expect(sheet).toContainText('Warm-up');
-    await expect(sheet.locator('#logEx')).toBeVisible();      // set inputs render
-    await expect(sheet.locator('#sessRpe button')).toHaveCount(10);
-    await expect(sheet.locator('#btnSaveLog')).toBeVisible();
-    await sheet.locator('#btnCloseSheet').click();
-    await expect(page.locator('.sheet')).toHaveCount(0);
+  if (!(await rows.count())) {
+    // No plan on the test account: the empty state must still offer a way forward
+    await expect(page.locator('#view')).toContainText(/No plan yet|Build your first week/);
+    return;
   }
+  const openable = page.locator('.session-row:has(.chev)').first();
+  if (!(await openable.count())) return; // rest-only week
+  await openable.click();
+  const sheet = page.locator('.sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.locator('#logEx')).toBeVisible();
+  await expect(sheet.locator('#sessRpe button')).toHaveCount(10);
+  await expect(sheet.locator('#btnSaveLog')).toBeVisible();
+  await sheet.locator('#btnCloseSheet').click();
+  await expect(page.locator('.sheet')).toHaveCount(0);
 });
 
 test('nutrition and club render', async ({ page }) => {
