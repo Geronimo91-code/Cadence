@@ -1,9 +1,9 @@
 {
-  "step": "generating",
-  "status": 503,
-  "error": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"Expected ',' or ']' after array element in JSON at position 5856 (line 202 column 10) | gemini timed out | Out of time before the model answered\"}",
-  "days": null,
-  "trainable": null,
-  "sheetOk": null,
+  "step": "done",
+  "status": 200,
+  "error": null,
+  "days": 7,
+  "trainable": 3,
+  "sheetOk": true,
   "pageErrors": []
 }
