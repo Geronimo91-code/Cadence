@@ -81,6 +81,8 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
           // Google retires models and names the replacement in the error; switch to it and retry once
           const suggested = r.status === 404 && body.match(/use\s+models\/([a-z0-9.\-]+)/i);
           if (suggested && !prov.switched) { prov.model = suggested[1]; prov.switched = true; console.warn(`${prov.name}: model retired, switching to ${prov.model}`); attempt--; continue; }
+          // A model that rejects our optional parameters: drop them and try once more
+          if (r.status === 400 && prov.extra && !prov.stripped) { prov.stripped = true; prov.extra = null; console.warn(`${prov.name}: retrying without optional parameters`); attempt--; continue; }
           throw new Error(`${prov.name} ${r.status}: ${body.slice(0, 200)}`);
         }
         const data = await r.json();
