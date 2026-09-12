@@ -6,8 +6,9 @@ export default async function handler(req, res) {
   const user = await requireUser(req, res);
   if (!user) return;
   try {
-    const clubId = (await db().doc(`users/${user.uid}`).get()).data()?.clubId;
-    if (clubId) {
+    const udata = (await db().doc(`users/${user.uid}`).get()).data() || {};
+    const clubIds = Array.isArray(udata.clubIds) ? udata.clubIds : (udata.clubId ? [udata.clubId] : []);
+    for (const clubId of clubIds) {
       await db().doc(`clubs/${clubId}/members/${user.uid}`).delete().catch(() => {});
       await db().doc(`clubs/${clubId}/notes/${user.uid}`).delete().catch(() => {});
       const acts = await db().collection(`clubs/${clubId}/activity`).where('uid', '==', user.uid).get();
