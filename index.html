@@ -1850,8 +1850,13 @@ if ('serviceWorker' in navigator) {
     setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
     reg.update().catch(() => {});
   }).catch(() => {});
+  // Only reload for a genuine update: on a first visit the worker claims the page and that is not an update
+  const hadController = !!navigator.serviceWorker.controller;
   let reloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading) return; reloading = true; location.reload(); });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloading) return;
+    reloading = true; location.reload();
+  });
 }
 </script>
 </body>
