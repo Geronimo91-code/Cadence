@@ -8,3 +8,4 @@ node_modules
 test-results
 playwright-report
 gen-result.json
+dayprefs-result.json
