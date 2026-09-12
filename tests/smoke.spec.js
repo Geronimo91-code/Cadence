@@ -42,6 +42,18 @@ test('sign in and tabs', async ({ page }) => {
   expect(errors, 'uncaught page errors: ' + errors.join(' | ')).toHaveLength(0);
 });
 
+test('today fits one screen', async ({ page }) => {
+  await signIn(page);
+  await page.click('.tab[data-view="today"]');
+  await expect(page.locator('.board')).toBeVisible({ timeout: 15000 });
+  const fits = await page.evaluate(() => {
+    const doc = document.documentElement;
+    return { scroll: doc.scrollHeight, view: window.innerHeight, cols: document.querySelectorAll('.board .col').length };
+  });
+  expect(fits.cols, 'week board should show 7 days').toBe(7);
+  expect(fits.scroll, `page is ${fits.scroll}px tall for a ${fits.view}px screen`).toBeLessThanOrEqual(fits.view + 40);
+});
+
 test('plan and session view', async ({ page }) => {
   await signIn(page);
   await page.click('.tab[data-view="plan"]');

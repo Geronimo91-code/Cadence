@@ -363,6 +363,27 @@ textarea.input { min-height: 90px; resize: vertical; }
 .dayrow .second { display: flex; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); align-items: center; }
 .dayrow .second .lbl2 { font-size: .7rem; color: var(--ink-3); width: 38px; flex: 0 0 auto; text-transform: uppercase; }
 .dayrow .addslot { font-size: .8rem; color: var(--green); font-weight: 600; margin-top: 8px; padding: 2px 0; background: none; }
+.board { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.board .col { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; padding: 6px 0 4px; border-radius: 12px; }
+.board .col .lbl { font-size: .7rem; font-weight: 600; color: var(--ink-3); }
+.board .col.today { background: var(--amber-2); }
+.board .col.today .lbl { color: #8a5a10; }
+.board .track { width: 100%; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.board .pip { width: 60%; height: 14px; border-radius: 5px; background: var(--sage); }
+.board .pip.none { background: transparent; border: 1.5px dashed var(--line); height: 12px; }
+.board .pip.on { background: var(--green); }
+.board .pip.done { background: var(--green-2); }
+.board .pip.miss { background: var(--red); opacity: .55; }
+.board .pip.team { background: var(--amber); }
+.board .col .n { font-size: .62rem; color: var(--ink-3); height: 10px; }
+.legend { display: flex; gap: 12px; justify-content: center; margin-top: 10px; font-size: .7rem; color: var(--ink-3); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.todaycard { padding: 14px 16px; }
+.todaycard h3 { font-size: 1.15rem; }
+.foodline { display: flex; align-items: center; gap: 12px; }
+.foodline .k { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; }
+.foodline .pbar { flex: 1; height: 8px; border-radius: 4px; background: var(--sage-2); overflow: hidden; }
+.foodline .pbar i { display: block; height: 100%; background: var(--green); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -983,25 +1004,26 @@ async function viewToday(el) {
   // Today always works from this week's plan, even if the Plan tab is showing next week
   if (state.plan && state.plan.weekId !== isoWeekId() && state.plans.some((x) => x.weekId === isoWeekId())) { await loadPlan(isoWeekId()); if (state.view !== 'today') return; }
   const p = state.profile;
-  const hello = document.createElement('h1'); hello.textContent = greeting() + ', ' + p.name; el.append(hello);
-  if (p.deadline) {
-    const days = Math.ceil((new Date(p.deadline.date) - Date.now()) / 864e5);
-    const c = document.createElement('div'); c.className = 'card amber';
-    c.innerHTML = `<strong>${esc(p.deadline.name)}</strong><div class="muted small">${days > 0 ? days + ' days to go' : T('Today')}</div>`;
-    el.append(c);
-  }
+  const t = todayIndex();
+
+  // header: greeting and, if set, the countdown — one line each, no card
+  const head = document.createElement('div');
+  head.innerHTML = `<h1 style="font-size:1.6rem">${greeting()}, ${esc(p.name)}</h1>` +
+    (p.deadline ? `<p class="muted small" style="margin-top:2px">${esc(p.deadline.name)} · ${Math.max(0, Math.ceil((new Date(p.deadline.date) - Date.now()) / 864e5))} ${T('days to go')}</p>` : '');
+  el.append(head);
+
   if (!state.plan) {
     const c = document.createElement('div'); c.className = 'card';
     c.innerHTML = `<div class="empty"><h3>${T('No plan yet')}</h3><p>${T('Cadence will build your first week from the setup you just completed.')}</p><button class="btn" id="btnGen">${T('Build my first week')}</button></div>`;
     el.append(c);
     $('#btnGen').onclick = async (ev) => {
       const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-      try { state.plan = await api('/api/generate-plan'); await loadPlan(); toast(T('Your week is ready')); navigate('today'); }
+      try { const fresh = await api('/api/generate-plan'); await loadPlan(fresh.weekId); if (!state.plan) state.plan = fresh; toast(T('Your week is ready')); navigate('today'); }
       catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Build my first week'); }
     };
     return;
   }
-  // Week closed but no next plan yet → prompt review
+
   if (planIsFuture()) {
     const c = document.createElement('div'); c.className = 'card sage';
     c.innerHTML = `<strong>${T('Next week is ready')}</strong><p class="muted small" style="margin:4px 0 0">${T('Your plan starts Monday. Rest up until then.')}</p>`;
@@ -1009,73 +1031,84 @@ async function viewToday(el) {
   }
   if (planIsPast()) {
     const c = document.createElement('div'); c.className = 'card amber';
-    c.innerHTML = `<strong>Your week ${esc(state.plan.weekId)} is over</strong><p class="muted small" style="margin:4px 0 12px">${T('Close it to get feedback and next week\'s plan built from what you logged.')}</p><button class="btn" id="btnReviewNow">${T('Close the week')}</button>`;
+    c.innerHTML = `<strong>${T('Your week')} ${esc(state.plan.weekId)} ${T('is over')}</strong><p class="muted small" style="margin:4px 0 12px">${T("Close it to get feedback and next week's plan built from what you logged.")}</p><button class="btn" id="btnReviewNow">${T('Close the week')}</button>`;
     el.append(c); $('#btnReviewNow').onclick = (ev) => runReview(ev.currentTarget, state.plan.weekId);
     return;
   }
-  if (state.review && (todayIndex() <= 1 || state.review.createdAt > new Date(Date.now() - 2 * 864e5).toISOString())) {
-    const c = document.createElement('div'); c.className = 'card sage';
-    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong>${T('Last week\'s review')}</strong><span class="badge">${state.review.stats?.adherence ?? 0}% adherence</span></div><p class="muted small" style="margin:6px 0 10px">${esc((state.review.summary || '').split('. ')[0])}.</p><button class="btn secondary sm" id="btnOpenReview">${T('Read the review')}</button>`;
-    el.append(c); $('#btnOpenReview').onclick = () => openReview(state.review);
-  }
-  const t = todayIndex();
-  const todays = (state.plan.sessions || []).filter((s) => s.day === t);
-  todays.forEach((x) => { x.exercises = Array.isArray(x.exercises) ? x.exercises : []; });
-  const realToday = todays.filter((x) => x.type !== 'rest');
-  const session = realToday[0] || todays[0];
-  const c = document.createElement('div'); c.className = 'card';
-  if (!session || session.type === 'rest') {
-    c.innerHTML = `<span class="badge rest">${T('Rest day')}</span><h3 style="margin:10px 0 6px">${esc(session?.title || T('Rest'))}</h3><p class="muted">${esc(session?.intent || T('Nothing scheduled. Recover, eat well, move lightly if you feel like it.'))}</p>`;
-  } else {
-    const lg = logFor(session);
-    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(session.type)}">${esc(T(session.type))}${session.timeOfDay ? ' · ' + T(session.timeOfDay) : ''}${session.teamSession ? ' · ' + esc(session.clubName || T('team')) : session.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg)}</div>
-      <h3 style="margin:10px 0 2px">${esc(session.title)}</h3>
-      <div class="muted small">${session.durationMin} min · ${session.exercises.length} exercise${session.exercises.length === 1 ? '' : 's'}</div>
-      <p class="muted" style="margin:10px 0 14px">${esc(session.intent)}</p>
-      <button class="btn${lg ? ' secondary' : ''}" id="btnOpenToday">${lg ? T('View session') : T('Open session')}</button>`;
-  }
-  el.append(c);
-  if (session && session.type !== 'rest') $('#btnOpenToday').onclick = () => openSession(session);
-  realToday.slice(1).forEach((extra, i) => {
-    const lg2 = logFor(extra); const c2 = document.createElement('div'); c2.className = 'card';
-    c2.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(extra.type)}">${esc(T(extra.type))}${extra.timeOfDay ? ' · ' + T(extra.timeOfDay) : ''}${extra.teamSession ? ' · ' + esc(extra.clubName || T('team')) : extra.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg2)}</div>
-      <h3 style="margin:10px 0 2px">${esc(extra.title)}</h3>
-      <div class="muted small">${extra.durationMin} ${T('min')} · ${extra.exercises.length} ${extra.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
-      <p class="muted" style="margin:10px 0 14px">${esc(extra.intent)}</p>
-      <button class="btn${lg2 ? ' secondary' : ''}" id="btnOpenToday${i + 2}">${lg2 ? T('View session') : T('Open session')}</button>`;
-    el.append(c2); $('#btnOpenToday' + (i + 2)).onclick = () => openSession(extra);
+
+  // ---- week board ----
+  const board = document.createElement('div'); board.className = 'card'; board.style.padding = '14px 12px 12px';
+  const grid = document.createElement('div'); grid.className = 'board';
+  const byDay = {};
+  state.plan.sessions.forEach((x) => { (byDay[x.day] = byDay[x.day] || []).push(x); });
+  DAYS.forEach((d, i) => {
+    const col = document.createElement('button'); col.type = 'button'; col.className = 'col' + (i === t ? ' today' : '');
+    const real = (byDay[i] || []).filter((x) => x.type !== 'rest').sort((a, b) => (a.slot || 0) - (b.slot || 0));
+    const pip = (sess) => {
+      const span = document.createElement('span'); span.className = 'pip';
+      if (!sess) { span.classList.add('none'); return span; }
+      const lg = logFor(sess);
+      span.classList.add(lg?.status === 'done' ? 'done' : lg?.status === 'skipped' ? 'miss' : sess.teamSession || sess.type === 'skills' || sess.type === 'match' ? 'team' : 'on');
+      span.title = `${sess.title}${sess.timeOfDay ? ' · ' + T(sess.timeOfDay) : ''}`;
+      return span;
+    };
+    const track = document.createElement('div'); track.className = 'track';
+    const am = real.find((x) => x.timeOfDay === 'morning') || (real.length && !real[0].timeOfDay && !real[0].slot ? real[0] : null);
+    const pm = real.find((x) => x.timeOfDay === 'afternoon' || x.timeOfDay === 'evening') || real.find((x) => x !== am && (x.slot || real.length > 1));
+    track.append(pip(am), pip(pm && pm !== am ? pm : null));
+    col.innerHTML = `<span class="lbl">${T(d)[0]}${T(d)[1] || ''}</span>`;
+    col.append(track);
+    col.onclick = () => { const target = real[0]; if (target) openSession(target); else navigate('plan'); };
+    grid.append(col);
   });
-  const strip = document.createElement('div'); strip.style.marginTop = '22px';
-  const slotMap = {};
-  state.plan.sessions.filter((x) => x.type !== 'rest').forEach((x) => {
-    const cell = slotMap[x.day] || (slotMap[x.day] = { am: false, pm: false });
-    if (x.timeOfDay === 'morning') cell.am = true;
-    else if (x.timeOfDay === 'afternoon' || x.timeOfDay === 'evening') cell.pm = true;
-    else if (x.slot) cell.pm = true; else cell.am = true;
+  board.append(grid);
+  board.insertAdjacentHTML('beforeend', `<div class="legend"><span><i style="background:var(--green)"></i>${T('planned')}</span><span><i style="background:var(--green-2)"></i>${T('done')}</span><span><i style="background:var(--amber)"></i>${T('team')}</span></div>`);
+  el.append(board);
+
+  // ---- today's sessions ----
+  const todays = (byDay[t] || []).map((x) => ({ ...x, exercises: Array.isArray(x.exercises) ? x.exercises : [] }));
+  const realToday = todays.filter((x) => x.type !== 'rest').sort((a, b) => (a.slot || 0) - (b.slot || 0));
+  if (!realToday.length) {
+    const c = document.createElement('div'); c.className = 'card todaycard';
+    c.innerHTML = `<span class="badge rest">${T('Rest day')}</span><p class="muted" style="margin-top:8px">${esc(todays[0]?.intent || T('Nothing scheduled. Recover, eat well, move lightly if you feel like it.'))}</p>`;
+    el.append(c);
+  } else realToday.forEach((sess, i) => {
+    const lg = logFor(sess);
+    const c = document.createElement('div'); c.className = 'card todaycard';
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="badge ${esc(sess.type)}">${esc(T(sess.type))}${sess.timeOfDay ? ' · ' + T(sess.timeOfDay) : ''}${sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : ''}</span>${statusHtml(lg)}</div>
+      <h3 style="margin:8px 0 2px">${esc(sess.title)}</h3>
+      <div class="muted small">${sess.durationMin} ${T('min')} · ${sess.exercises.length} ${sess.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
+      <button class="btn${lg ? ' secondary' : ''}" id="btnOpenToday${i}" style="margin-top:12px">${lg ? T('View session') : T('Open session')}</button>`;
+    el.append(c);
+    $('#btnOpenToday' + i).onclick = () => openSession(sess);
   });
-  strip.append(weekStrip(Object.keys(slotMap).map(Number), { small: true, slots: slotMap }));
-  el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin-top:8px;text-align:center">${T('Top half: morning · bottom half: afternoon or evening')}</p>`);
-  el.append(strip);
+
+  // ---- food, one compact line ----
   if (p.nutrition) {
-    const trainingDay = !!session && session.type !== 'rest';
+    const trainingDay = realToday.length > 0;
     const tg = nutritionTargets(p, trainingDay);
-    const nc = document.createElement('div'); nc.className = 'card';
-    nc.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3>${T('Food today')}</h3><span class="muted small">${trainingDay ? 'training day' : 'rest day'}</span></div>
-      <div class="kcal"><b id="tdKcal">–</b><span id="tdKcalLbl">kcal left of ${tg.kcal}</span></div>
-      <div class="macro" id="tdP"><div class="lbl"><span>${T('Protein')}</span><b><span class="v">0</span> / ${tg.protein} g</b></div><div class="bar"><i style="width:0%"></i></div></div>
-      <div class="row" style="margin-top:14px"><button class="btn secondary" id="tdAddMeal">${T('Add a meal')}</button></div>`;
+    const nc = document.createElement('div'); nc.className = 'card todaycard';
+    nc.innerHTML = `<div class="foodline"><span class="k" id="tdKcal">–</span><div style="flex:1;min-width:0"><div class="muted small" id="tdKcalLbl">${T('kcal left of')} ${tg.kcal}</div><div class="pbar" style="margin-top:6px"><i id="tdP" style="width:0%"></i></div></div><button class="btn sm secondary" id="tdAddMeal">+</button></div>`;
     el.append(nc);
     $('#tdAddMeal').onclick = () => { nutDay = dateKey(); navigate('nutrition'); };
     db.doc('users/' + state.user.uid + '/nutrition/' + dateKey()).get().then((d) => {
       const meals = d.exists ? (d.data().meals || []) : [];
       const k = meals.reduce((a, m) => a + (m.kcal || 0), 0), pr = meals.reduce((a, m) => a + (m.protein || 0), 0);
-      const kEl = $('#tdKcal'); if (!kEl) return;
-      kEl.textContent = k > tg.kcal ? '+' + (k - tg.kcal) : tg.kcal - k; $('#tdKcalLbl').textContent = k > tg.kcal ? `kcal over ${tg.kcal}` : `kcal left of ${tg.kcal}` + (meals.length ? ` · ${meals.length} meal${meals.length === 1 ? '' : 's'}` : '');
-      const m = $('#tdP'); m.querySelector('.v').textContent = Math.round(pr); m.querySelector('i').style.width = Math.min(100, (pr / tg.protein) * 100) + '%';
+      if (!$('#tdKcal')) return;
+      $('#tdKcal').textContent = k > tg.kcal ? '+' + (k - tg.kcal) : (tg.kcal - k);
+      $('#tdKcalLbl').textContent = `${k > tg.kcal ? T('kcal over') : T('kcal left of')} ${tg.kcal} · ${Math.round(pr)}/${tg.protein} g ${T('Protein')}`;
+      $('#tdP').style.width = Math.min(100, (pr / tg.protein) * 100) + '%';
     }).catch(() => {});
   }
-  if (state.plan.focus) el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin-top:14px">This week: ${esc(state.plan.focus)}</p>`);
+
+  // ---- last week's review, only right after a week closes ----
+  if (state.review && (t <= 1 || state.review.createdAt > new Date(Date.now() - 2 * 864e5).toISOString())) {
+    const c = document.createElement('div'); c.className = 'card sage todaycard';
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong>${T("Last week's review")}</strong><span class="badge">${state.review.stats?.adherence ?? 0}%</span></div><button class="btn secondary sm" id="btnOpenReview" style="margin-top:10px">${T('Read the review')}</button>`;
+    el.append(c); $('#btnOpenReview').onclick = () => openReview(state.review);
+  }
 }
+
 function viewPlan(el) {
   if (!state.plan) { el.innerHTML = `<div class="card"><div class="empty"><h3>${T('No plan yet')}</h3><p>${T('Build your first week from Today.')}</p></div></div>`; return; }
   const p = state.plan;

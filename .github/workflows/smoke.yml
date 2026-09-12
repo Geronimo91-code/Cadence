@@ -34,6 +34,9 @@ jobs:
       - name: 'Test: sign in and tabs'
         if: always()
         run: npx playwright test -g "sign in and tabs"
+      - name: 'Test: today fits one screen'
+        if: always()
+        run: npx playwright test -g "today fits one screen"
       - name: 'Test: plan and session view'
         if: always()
         run: npx playwright test -g "plan and session view"
