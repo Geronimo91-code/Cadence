@@ -48,15 +48,21 @@ function providers() {
   return list;
 }
 
-export async function callModel({ system, user, image, maxTokens = 4000, retries = 1 }) {
+export async function callModel({ system, user, image, maxTokens = 4000, retries = 1, timeoutMs = 40000, deadline }) {
   const provs = providers();
   if (!provs.length) throw new Error('No model provider configured (set GEMINI_API_KEY or OPENROUTER_API_KEY)');
+  const endBy = deadline || Date.now() + 50000; // stay inside the 60s function limit
   let lastErr;
   for (const prov of provs) {
     for (let attempt = 0; attempt <= retries; attempt++) {
+      const left = endBy - Date.now();
+      if (left < 6000) throw lastErr || new Error('Out of time before the model answered');
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), Math.min(timeoutMs, left - 1000));
       try {
         const r = await fetch(prov.url, {
           method: 'POST',
+          signal: ctrl.signal,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${prov.key}`, ...(prov.headers || {}) },
           body: JSON.stringify({
             model: prov.model,
@@ -68,15 +74,15 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
             ],
           }),
         });
-        if (!r.ok) throw new Error(`${prov.name} ${r.status}: ${(await r.text()).slice(0, 300)}`);
+        if (!r.ok) throw new Error(`${prov.name} ${r.status}: ${(await r.text()).slice(0, 200)}`);
         const data = await r.json();
-        const text = data.choices?.[0]?.message?.content || '';
-        return extractJson(text);
+        return extractJson(data.choices?.[0]?.message?.content || '');
       } catch (e) {
-        lastErr = e;
-        console.warn(`callModel ${prov.name} attempt ${attempt + 1} failed:`, e.message);
-        if (attempt < retries) await new Promise((res) => setTimeout(res, 1500));
-      }
+        lastErr = e.name === 'AbortError' ? new Error(`${prov.name} timed out`) : e;
+        console.warn(`callModel ${prov.name} attempt ${attempt + 1}:`, lastErr.message);
+        // Only retry the same provider when there is real time left
+        if (attempt >= retries || endBy - Date.now() < 15000) break;
+      } finally { clearTimeout(timer); }
     }
   }
   throw lastErr;
@@ -121,7 +127,8 @@ export const PLAN_RULES = `Rules:
 - If the athlete mentions an existing strength program (e.g. StrongLifts 5x5, a named routine), keep it as-is on its days and build the rest around it.
 - Session length must match the athlete's typical session length (±10 min).
 - Beginners: fewer exercises, simpler patterns, more cues. Competitive athletes: periodised, sport-specific.
-- Warm-up 5–10 min and cool-down 3–5 min in every non-rest session.`;
+- Warm-up 5–10 min and cool-down 3–5 min in every non-rest session (3–4 items each, a few words per item).
+- Be brief: cues under 12 words, intent one short sentence, 4–6 exercises per session. Brevity matters more than completeness.`;
 
 export function planShape(id) {
   return `{

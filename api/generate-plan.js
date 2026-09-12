@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
 
   if (!(await checkLimit(user.uid, 'plan', 6))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
+  const started = Date.now();
   const id = weekId();
   const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads as a percentage of effort or bodyweight/RPE (never guess kilograms unless the athlete gave a number), rest times, and short coaching cues an athlete can read on a phone at the gym or field.
 
@@ -22,7 +23,7 @@ ${planShape(id)}`;
   const userMsg = athleteBlock(profile, id) + '\nDays already passed this week should still be filled in for reference.';
 
   try {
-    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 6000 }));
+    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 4000, retries: 1, deadline: started + 50000 }));
     plan.weekId = id;
     plan.createdAt = new Date().toISOString();
     plan.source = 'profile';
@@ -30,7 +31,7 @@ ${planShape(id)}`;
     return res.status(200).json(plan);
   } catch (e) {
     console.error(e);
-    const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions/i.test(e.message);
-    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy right now. Try again in a minute.' : 'Could not generate a plan right now' });
+    const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions|timed out|Out of time/i.test(e.message);
+    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy or slow right now. Try again in a minute.' : 'Could not generate a plan right now' });
   }
 }

@@ -9,6 +9,7 @@ export default async function handler(req, res) {
   if (!user) return;
   if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
 
+  const started = Date.now();
   const uid = user.uid;
   const userDoc = await db().doc(`users/${uid}`).get();
   const profile = userDoc.data()?.profile;
@@ -21,8 +22,8 @@ export default async function handler(req, res) {
     return res.status(200).json(out);
   } catch (e) {
     console.error(e);
-    const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions/i.test(e.message);
-    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy right now. Try again in a minute.' : 'Could not build the review right now' });
+    const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions|timed out|Out of time/i.test(e.message);
+    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy or slow right now. Try again in a minute.' : 'Could not build the review right now' });
   }
 }
 
@@ -124,7 +125,7 @@ ${sessionLines.join('\n')}
 Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slice(0, 10)}.`;
 
   {
-    const out = await callModel({ system, user: userMsg, maxTokens: 8000 });
+    const out = await callModel({ system, user: userMsg, maxTokens: 5000, retries: 0, deadline: started + 50000 });
     const next = validatePlan(out.nextWeek);
     next.weekId = nextId; next.createdAt = new Date().toISOString(); next.source = 'review'; next.reviewOf = reviewWeek;
     const review = {

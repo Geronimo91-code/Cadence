@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   try {
     const out = await callModel({
       system: `You estimate nutrition for a meal or snack from a description and/or a photo, using typical portion sizes unless sizes are visible or given. Write the name in ${lang}. Return ONLY JSON: {"name":"short meal name","kcal":number,"protein":number,"carbs":number,"fat":number} in kcal and grams, integers.`,
-      user: description || 'Estimate this meal from the photo.', image, maxTokens: 300,
+      user: description || 'Estimate this meal from the photo.', image, maxTokens: 300, timeoutMs: 30000,
     });
     const n = (v) => Math.max(0, Math.round(Number(v) || 0));
     return res.status(200).json({ name: String(out.name || description || 'Meal').slice(0, 80), kcal: n(out.kcal), protein: n(out.protein), carbs: n(out.carbs), fat: n(out.fat) });
