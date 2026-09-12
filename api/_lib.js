@@ -76,7 +76,13 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
             ],
           }),
         });
-        if (!r.ok) throw new Error(`${prov.name} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+        if (!r.ok) {
+          const body = await r.text();
+          // Google retires models and names the replacement in the error; switch to it and retry once
+          const suggested = r.status === 404 && body.match(/use\s+models\/([a-z0-9.\-]+)/i);
+          if (suggested && !prov.switched) { prov.model = suggested[1]; prov.switched = true; console.warn(`${prov.name}: model retired, switching to ${prov.model}`); attempt--; continue; }
+          throw new Error(`${prov.name} ${r.status}: ${body.slice(0, 200)}`);
+        }
         const data = await r.json();
         const content = data.choices?.[0]?.message?.content || '';
         if (!content.trim()) throw new Error(`${prov.name} returned an empty answer (finish_reason: ${data.choices?.[0]?.finish_reason || 'unknown'})`);
