@@ -334,6 +334,21 @@ textarea.input { min-height: 90px; resize: vertical; }
 .clubtabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 4px; }
 .clubtabs .chip { flex: 0 0 auto; }
 .clubtabs .chip.add { border-style: dashed; }
+.daygroup { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.daygroup:last-child { border-bottom: 0; }
+.daygroup .dcol { width: 42px; flex: 0 0 auto; padding-top: 2px; }
+.daygroup .dcol .d { font-family: var(--font-display); font-weight: 700; font-size: .95rem; color: var(--ink-3); }
+.daygroup.today .dcol .d { color: var(--amber); }
+.daygroup .dcol .n { font-size: .7rem; color: var(--ink-3); }
+.daygroup .slots { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.slot { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--sage-2); border-radius: var(--r-m); padding: 10px 12px; }
+.slot.rest { background: transparent; border: 1.5px dashed var(--line); }
+.slot .when { font-size: .7rem; font-weight: 600; color: var(--green-2); text-transform: uppercase; letter-spacing: .04em; width: 44px; flex: 0 0 auto; }
+.slot .body { flex: 1; min-width: 0; }
+.slot .body strong { display: block; font-weight: 600; }
+.slot .body span { font-size: .82rem; color: var(--ink-2); }
+.slot .chev { color: var(--ink-3); }
+.week .bar.two { background: linear-gradient(to bottom, var(--green) 0 47%, var(--bg) 47% 53%, var(--green) 53% 100%); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -480,13 +495,13 @@ async function api(path, body, { timeoutMs = 150000, slowMsg = T('Still working 
   if (!r.ok) throw new Error(data.error || 'Something went wrong');
   return data;
 }
-function weekStrip(activeDays, { small = false, readonly = true, onToggle } = {}) {
+function weekStrip(activeDays, { small = false, readonly = true, onToggle, doubleDays = [] } = {}) {
   const t = todayIndex();
   const el = document.createElement('div');
   el.className = 'week' + (small ? ' small' : '') + (readonly ? ' readonly' : '');
   DAYS.forEach((d, i) => {
     const day = document.createElement('div'); day.className = 'day';
-    const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'bar' + (i === t ? ' today' : '');
+    const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'bar' + (i === t ? ' today' : '') + (doubleDays.includes(i) ? ' two' : '');
     bar.setAttribute('aria-pressed', activeDays.includes(i)); bar.setAttribute('aria-label', d);
     if (onToggle) bar.onclick = () => { const on = bar.getAttribute('aria-pressed') !== 'true'; bar.setAttribute('aria-pressed', on); onToggle(i, on); };
     const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = T(d);
@@ -974,7 +989,9 @@ async function viewToday(el) {
     el.append(c2); $('#btnOpenToday' + (i + 2)).onclick = () => openSession(extra);
   });
   const strip = document.createElement('div'); strip.style.marginTop = '22px';
-  strip.append(weekStrip([...new Set(state.plan.sessions.filter((s) => s.type !== 'rest').map((s) => s.day))], { small: true }));
+  const byDayCount = {};
+  state.plan.sessions.filter((s) => s.type !== 'rest').forEach((s) => { byDayCount[s.day] = (byDayCount[s.day] || 0) + 1; });
+  strip.append(weekStrip(Object.keys(byDayCount).map(Number), { small: true, doubleDays: Object.entries(byDayCount).filter(([, n]) => n > 1).map(([d]) => Number(d)) }));
   el.append(strip);
   if (p.nutrition) {
     const trainingDay = !!session && session.type !== 'rest';
@@ -1009,20 +1026,32 @@ function viewPlan(el) {
   const t = todayIndex();
   const card = document.createElement('div'); card.className = 'card';
   const sorted = [...p.sessions].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0));
-  sorted.forEach((sess, idx) => {
-    const row = document.createElement('button'); row.type = 'button'; row.className = 'session-row' + (sess.day === t ? ' today' : '');
-    const isRest = sess.type === 'rest';
-    const lg = isRest ? null : logFor(sess);
-    const sameDayAsPrev = idx > 0 && sorted[idx - 1].day === sess.day;
-    row.innerHTML = `<span class="dow">${sameDayAsPrev ? '' : T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : (sess.timeOfDay ? T(sess.timeOfDay) + ' · ' : '') + esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
-    if (!isRest) row.onclick = () => openSession(sess);
-    if (!isRest && planIsCurrent()) {
-      const mv = document.createElement('button'); mv.type = 'button'; mv.className = 'chip'; mv.textContent = T('Move'); mv.style.marginLeft = '6px'; mv.style.flex = '0 0 auto';
-      mv.onclick = (e) => { e.stopPropagation(); askDay(sess); };
-      row.querySelector('.chev')?.replaceWith(mv);
+  for (let d = 0; d < 7; d++) {
+    const ofDay = sorted.filter((x) => x.day === d);
+    if (!ofDay.length) continue;
+    const real = ofDay.filter((x) => x.type !== 'rest');
+    const group = document.createElement('div'); group.className = 'daygroup' + (d === t ? ' today' : '');
+    const dcol = document.createElement('div'); dcol.className = 'dcol';
+    dcol.innerHTML = `<div class="d">${T(DAYS[d])}</div>${real.length > 1 ? `<div class="n">${real.length} ${T('sessions')}</div>` : ''}`;
+    const slots = document.createElement('div'); slots.className = 'slots';
+    (real.length ? real : ofDay).forEach((sess) => {
+      const isRest = sess.type === 'rest';
+      const lg = isRest ? null : logFor(sess);
+      const row = document.createElement(isRest ? 'div' : 'button');
+      if (!isRest) row.type = 'button';
+      row.className = 'slot' + (isRest ? ' rest' : '');
+      const when = sess.timeOfDay ? T(sess.timeOfDay) : (real.length > 1 ? (sess.slot ? T('later') : T('first')) : '');
+      row.innerHTML = `${when ? `<span class="when">${esc(when)}</span>` : ''}<span class="body"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
+      if (!isRest) row.onclick = () => openSession(sess);
+      slots.append(row);
+    });
+    if (real.length) {
+      const mv = document.createElement('div'); mv.style.display = 'flex'; mv.style.gap = '8px';
+      real.forEach((sess) => { if (!planIsCurrent()) return; const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.style.fontSize = '.78rem'; b.style.padding = '5px 10px'; b.textContent = T('Move') + (real.length > 1 ? ' · ' + (sess.timeOfDay ? T(sess.timeOfDay) : sess.slot ? T('later') : T('first')) : ''); b.onclick = () => askDay(sess); mv.append(b); });
+      if (mv.children.length) slots.append(mv);
     }
-    card.append(row);
-  });
+    group.append(dcol, slots); card.append(group);
+  }
   el.append(card);
   if (p.rationale) el.insertAdjacentHTML('beforeend', `<div class="card sage"><h3 style="margin-bottom:6px">${T('Why this week')}</h3><p class="muted">${esc(p.rationale)}</p></div>`);
   const reviewed = state.review && state.review.weekId === p.weekId;

@@ -37,11 +37,11 @@ test('generate a plan end to end', async ({ page }) => {
 
     out.step = 'render';
     await page.click('.tab[data-view="plan"]');
-    await expect(page.locator('.session-row').first()).toBeVisible({ timeout: 30000 });
-    out.days = await page.locator('.session-row').count();
-    out.trainable = await page.locator('.session-row:has(.chev)').count();
+    await expect(page.locator('.daygroup').first()).toBeVisible({ timeout: 30000 });
+    out.days = await page.locator('.daygroup').count();
+    out.trainable = await page.locator('button.slot:has(.chev)').count();
     if (out.trainable) {
-      await page.locator('.session-row:has(.chev)').first().click();
+      await page.locator('button.slot:has(.chev)').first().click();
       const sheet = page.locator('.sheet');
       await expect(sheet).toBeVisible({ timeout: 10000 });
       out.sheetOk = (await sheet.locator('.ex').count()) > 0 && (await sheet.locator('#sessRpe button').count()) === 10;

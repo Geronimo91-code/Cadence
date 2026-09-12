@@ -46,13 +46,13 @@ test('plan and session view', async ({ page }) => {
   await signIn(page);
   await page.click('.tab[data-view="plan"]');
   await expect(page.locator('#view')).toBeVisible();
-  const rows = page.locator('.session-row');
+  const rows = page.locator('.slot');
   if (!(await rows.count())) {
     // No plan on the test account: the empty state must still offer a way forward
     await expect(page.locator('#view')).toContainText(/No plan yet|Build your first week/);
     return;
   }
-  const openable = page.locator('.session-row:has(.chev)').first();
+  const openable = page.locator('button.slot:has(.chev)').first();
   if (!(await openable.count())) return; // rest-only week
   await openable.click();
   const sheet = page.locator('.sheet');
