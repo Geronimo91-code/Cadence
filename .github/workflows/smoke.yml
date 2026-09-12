@@ -38,10 +38,31 @@ jobs:
       - name: 'Test: nutrition and club render'
         if: always()
         run: npx playwright test -g "nutrition and club render"
-      - name: 'Test: generate a plan'
+      - name: 'Generate: run'
         if: inputs.generate
         env: { RUN_GENERATE: '1' }
         run: npx playwright test -g "generate a plan end to end"
+      - name: 'Generate: reached the API'
+        if: inputs.generate && always()
+        run: node check-gen.mjs reached-api
+      - name: 'Generate: not a timeout'
+        if: inputs.generate && always()
+        run: node check-gen.mjs not-timeout
+      - name: 'Generate: HTTP 200'
+        if: inputs.generate && always()
+        run: node check-gen.mjs http-200
+      - name: 'Generate: 7 day rows'
+        if: inputs.generate && always()
+        run: node check-gen.mjs seven-days
+      - name: 'Generate: has trainable sessions'
+        if: inputs.generate && always()
+        run: node check-gen.mjs has-sessions
+      - name: 'Generate: session view renders'
+        if: inputs.generate && always()
+        run: node check-gen.mjs session-view
+      - name: 'Generate: no page errors'
+        if: inputs.generate && always()
+        run: node check-gen.mjs no-page-errors
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: test-results/ }
