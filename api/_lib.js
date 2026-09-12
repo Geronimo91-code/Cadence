@@ -172,12 +172,14 @@ export const PLAN_RULES = `Rules:
 - Each session has a "slot": 0 for the day's first session, 1 for a second one. Only give a day two sessions when the athlete allows doubles (see their profile) and it makes sense — typically a shorter gym or speed session in the morning and club practice or a longer session later. Never two hard high-intensity sessions on the same day, never doubles on consecutive days for a beginner, and keep at least one full rest day in the week.
 - Set "timeOfDay" to morning, afternoon or evening on every non-rest session; with two sessions the earlier one must come first.
 - Fixed commitments (club practice, matches) are sacred: put them on their day as a session of type "skills" or "match" with fixed=true, keep exercises to a short pre-practice activation, and do not stack a hard session on the same day.
+- Exercise names: use the exact names from the provided vocabulary wherever the movement exists there. Only invent a name for a sport-specific drill that has no equivalent in the list.
 - Respect injuries and limits literally.
 - Where the athlete fixed a day's focus or time, that is not a suggestion: schedule exactly that type at that time. Build the rest of the week around those anchors.
 - The FIRST goal leads the week; other goals get one focused slot or are woven into sessions.
 - If the athlete mentions an existing strength program (e.g. StrongLifts 5x5, a named routine), keep it as-is on its days and build the rest around it.
 - Session length must match the athlete's typical session length (±10 min).
 - Beginners: fewer exercises, simpler patterns, more cues. Competitive athletes: periodised, sport-specific.
+- Deload: every fourth week of a block is a step back — same movements, roughly 60% of the usual volume, nothing near failure. The athlete's week number is given below; if it is a deload week, say so plainly in the rationale.
 - Warm-up 5–10 min and cool-down 3–5 min in every non-rest session (3–4 items each, a few words per item).
 - Be brief: cues under 12 words, intent one short sentence, 4–6 exercises per session. Brevity matters more than completeness.`;
 
@@ -240,7 +242,11 @@ ${dayPrefBlock(p)}
 - Equipment: ${p.equipment.join(', ')}
 - Injuries / limits: ${p.injuries || 'none'}
 - ${phaseFor(p, ref).text}
+- Week ${p.weekNumber || 1} of the current block${((p.weekNumber || 1) % 4 === 0) ? ' — THIS IS A DELOAD WEEK' : ''}.
 - Today: ${DAY_NAMES[(ref.getDay() + 6) % 7]} ${ref.toISOString().slice(0, 10)}; the plan is for ISO week ${id}, Monday to Sunday.
+
+Exercise vocabulary (use these exact names where the movement fits):
+${exerciseMenu()}
 - Language: write EVERY athlete-facing string (titles, intent, warm-up, cues, cool-down, rationale, review text) in ${LANG_NAMES[p.lang] || 'English'}. Keep JSON keys and the "type" values in English.`;
 }
 
@@ -257,7 +263,7 @@ export function validatePlan(plan) {
     intent: String(s.intent || ''),
     warmup: Array.isArray(s.warmup) ? s.warmup.map(String) : [],
     exercises: Array.isArray(s.exercises) ? s.exercises.map((x) => ({
-      name: String(x.name || ''), sets: Number(x.sets) || 0, reps: String(x.reps ?? ''), load: String(x.load ?? ''),
+      name: canonicalExercise(x.name), sets: Number(x.sets) || 0, reps: String(x.reps ?? ''), load: String(x.load ?? ''),
       restSec: Number(x.restSec) || 0, cues: String(x.cues || ''),
     })).filter((x) => x.name) : [],
     cooldown: Array.isArray(s.cooldown) ? s.cooldown.map(String) : [],
@@ -323,4 +329,55 @@ export async function checkLimit(uid, key, max) {
     tx.set(ref, { day, ...(d.day === day ? d : {}), [key]: cur + 1 }, { merge: true });
     return true;
   });
+}
+
+// ---------------- Exercise vocabulary ----------------
+// A fixed list keeps names stable week to week, so history, progression and charts line up.
+export const EXERCISE_LIBRARY = {
+  'lower push': ['Back squat', 'Front squat', 'Goblet squat', 'Split squat', 'Bulgarian split squat', 'Step-up', 'Leg press', 'Walking lunge', 'Box jump', 'Broad jump', 'Depth jump', 'Pogo hop'],
+  'lower pull': ['Deadlift', 'Romanian deadlift', 'Trap bar deadlift', 'Single-leg RDL', 'Hip thrust', 'Glute bridge', 'Nordic curl', 'Hamstring curl', 'Back extension', 'Calf raise'],
+  'upper push': ['Bench press', 'Incline bench press', 'Overhead press', 'Push press', 'Dumbbell shoulder press', 'Push-up', 'Dip', 'Landmine press'],
+  'upper pull': ['Pull-up', 'Chin-up', 'Lat pulldown', 'Barbell row', 'Dumbbell row', 'Seated cable row', 'Face pull', 'Band pull-apart'],
+  core: ['Plank', 'Side plank', 'Dead bug', 'Pallof press', 'Hanging knee raise', 'Ab wheel rollout', 'Hollow hold', 'Copenhagen plank', 'Cable woodchop', 'Medicine ball slam', 'Medicine ball rotational throw'],
+  olympic: ['Power clean', 'Hang clean', 'Push jerk', 'Clean pull', 'Kettlebell swing', 'Kettlebell snatch'],
+  speed: ['Sprint 10 m', 'Sprint 20 m', 'Sprint 30 m', 'Sprint 40 m', 'Flying sprint', 'Acceleration wall drill', 'A-skip', 'B-skip', 'High knees', 'Bounding', 'Sled push', 'Sled sprint', 'Resisted sprint', 'Hill sprint'],
+  agility: ['5-10-5 shuttle', 'T-drill', 'L-drill', 'Ladder quick feet', 'Cone cutting drill', 'Reactive cut drill', 'Lateral shuffle', 'Crossover run', 'Backpedal to sprint', 'Zig-zag run'],
+  conditioning: ['Tempo run', 'Interval run 400 m', 'Interval run 800 m', 'Shuttle run repeats', 'Bike intervals', 'Rowing intervals', 'Assault bike sprints', 'Easy run', 'Fartlek run', 'Circuit conditioning'],
+  mobility: ['Hip flexor stretch', 'Couch stretch', '90/90 hip switch', 'Thoracic rotation', 'Cat-cow', "World's greatest stretch", 'Ankle dorsiflexion drill', 'Shoulder dislocate', 'Foam roll quads', 'Foam roll glutes', 'Foam roll upper back', 'Hamstring stretch'],
+  warmup: ['Leg swings', 'Hip circles', 'Walking knee hug', 'Walking quad pull', 'Inchworm', 'Glute bridge march', 'Banded lateral walk', 'Arm circles', 'Jumping jacks', 'Skip drills', 'Easy jog', 'Dynamic lunge with twist'],
+};
+export const EXERCISE_NAMES = Object.values(EXERCISE_LIBRARY).flat();
+
+const normalize = (s) => String(s || '')
+  .toLowerCase()
+  .replace(/(\d)\s*(m|km|s|min)\b/g, '$1 $2')          // "30m" → "30 m"
+  .replace(/[^a-z0-9 ]/g, ' ')
+  .replace(/\b(barbell|dumbbell|db|bb|kb|the|a|with)\b/g, ' ')
+  .split(/\s+/).filter(Boolean)
+  .map((w) => (w.length > 2 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w))  // plurals
+  .join(' ')
+  .trim();
+
+const LOOKUP = new Map(EXERCISE_NAMES.map((n) => [normalize(n), n]));
+
+// Snap a model-written name onto the library when it clearly means the same movement.
+// Scores candidates by how many of their words appear, preferring the one that starts where the athlete's name starts.
+export function canonicalExercise(name) {
+  const n = normalize(name);
+  if (!n) return String(name || '').trim();
+  if (LOOKUP.has(n)) return LOOKUP.get(n);
+  const words = n.split(' ');
+  let best = null, bestScore = 0;
+  for (const [key, canonical] of LOOKUP) {
+    const kw = key.split(' ');
+    if (!kw.every((w) => words.includes(w))) continue;
+    const leads = words[0] === kw[0] ? 1 : 0;
+    const score = kw.length * 10 + leads * 5 + key.length / 100;
+    if (score > bestScore) { bestScore = score; best = canonical; }
+  }
+  return best || String(name || '').trim();
+}
+
+export function exerciseMenu() {
+  return Object.entries(EXERCISE_LIBRARY).map(([group, list]) => `${group}: ${list.join(', ')}`).join('\n');
 }

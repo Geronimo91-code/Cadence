@@ -384,6 +384,11 @@ textarea.input { min-height: 90px; resize: vertical; }
 .foodline .k { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; }
 .foodline .pbar { flex: 1; height: 8px; border-radius: 4px; background: var(--sage-2); overflow: hidden; }
 .foodline .pbar i { display: block; height: 100%; background: var(--green); }
+.readiness { display: flex; gap: 8px; margin-top: 10px; }
+.readiness button { flex: 1; padding: 10px 4px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--white); font-size: .8rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.readiness button .e { font-size: 1.1rem; line-height: 1; }
+.readiness button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.tip { background: var(--amber-2); border-radius: var(--r-m); padding: 12px 14px; margin-top: 12px; color: #7a5210; font-size: .9rem; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -1186,7 +1191,7 @@ function openSession(raw, weekIdOverride, logOverride) {
 
   // Draft: from existing log if it has set data, otherwise from the prescription
   const draft = existing && Array.isArray(existing.exercises) ? JSON.parse(JSON.stringify(existing)) : {
-    status: existing?.status || null, durationMin: existing?.durationMin || sess.durationMin, sessionRpe: existing?.sessionRpe || null, note: existing?.note || '',
+    status: existing?.status || null, readiness: existing?.readiness || null, durationMin: existing?.durationMin || sess.durationMin, sessionRpe: existing?.sessionRpe || null, note: existing?.note || '',
     exercises: sess.exercises.map((x) => ({ name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null, swapped: false,
       sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: numOnly(x.reps), load: numOnly(x.load), done: false })) })),
   };
@@ -1197,6 +1202,9 @@ function openSession(raw, weekIdOverride, logOverride) {
     <h1>${esc(sess.title)}</h1>
     <div class="muted small">${sess.durationMin} min planned</div>
     ${existing?.replacedWith ? `<div class="intent">${T('You logged this as')}: ${esc(existing.replacedWith)}</div>` : sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
+    <div class="block"><h3>${T('How do you feel today?')}</h3><div class="readiness" id="readiness">
+      ${[['fresh', '⚡', 'Fresh'], ['normal', '🙂', 'Normal'], ['tired', '😮‍💨', 'Tired'], ['sore', '🤕', 'Sore']].map(([v, e, l]) => `<button type="button" data-r="${v}"><span class="e">${e}</span>${T(l)}</button>`).join('')}
+    </div><div id="readinessTip"></div></div>
     <div class="block"><h3>${T('Warm-up')}</h3>${list(sess.warmup)}</div>
     <div class="block"><h3>${T('Main work')}</h3><p class="muted small" style="margin-bottom:4px">${sess.exercises.length ? T('Reps and load are prefilled from the plan. Change them to what you did and tap ✓ per set.') : T('Follow your club session, then log how it went below.')}</p><div id="logEx"></div>
       <button class="addex" id="btnAddEx">${T('+ Add an exercise I did')}</button>
@@ -1217,6 +1225,22 @@ function openSession(raw, weekIdOverride, logOverride) {
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
 
   // ---- exercise rows with set inputs (editable: swap, add, remove) ----
+  // readiness: adjusts today's session on the spot and goes into the weekly review
+  const rWrap = $('#readiness', sheet);
+  const tips = {
+    fresh: 'Good day to push: take the top of any rep or load range.',
+    normal: '',
+    tired: 'Cut the last set of each main lift and keep everything at RPE 7 or below.',
+    sore: 'Halve the volume, skip anything that hurts, and treat this as a technique session.',
+  };
+  const paintReadiness = () => {
+    $$('button', rWrap).forEach((b) => b.setAttribute('aria-pressed', b.dataset.r === draft.readiness));
+    const tip = draft.readiness && tips[draft.readiness];
+    $('#readinessTip', sheet).innerHTML = tip ? `<div class="tip">${T(tip)}</div>` : '';
+  };
+  $$('button', rWrap).forEach((b) => { b.onclick = () => { draft.readiness = draft.readiness === b.dataset.r ? null : b.dataset.r; paintReadiness(); }; });
+  paintReadiness();
+
   const exWrap = $('#logEx', sheet);
   const renderExercises = () => {
     exWrap.innerHTML = '';
@@ -1260,7 +1284,7 @@ function openSession(raw, weekIdOverride, logOverride) {
 
   const save = async (btn, skipped) => {
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
-    const rec = { weekId: wk, day: sess.day, slot: sess.slot || 0, title: sess.title, type: sess.type, loggedAt: existing?.loggedAt || new Date().toISOString(), updatedAt: new Date().toISOString(), note: $('#logNote', sheet).value.trim() };
+    const rec = { weekId: wk, day: sess.day, slot: sess.slot || 0, readiness: draft.readiness || null, title: sess.title, type: sess.type, loggedAt: existing?.loggedAt || new Date().toISOString(), updatedAt: new Date().toISOString(), note: $('#logNote', sheet).value.trim() };
     if (skipped) { Object.assign(rec, { status: 'skipped', exercises: null, durationMin: 0, sessionRpe: null, setsDone: 0, setsTotal: 0 }); }
     else {
       const total = draft.exercises.reduce((a, x) => a + x.sets.length, 0);

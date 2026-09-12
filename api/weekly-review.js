@@ -32,6 +32,8 @@ async function reviewWeek(uid, profile, reviewWeek) {
   if (!planDoc.exists) return { error: 'No plan found for that week' };
   const plan = planDoc.data();
   const nextId = weekIdOffset(reviewWeek, 1);
+  const priorPlans = await db().collection(`users/${uid}/plans`).get();
+  profile.weekNumber = priorPlans.size + 1;
 
   const logsSnap = await db().collection(`users/${uid}/logs`).where('weekId', '==', reviewWeek).get();
   const logs = new Map(logsSnap.docs.map((d) => [d.id, d.data()]));
@@ -87,6 +89,7 @@ Review principles:
 - Progression: if a session was DONE and session RPE ≤ 8, progress it next week (small load or volume increase, or harder variation). RPE 9–10: hold. Adherence below 50% or repeated fatigue/soreness notes: make next week lighter (deload) and say so. Skip reasons that point to schedule problems: move sessions, don't add more.
 - When the athlete logged real loads (kg), use those numbers to prescribe next week's loads explicitly.
 - Injury or pain mentioned in a note overrides progression for that movement.
+- Readiness: repeated "tired" or "sore" entries before sessions mean the athlete is under-recovered — reduce volume before adding intensity.
 - Training load: an acute:chronic ratio above 1.3 means the jump in load was large — hold or reduce volume next week and say so plainly. Below 0.8 means detraining — it is safe to add. Between 0.8 and 1.3 is the comfortable zone. Ignore the ratio when there is no four-week history.
 - When the athlete swapped, added or replaced exercises or whole sessions, take that as a signal about what actually fits their week and equipment: keep what they chose if it serves the goal, and say so in the adjustments.
 - If a coach's note is given, treat it as an instruction from the athlete's coach and follow it, mentioning it in the adjustments.

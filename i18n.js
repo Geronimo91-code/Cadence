@@ -2,6 +2,7 @@
 window.CADENCE_LANGS = { en: 'English', fr: 'Français', nl: 'Nederlands', tr: 'Türkçe', es: 'Español' };
 window.CADENCE_I18N = {
 fr: {
+"How do you feel today?": "Comment te sens-tu ?", "Fresh": "En forme", "Normal": "Normal", "Tired": "Fatigué", "Sore": "Courbaturé", "Good day to push: take the top of any rep or load range.": "Bon jour pour pousser : vise le haut des fourchettes.", "Cut the last set of each main lift and keep everything at RPE 7 or below.": "Enlève la dernière série de chaque mouvement principal et reste à RPE 7 maximum.", "Halve the volume, skip anything that hurts, and treat this as a technique session.": "Divise le volume par deux, évite ce qui fait mal, et travaille la technique.",
 "Could not generate a plan right now": "Impossible de générer un plan pour le moment",
 "planned": "prévu",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "Facultatif : fixe l'heure ou le type pour un jour. Laisse à Cadence et il décide.", "Let Cadence decide": "Cadence décide", "Any time": "N'importe quand", "Morning": "Matin", "Afternoon": "Après-midi", "Evening": "Soir", "Speed": "Vitesse", "Conditioning": "Conditionnement", "Skills / practice": "Technique / entraînement", "Mobility": "Mobilité", "Match": "Match", "2nd": "2e", "Add a second session this day": "Ajouter une seconde séance ce jour",
@@ -57,6 +58,7 @@ fr: {
 "strength": "force", "speed": "vitesse", "conditioning": "conditionnement", "skills": "technique", "match": "match", "mobility": "mobilité", "rest": "repos",
 },
 nl: {
+"How do you feel today?": "Hoe voel je je vandaag?", "Fresh": "Fris", "Normal": "Normaal", "Tired": "Moe", "Sore": "Stijf", "Good day to push: take the top of any rep or load range.": "Goede dag om door te zetten: pak de bovenkant van elk bereik.", "Cut the last set of each main lift and keep everything at RPE 7 or below.": "Laat de laatste set van elke hoofdoefening weg en blijf op RPE 7 of lager.", "Halve the volume, skip anything that hurts, and treat this as a technique session.": "Halveer het volume, sla alles wat pijn doet over en maak er een techniektraining van.",
 "Could not generate a plan right now": "Kan nu geen plan maken",
 "planned": "gepland",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "Optioneel: leg een tijd of focus vast per dag. Laat je het open, dan kiest Cadence.", "Let Cadence decide": "Cadence beslist", "Any time": "Elk moment", "Morning": "Ochtend", "Afternoon": "Middag", "Evening": "Avond", "Speed": "Snelheid", "Conditioning": "Conditie", "Skills / practice": "Techniek / training", "Mobility": "Mobiliteit", "Match": "Wedstrijd", "2nd": "2e", "Add a second session this day": "Tweede sessie deze dag",
@@ -112,6 +114,7 @@ nl: {
 "strength": "kracht", "speed": "snelheid", "conditioning": "conditie", "skills": "techniek", "match": "wedstrijd", "mobility": "mobiliteit", "rest": "rust",
 },
 tr: {
+"How do you feel today?": "Bugün nasıl hissediyorsun?", "Fresh": "Dinç", "Normal": "Normal", "Tired": "Yorgun", "Sore": "Ağrılı", "Good day to push: take the top of any rep or load range.": "Zorlamak için iyi gün: aralıkların üst sınırını hedefle.", "Cut the last set of each main lift and keep everything at RPE 7 or below.": "Ana hareketlerin son setini çıkar ve her şeyi RPE 7 ve altında tut.", "Halve the volume, skip anything that hurts, and treat this as a technique session.": "Hacmi yarıya indir, ağrıyan her şeyi atla ve bunu teknik antrenmanı olarak gör.",
 "Could not generate a plan right now": "Şu anda plan oluşturulamadı",
 "planned": "planlı",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "İsteğe bağlı: bir gün için saat veya odak belirle. Boş bırakırsan Cadence karar verir.", "Let Cadence decide": "Cadence karar versin", "Any time": "Fark etmez", "Morning": "Sabah", "Afternoon": "Öğleden sonra", "Evening": "Akşam", "Speed": "Hız", "Conditioning": "Kondisyon", "Skills / practice": "Teknik / antrenman", "Mobility": "Mobilite", "Match": "Maç", "2nd": "2.", "Add a second session this day": "Bu güne ikinci antrenman ekle",
@@ -167,6 +170,7 @@ tr: {
 "strength": "kuvvet", "speed": "hız", "conditioning": "kondisyon", "skills": "teknik", "match": "maç", "mobility": "mobilite", "rest": "dinlenme",
 },
 es: {
+"How do you feel today?": "¿Cómo te sientes hoy?", "Fresh": "Fresco", "Normal": "Normal", "Tired": "Cansado", "Sore": "Dolorido", "Good day to push: take the top of any rep or load range.": "Buen día para apretar: ve al tope de cada rango.", "Cut the last set of each main lift and keep everything at RPE 7 or below.": "Quita la última serie de cada ejercicio principal y quédate en RPE 7 o menos.", "Halve the volume, skip anything that hurts, and treat this as a technique session.": "Reduce el volumen a la mitad, evita lo que duela y hazla como sesión técnica.",
 "Could not generate a plan right now": "No se pudo generar un plan ahora",
 "planned": "previsto",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "Opcional: fija una hora o un enfoque para cualquier día. Si lo dejas, Cadence decide.", "Let Cadence decide": "Que decida Cadence", "Any time": "Cualquier hora", "Morning": "Mañana", "Afternoon": "Tarde", "Evening": "Noche", "Speed": "Velocidad", "Conditioning": "Acondicionamiento", "Skills / practice": "Técnica / entrenamiento", "Mobility": "Movilidad", "Match": "Partido", "2nd": "2ª", "Add a second session this day": "Añadir una segunda sesión ese día",
