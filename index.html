@@ -1019,7 +1019,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(T(sess.type))}">${esc(T(sess.type))}${sess.fixed ? ' · fixed' : ''}</span><span id="sheetStatus">${statusHtml(existing)}</span></div>
     <h1>${esc(sess.title)}</h1>
     <div class="muted small">${sess.durationMin} min planned</div>
-    ${sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
+    ${existing?.replacedWith ? `<div class="intent">${T('You logged this as')}: ${esc(existing.replacedWith)}</div>` : sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
     <div class="block"><h3>${T('Warm-up')}</h3>${list(sess.warmup)}</div>
     <div class="block"><h3>${T('Main work')}</h3><p class="muted small" style="margin-bottom:4px">${sess.exercises.length ? T('Reps and load are prefilled from the plan. Change them to what you did and tap ✓ per set.') : T('Follow your club session, then log how it went below.')}</p><div id="logEx"></div>
       <button class="addex" id="btnAddEx">${T('+ Add an exercise I did')}</button>
@@ -1224,7 +1224,7 @@ async function viewLog(el) {
     logs.forEach((l) => {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'log-item';
       const d = new Date(l.loggedAt);
-      row.innerHTML = `<span class="d">${T(DAYS[l.day])}<br>${d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })}</span><span class="m"><strong>${esc(l.title)}</strong><span>${esc(T(l.type))}${l.setsTotal ? ' · ' + l.setsDone + '/' + l.setsTotal + ' sets' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}${l.note ? ' · ' + esc(l.note) : ''}</span></span>${statusHtml(l)}`;
+      row.innerHTML = `<span class="d">${T(DAYS[l.day])}<br>${d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })}</span><span class="m"><strong>${esc(l.title)}</strong><span>${l.replacedWith ? '↷ ' + esc(l.replacedWith) + ' · ' : ''}${esc(T(l.type))}${l.setsTotal ? ' · ' + l.setsDone + '/' + l.setsTotal + ' sets' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}${l.note ? ' · ' + esc(l.note) : ''}</span></span>${statusHtml(l)}`;
       row.onclick = async () => {
         let plan = state.plans.find((x) => x.weekId === l.weekId);
         if (!plan) { try { const d = await db.doc('users/' + state.user.uid + '/plans/' + l.weekId).get(); plan = d.exists ? d.data() : null; } catch (_) {} }
