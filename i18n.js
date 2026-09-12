@@ -2,6 +2,7 @@
 window.CADENCE_LANGS = { en: 'English', fr: 'Français', nl: 'Nederlands', tr: 'Türkçe', es: 'Español' };
 window.CADENCE_I18N = {
 fr: {
+"Top half: morning · bottom half: afternoon or evening": "Haut : matin · bas : après-midi ou soir",
 "later": "plus tard", "first": "d'abord",
 "sessions": "séances",
 "Another club": "Autre club", "You are already in that club.": "Tu es déjà dans ce club.", "Five clubs is the limit.": "Cinq clubs maximum.",
@@ -52,6 +53,7 @@ fr: {
 "strength": "force", "speed": "vitesse", "conditioning": "conditionnement", "skills": "technique", "match": "match", "mobility": "mobilité", "rest": "repos",
 },
 nl: {
+"Top half: morning · bottom half: afternoon or evening": "Boven: ochtend · onder: middag of avond",
 "later": "later", "first": "eerst",
 "sessions": "sessies",
 "Another club": "Andere club", "You are already in that club.": "Je zit al in die club.", "Five clubs is the limit.": "Maximaal vijf clubs.",
@@ -102,6 +104,7 @@ nl: {
 "strength": "kracht", "speed": "snelheid", "conditioning": "conditie", "skills": "techniek", "match": "wedstrijd", "mobility": "mobiliteit", "rest": "rust",
 },
 tr: {
+"Top half: morning · bottom half: afternoon or evening": "Üst: sabah · alt: öğleden sonra veya akşam",
 "later": "sonra", "first": "önce",
 "sessions": "antrenman",
 "Another club": "Başka kulüp", "You are already in that club.": "Zaten o kulüptesin.", "Five clubs is the limit.": "En fazla beş kulüp.",
@@ -152,6 +155,7 @@ tr: {
 "strength": "kuvvet", "speed": "hız", "conditioning": "kondisyon", "skills": "teknik", "match": "maç", "mobility": "mobilite", "rest": "dinlenme",
 },
 es: {
+"Top half: morning · bottom half: afternoon or evening": "Arriba: mañana · abajo: tarde o noche",
 "later": "después", "first": "primero",
 "sessions": "sesiones",
 "Another club": "Otro club", "You are already in that club.": "Ya estás en ese club.", "Five clubs is the limit.": "Máximo cinco clubes.",
