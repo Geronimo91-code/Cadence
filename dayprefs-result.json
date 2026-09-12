@@ -1,10 +1,10 @@
 {
   "step": "done",
-  "servedVersion": "cadence-v14",
-  "hasDayPrefsCode": false,
-  "rows": 0,
-  "selects": 0,
-  "savedPref": null,
-  "reviewLine": null,
+  "servedVersion": "cadence-v15",
+  "hasDayPrefsCode": true,
+  "rows": 3,
+  "selects": 6,
+  "savedPref": "morning/strength",
+  "reviewLine": "YouTest, 32, 177 cm, 73 kgSportsSwimming, RunningLevelAdvancedGoalsStrength, Lose fat, General fitnessDaysTue (morning Strength), Thu, Sat · 60 minEquipmentFull gym, Pull-up bar, BikeLimitsNoneDeadlineNone, rolling blocksNutritionSlow loss · No restrictions",
   "errors": []
 }
