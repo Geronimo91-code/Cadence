@@ -32,6 +32,6 @@ ${planShape(id)}`;
   } catch (e) {
     console.error(e);
     const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions|timed out|Out of time/i.test(e.message);
-    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy or slow right now. Try again in a minute.' : 'Could not generate a plan right now' });
+    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy or slow right now. Try again in a minute.' : 'Could not generate a plan right now', detail: String(e && e.message || e).slice(0, 300) });
   }
 }

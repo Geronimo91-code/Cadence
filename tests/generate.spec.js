@@ -33,7 +33,7 @@ test('generate a plan end to end', async ({ page }) => {
       trigger.click(),
     ]);
     out.status = res.status();
-    if (out.status !== 200) { out.error = (await res.text().catch(() => '')).slice(0, 300); return; }
+    if (out.status !== 200) { out.error = (await res.text().catch(() => '')).slice(0, 400); return; }
 
     out.step = 'render';
     await page.click('.tab[data-view="plan"]');
