@@ -1,7 +1,7 @@
 {
   "step": "generating",
   "status": 503,
-  "error": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"openrouter timed out\"}",
+  "error": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"gemini 404: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 404,\\n    \\\"message\\\": \\\"This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.6-flash for the latest features  | gemini 404: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 404,\\n    \\\"message\\\": \\\"This model models/",
   "days": null,
   "trainable": null,
   "sheetOk": null,
