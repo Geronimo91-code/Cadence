@@ -323,6 +323,12 @@ textarea.input { min-height: 90px; resize: vertical; }
 .dlg { position: fixed; inset: 0; background: rgba(21,32,27,.45); display: grid; place-items: end center; z-index: 60; }
 .dlg .panel { background: var(--bg); width: 100%; max-width: 560px; border-radius: var(--r-l) var(--r-l) 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); }
 .dlg .row { gap: 10px; }
+.lasttime { font-size: .82rem; color: var(--ink-2); margin-top: 4px; }
+.lasttime b { font-weight: 600; color: var(--ink); }
+.timer { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tab-h) + 26px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--white); border-radius: 14px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; z-index: 55; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.timer b { font-family: var(--font-display); font-size: 1.2rem; min-width: 52px; text-align: center; }
+.timer button { color: var(--white); opacity: .75; padding: 4px 8px; }
+.timer.done { background: var(--green); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -840,6 +846,31 @@ function openReview(r) {
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
 }
 function sessionKey(wk, day, slot) { return wk + '-' + day + (slot ? '-' + slot : ''); }
+let exHistory = null;
+async function loadExerciseHistory() {
+  if (exHistory) return exHistory;
+  exHistory = new Map();
+  try {
+    const q = await db.collection('users/' + state.user.uid + '/logs').orderBy('loggedAt', 'desc').limit(60).get();
+    q.docs.forEach((d) => {
+      const l = d.data();
+      (l.exercises || []).forEach((ex) => {
+        const key = (ex.name || '').trim().toLowerCase(); if (!key) return;
+        const done = (ex.sets || []).filter((st) => st.done);
+        if (!done.length || exHistory.has(key)) return;
+        exHistory.set(key, { at: l.loggedAt, sets: done, rpe: ex.rpe || null });
+      });
+    });
+  } catch (e) { console.error(e); }
+  return exHistory;
+}
+function lastTimeLine(name) {
+  const h = exHistory?.get((name || '').trim().toLowerCase());
+  if (!h) return '';
+  const when = new Date(h.at).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' });
+  const sets = h.sets.map((st) => `${st.reps ?? '?'}${st.load ? '×' + st.load : ''}`).join(', ');
+  return `<div class="lasttime">${T('Last time')} (${when}): <b>${esc(sets)}</b>${h.rpe ? ' · RPE ' + h.rpe : ''}</div>`;
+}
 function logId(sess) { return sessionKey(state.plan.weekId, sess.day, sess.slot || 0); }
 function logFor(sess) { return state.logs[logId(sess)]; }
 function statusHtml(log) {
@@ -975,6 +1006,11 @@ function viewPlan(el) {
     const sameDayAsPrev = idx > 0 && sorted[idx - 1].day === sess.day;
     row.innerHTML = `<span class="dow">${sameDayAsPrev ? '' : T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : (sess.timeOfDay ? T(sess.timeOfDay) + ' · ' : '') + esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
     if (!isRest) row.onclick = () => openSession(sess);
+    if (!isRest && planIsCurrent()) {
+      const mv = document.createElement('button'); mv.type = 'button'; mv.className = 'chip'; mv.textContent = T('Move'); mv.style.marginLeft = '6px'; mv.style.flex = '0 0 auto';
+      mv.onclick = (e) => { e.stopPropagation(); askDay(sess); };
+      row.querySelector('.chev')?.replaceWith(mv);
+    }
     card.append(row);
   });
   el.append(card);
@@ -1034,7 +1070,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     </div>
   </div>`;
   document.body.append(sheet); document.body.style.overflow = 'hidden';
-  const close = () => { sheet.remove(); document.body.style.overflow = ''; if (state.view) navigate(state.view); };
+  const close = () => { stopRest(); sheet.remove(); document.body.style.overflow = ''; if (state.view) navigate(state.view); };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') history.back(); });
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
@@ -1048,6 +1084,7 @@ function openSession(raw, weekIdOverride, logOverride) {
       const card = document.createElement('div'); card.className = 'ex' + (ex.swapped ? ' swapped' : '');
       card.innerHTML = `<div class="name"><span>${esc(ex.name)}</span><span class="rx">${ex.swapped ? '' : (px.sets ? px.sets + '×' : '') + esc(px.reps || '')}</span></div>
         <div class="meta">${ex.swapped ? T('your change') : [px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
+        ${lastTimeLine(ex.name)}
         ${!ex.swapped && px.cues ? `<div class="cues">${esc(px.cues)}</div>` : ''}
         <div class="swapbar"><button class="chip" data-swap="${ei}">${T('Swap')}</button><button class="chip" data-addset="${ei}">${T('+ set')}</button>${ex.sets.length > 1 ? `<button class="chip" data-delset="${ei}">${T('− set')}</button>` : ''}<button class="chip" data-delex="${ei}">${T('Remove')}</button></div>
         <div class="setgrid"><span class="h">${T('Set')}</span><span class="h">${T('Reps')}</span><span class="h">${T('Load (kg)')}</span><span></span></div>`;
@@ -1057,7 +1094,7 @@ function openSession(raw, weekIdOverride, logOverride) {
         const r = document.createElement('input'); r.className = 'input'; r.type = 'number'; r.inputMode = 'decimal'; r.value = st.reps ?? ''; r.placeholder = '–'; r.oninput = () => { st.reps = r.value === '' ? null : Number(r.value); };
         const l = document.createElement('input'); l.className = 'input'; l.type = 'number'; l.inputMode = 'decimal'; l.step = '0.5'; l.value = st.load ?? ''; l.placeholder = '–'; l.oninput = () => { st.load = l.value === '' ? null : Number(l.value); };
         const c = document.createElement('button'); c.type = 'button'; c.className = 'check'; c.setAttribute('aria-pressed', st.done); c.setAttribute('aria-label', T('Set') + ' ' + (si + 1)); c.innerHTML = svgCheck;
-        c.onclick = () => { st.done = !st.done; c.setAttribute('aria-pressed', st.done); if (st.done && si + 1 < ex.sets.length) { const nx = ex.sets[si + 1]; if (nx.reps == null) nx.reps = st.reps; if (nx.load == null) nx.load = st.load; const ins = grid.querySelectorAll('input'); ins[(si + 1) * 2].value = nx.reps ?? ''; ins[(si + 1) * 2 + 1].value = nx.load ?? ''; } };
+        c.onclick = () => { st.done = !st.done; c.setAttribute('aria-pressed', st.done); if (st.done && (px.restSec || 0) > 0) startRest(px.restSec, ex.name); if (st.done && si + 1 < ex.sets.length) { const nx = ex.sets[si + 1]; if (nx.reps == null) nx.reps = st.reps; if (nx.load == null) nx.load = st.load; const ins = grid.querySelectorAll('input'); ins[(si + 1) * 2].value = nx.reps ?? ''; ins[(si + 1) * 2 + 1].value = nx.load ?? ''; } };
         grid.append(n, r, l, c);
       });
       const rpe = document.createElement('div'); rpe.className = 'rpe';
@@ -1069,6 +1106,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     $$('[data-delset]', exWrap).forEach((b) => { b.onclick = () => { const ex = draft.exercises[b.dataset.delset]; if (ex.sets.length > 1) ex.sets.pop(); renderExercises(); }; });
     $$('[data-delex]', exWrap).forEach((b) => { b.onclick = () => { draft.exercises.splice(Number(b.dataset.delex), 1); renderExercises(); }; });
   };
+  loadExerciseHistory().then(() => renderExercises());
   renderExercises();
   $('#btnAddEx', sheet).onclick = () => askText(T('What else did you do?'), '', (v) => { draft.exercises.push({ name: v, prescribed: '', rpe: null, swapped: true, added: true, sets: [{ reps: null, load: null, done: true }] }); renderExercises(); });
   $('#btnDidSomethingElse', sheet).onclick = () => askText(T('What did you do instead of this session?'), '', (v) => {
@@ -1094,6 +1132,7 @@ function openSession(raw, weekIdOverride, logOverride) {
       const key = sessionKey(wk, sess.day, sess.slot || 0);
       await db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
       if (wk === state.plan?.weekId) state.logs[key] = rec;
+      exHistory = null;
       postActivity(rec).catch(() => {});
       toast(rec.status === 'skipped' ? T('Saved as skipped') : T('Session saved'));
       history.back();
@@ -1118,6 +1157,82 @@ function openRpeInfo() {
   const close = () => { sheet.remove(); document.body.style.overflow = 'hidden'; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+}
+let restTimer = null;
+function startRest(seconds, label) {
+  stopRest();
+  let left = seconds;
+  const el = document.createElement('div'); el.className = 'timer'; el.setAttribute('role', 'timer');
+  el.innerHTML = `<span class="small">${T('Rest')}</span><b>--:--</b><button type="button" id="restPlus">+30s</button><button type="button" id="restStop">✕</button>`;
+  document.body.append(el);
+  const paint = () => { el.querySelector('b').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; };
+  paint();
+  $('#restPlus', el).onclick = () => { left += 30; el.classList.remove('done'); paint(); };
+  $('#restStop', el).onclick = stopRest;
+  restTimer = setInterval(() => {
+    left--;
+    if (left <= 0) {
+      clearInterval(restTimer); restTimer = null;
+      el.classList.add('done'); el.querySelector('b').textContent = T('Go');
+      if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+      setTimeout(() => el.remove(), 6000);
+      return;
+    }
+    paint();
+  }, 1000);
+  restTimer && (window.__restEl = el);
+}
+function stopRest() { if (restTimer) { clearInterval(restTimer); restTimer = null; } document.querySelectorAll('.timer').forEach((x) => x.remove()); }
+async function askDay(sess) {
+  const dlg = document.createElement('div'); dlg.className = 'dlg';
+  const used = new Map();
+  state.plan.sessions.filter((s) => s.type !== 'rest').forEach((s) => used.set(s.day, (used.get(s.day) || 0) + 1));
+  const allowDouble = (state.profile.doubles || 'no') !== 'no';
+  dlg.innerHTML = `<div class="panel"><h3>${T('Move this session')}</h3><p class="muted small" style="margin:4px 0 12px">${esc(sess.title)}</p>
+    <div class="options" id="dayOpts">${DAYS.map((d, i) => {
+      const n = used.get(i) || 0;
+      const full = (i !== sess.day) && (n >= (allowDouble ? 2 : 1));
+      return `<button type="button" class="option" data-day="${i}" ${full ? 'disabled style="opacity:.45"' : ''}><strong>${T(d)}</strong><span>${n === 0 ? T('free') : n === 1 ? T('1 session') : T('2 sessions')}${i === sess.day ? ' · ' + T('current') : ''}</span></button>`;
+    }).join('')}</div>
+    <button class="btn secondary" id="dayCancel" style="margin-top:12px">${T('Cancel')}</button></div>`;
+  document.body.append(dlg);
+  const close = () => dlg.remove();
+  dlg.onclick = (e) => { if (e.target === dlg) close(); };
+  $('#dayCancel', dlg).onclick = close;
+  $$('[data-day]', dlg).forEach((b) => { b.onclick = async () => {
+    const day = Number(b.dataset.day); close();
+    if (day === sess.day) return;
+    await moveSession(sess, day);
+  }; });
+}
+async function moveSession(sess, toDay) {
+  const plan = state.plan;
+  const fromKey = sessionKey(plan.weekId, sess.day, sess.slot || 0);
+  const sessions = plan.sessions.map((s) => ({ ...s }));
+  const moving = sessions.find((s) => s.day === sess.day && (s.slot || 0) === (sess.slot || 0));
+  const target = sessions.filter((s) => s.day === toDay && s.type !== 'rest');
+  // Drop a placeholder rest entry on the destination, and leave rest behind if the source day empties
+  const rest = (day) => ({ day, slot: 0, timeOfDay: null, title: 'Rest', type: 'rest', fixed: false, durationMin: 0, intent: T('Recovery day.'), warmup: [], exercises: [], cooldown: [] });
+  const out = sessions.filter((s) => s !== moving && !(s.day === toDay && s.type === 'rest'));
+  moving.day = toDay; moving.slot = target.length ? 1 : 0;
+  out.push(moving);
+  const sourceLeft = out.filter((s) => s.day === sess.day && s.type !== 'rest');
+  if (!sourceLeft.length && !out.some((s) => s.day === sess.day && s.type === 'rest')) out.push(rest(sess.day));
+  out.sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0));
+  // renumber slots per day
+  for (let d = 0; d < 7; d++) out.filter((s) => s.day === d).forEach((s, i) => { s.slot = i; });
+  try {
+    await db.doc('users/' + state.user.uid + '/plans/' + plan.weekId).set({ sessions: out, movedAt: new Date().toISOString() }, { merge: true });
+    const log = state.logs[fromKey];
+    if (log) {
+      const newKey = sessionKey(plan.weekId, moving.day, moving.slot);
+      await db.doc('users/' + state.user.uid + '/logs/' + newKey).set({ ...log, day: moving.day, slot: moving.slot });
+      if (newKey !== fromKey) { await db.doc('users/' + state.user.uid + '/logs/' + fromKey).delete().catch(() => {}); delete state.logs[fromKey]; state.logs[newKey] = { ...log, day: moving.day, slot: moving.slot }; }
+    }
+    state.plan.sessions = out;
+    toast(T('Moved to') + ' ' + T(DAYS[toDay]));
+    navigate('plan');
+  } catch (e) { console.error(e); toast(T('Could not move the session.')); }
 }
 function askText(title, value, onOk) {
   const dlg = document.createElement('div'); dlg.className = 'dlg';
