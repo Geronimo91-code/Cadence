@@ -43,7 +43,7 @@ export function requireCron(req, res) {
 // Providers in order: Gemini (free tier, OpenAI-compatible endpoint) if GEMINI_API_KEY is set, then OpenRouter.
 function providers() {
   const list = [];
-  if (process.env.GEMINI_API_KEY) list.push({ name: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
+  if (process.env.GEMINI_API_KEY) list.push({ name: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, model: process.env.GEMINI_MODEL || 'gemini-2.5-flash', extra: { reasoning_effort: 'none' } });
   if (process.env.OPENROUTER_API_KEY) list.push({ name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: process.env.OPENROUTER_API_KEY, model: process.env.OPENROUTER_MODEL || 'openrouter/free', headers: { 'HTTP-Referer': 'https://cadence.app', 'X-Title': 'Cadence' } });
   return list;
 }
@@ -52,11 +52,12 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
   const provs = providers();
   if (!provs.length) throw new Error('No model provider configured (set GEMINI_API_KEY or OPENROUTER_API_KEY)');
   const endBy = deadline || Date.now() + 50000; // stay inside the 60s function limit
+  const failures = [];
   let lastErr;
   for (const prov of provs) {
     for (let attempt = 0; attempt <= retries; attempt++) {
       const left = endBy - Date.now();
-      if (left < 6000) throw lastErr || new Error('Out of time before the model answered');
+      if (left < 6000) throw new Error(failures.concat('Out of time before the model answered').join(' | '));
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), Math.min(timeoutMs, left - 1000));
       try {
@@ -66,6 +67,7 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${prov.key}`, ...(prov.headers || {}) },
           body: JSON.stringify({
             model: prov.model,
+            ...(prov.extra || {}),
             max_tokens: maxTokens,
             temperature: 0.4,
             messages: [
@@ -76,16 +78,19 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
         });
         if (!r.ok) throw new Error(`${prov.name} ${r.status}: ${(await r.text()).slice(0, 200)}`);
         const data = await r.json();
-        return extractJson(data.choices?.[0]?.message?.content || '');
+        const content = data.choices?.[0]?.message?.content || '';
+        if (!content.trim()) throw new Error(`${prov.name} returned an empty answer (finish_reason: ${data.choices?.[0]?.finish_reason || 'unknown'})`);
+        return extractJson(content);
       } catch (e) {
         lastErr = e.name === 'AbortError' ? new Error(`${prov.name} timed out`) : e;
+        failures.push(lastErr.message);
         console.warn(`callModel ${prov.name} attempt ${attempt + 1}:`, lastErr.message);
         // Only retry the same provider when there is real time left
         if (attempt >= retries || endBy - Date.now() < 15000) break;
       } finally { clearTimeout(timer); }
     }
   }
-  throw lastErr;
+  throw new Error(failures.join(' | ') || (lastErr && lastErr.message) || 'model call failed');
 }
 
 // Free/open models often wrap JSON in prose or code fences; pull out the first balanced object.
