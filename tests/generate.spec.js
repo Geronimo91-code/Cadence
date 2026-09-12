@@ -33,12 +33,14 @@ test('generate a plan end to end', async ({ page }) => {
       trigger.click(),
     ]);
     out.status = res.status();
-    if (out.status !== 200) { out.error = (await res.text().catch(() => '')).slice(0, 400); return; }
+    if (out.status !== 200) { out.error = (await res.text().catch(() => '')).slice(0, 400); }
 
     out.step = 'render';
     await page.click('.tab[data-view="plan"]');
+    await page.waitForTimeout(1500);
     await expect(page.locator('.daygroup').first()).toBeVisible({ timeout: 30000 });
     out.days = await page.locator('.daygroup').count();
+    out.sessionsPerDay = await page.evaluate(() => [...document.querySelectorAll('.daygroup')].map((g) => `${g.querySelector('.dcol .d')?.textContent}:${g.querySelectorAll('.slot:not(.rest)').length}`));
     out.trainable = await page.locator('button.slot:has(.chev)').count();
     if (out.trainable) {
       await page.locator('button.slot:has(.chev)').first().click();
