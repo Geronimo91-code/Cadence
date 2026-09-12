@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
   if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
 
-  if (!(await checkLimit(user.uid, 'plan', 12))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
+  if (!(await checkLimit(user.uid, 'plan', 30))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const started = Date.now();
   const id = weekId();
   const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads as a percentage of effort or bodyweight/RPE (never guess kilograms unless the athlete gave a number), rest times, and short coaching cues an athlete can read on a phone at the gym or field.
