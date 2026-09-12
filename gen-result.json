@@ -1,9 +1,61 @@
 {
-  "step": "generating",
-  "status": 503,
-  "error": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"gemini 429: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 429,\\n    \\\"message\\\": \\\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini- | gemini 429: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 429,\\n    \\\"message\\\": \\\"You exceeded your ",
-  "days": null,
-  "trainable": null,
-  "sheetOk": null,
-  "pageErrors": []
+  "step": "done",
+  "status": 200,
+  "error": null,
+  "days": 7,
+  "trainable": 3,
+  "sheetOk": true,
+  "pageErrors": [],
+  "sessionsPerDay": [
+    "Mon:0",
+    "Tue:1",
+    "Wed:0",
+    "Thu:1",
+    "Fri:0",
+    "Sat:1",
+    "Sun:0"
+  ],
+  "layout": {
+    "viewWidth": 350,
+    "days": [
+      {
+        "day": "Mon",
+        "slots": 1,
+        "rest": 1
+      },
+      {
+        "day": "Tue",
+        "slots": 1,
+        "rest": 0
+      },
+      {
+        "day": "Wed",
+        "slots": 1,
+        "rest": 1
+      },
+      {
+        "day": "Thu",
+        "slots": 1,
+        "rest": 0
+      },
+      {
+        "day": "Fri",
+        "slots": 1,
+        "rest": 1
+      },
+      {
+        "day": "Sat",
+        "slots": 1,
+        "rest": 0
+      },
+      {
+        "day": "Sun",
+        "slots": 1,
+        "rest": 1
+      }
+    ],
+    "overflow": [],
+    "overlaps": 0,
+    "daysShown": 7
+  }
 }
