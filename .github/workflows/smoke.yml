@@ -12,6 +12,8 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write
     env:
       CADENCE_URL: ${{ secrets.CADENCE_URL }}
       CADENCE_TEST_EMAIL: ${{ secrets.CADENCE_TEST_EMAIL }}
@@ -42,6 +44,10 @@ jobs:
         if: inputs.generate
         env: { RUN_GENERATE: '1' }
         run: npx playwright test -g "generate a plan end to end"
+      - name: 'Generate: publish result'
+        if: inputs.generate && always()
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: node publish-result.mjs
       - name: 'Generate: reached the API'
         if: inputs.generate && always()
         run: node check-gen.mjs reached-api
