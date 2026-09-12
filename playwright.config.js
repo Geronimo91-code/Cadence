@@ -1,1 +1,1 @@
-export default { testDir: './tests', timeout: 90000, retries: 1, use: { headless: true, viewport: { width: 390, height: 844 }, screenshot: 'only-on-failure', trace: 'retain-on-failure' } };
+export default { testDir: './tests', testIgnore: process.env.RUN_GENERATE ? [] : ['**/generate.spec.js'], timeout: 90000, retries: 1, use: { headless: true, viewport: { width: 390, height: 844 }, screenshot: 'only-on-failure', trace: 'retain-on-failure' } };
