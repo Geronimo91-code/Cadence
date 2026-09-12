@@ -173,6 +173,7 @@ export const PLAN_RULES = `Rules:
 - Set "timeOfDay" to morning, afternoon or evening on every non-rest session; with two sessions the earlier one must come first.
 - Fixed commitments (club practice, matches) are sacred: put them on their day as a session of type "skills" or "match" with fixed=true, keep exercises to a short pre-practice activation, and do not stack a hard session on the same day.
 - Respect injuries and limits literally.
+- Where the athlete fixed a day's focus or time, that is not a suggestion: schedule exactly that type at that time. Build the rest of the week around those anchors.
 - The FIRST goal leads the week; other goals get one focused slot or are woven into sessions.
 - If the athlete mentions an existing strength program (e.g. StrongLifts 5x5, a named routine), keep it as-is on its days and build the rest around it.
 - Session length must match the athlete's typical session length (±10 min).
@@ -208,6 +209,22 @@ export function planShape(id) {
 Rest days: type "rest", slot 0, durationMin 0, empty warmup/exercises/cooldown arrays, intent = the recovery suggestion.`;
 }
 
+function dayPrefBlock(p) {
+  const prefs = p.dayPrefs || {};
+  const lines = [];
+  for (const [day, slots] of Object.entries(prefs)) {
+    const parts = (slots || []).filter((x) => x && (x.time || x.focus)).map((x, i) => {
+      const bits = [];
+      if (x.time) bits.push(`in the ${x.time}`);
+      if (x.focus) bits.push(`focus: ${x.focus}`);
+      return `${slots.length > 1 ? `session ${i + 1} ` : ''}${bits.join(', ')}`;
+    });
+    if (parts.length) lines.push(`  · ${DAY_NAMES[Number(day)]}: ${parts.join(' | ')}`);
+  }
+  if (!lines.length) return '- The athlete set no per-day preferences: choose the days\' focus and timing yourself.';
+  return `- The athlete fixed these days themselves. Follow them exactly — the right session type at the right time of day. Days not listed are yours to decide:\n${lines.join('\n')}`;
+}
+
 export function athleteBlock(p, id, ref = new Date()) {
   const goals = (p.goals || [p.goal]).filter(Boolean);
   return `Athlete
@@ -216,6 +233,7 @@ export function athleteBlock(p, id, ref = new Date()) {
 - Level: ${p.level}
 - Goals in order: ${goals.join(' > ')}${p.goalNote ? `\n- Specific aim: ${p.goalNote}` : ''}
 - Available days: ${p.days.map((d) => DAY_NAMES[d]).join(', ')}
+${dayPrefBlock(p)}
 - Typical session length: ${p.sessionMin} min
 - Two sessions in one day: ${p.doubles === 'often' ? 'yes, happy to train twice on some days (e.g. gym in the morning, club practice in the evening)' : p.doubles === 'sometimes' ? 'occasionally, at most once or twice a week, only when the second one is easy or is club practice' : 'no, one session per day only'}
 - Fixed commitments: ${p.fixed || 'none'}

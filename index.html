@@ -762,7 +762,7 @@ function renderReview(el) {
     [T('Sports'), d.sports.map(T).join(', ')],
     [T('Level'), T(LEVELS.find((l) => l[0] === d.level)?.[1] || '')],
     [T('Goals'), (d.goals || []).map((g) => T(GOALS.find((x) => x[0] === g)?.[1] || '')).join(', ') + (d.goalNote ? ` — ${d.goalNote}` : '')],
-    [T('Days'), d.days.map((i) => T(DAYS[i])).join(', ') + ` · ${d.sessionMin} min`],
+    [T('Days'), d.days.map((i) => { const sl = (d.dayPrefs || {})[i] || []; const bits = sl.filter((x) => x.time || x.focus).map((x) => [x.time && T(x.time), x.focus && T((FOCUS_OPTIONS.find((f) => f[0] === x.focus) || [])[1] || x.focus)].filter(Boolean).join(' ')); return T(DAYS[i]) + (bits.length ? ` (${bits.join(' + ')})` : ''); }).join(', ') + ` · ${d.sessionMin} ${T('min')}` + ((d.doubles && d.doubles !== 'no') ? ` · ${T('doubles')}` : '')],
     [T('Equipment'), d.equipment.map(T).join(', ')],
     [T('Limits'), d.injuries || T('None')],
     [T('Deadline'), d.hasDeadline ? `${d.deadlineName}, ${new Date(d.deadlineDate).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short', year: 'numeric' })}` : T('None, rolling blocks')],
