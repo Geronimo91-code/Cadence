@@ -1,0 +1,24 @@
+name: Smoke test (live site)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Wait for Vercel deployment
+        run: sleep 90
+      - run: npm i -D @playwright/test@1.47.2 && npx playwright install --with-deps chromium
+      - run: npx playwright test
+        env:
+          CADENCE_URL: ${{ secrets.CADENCE_URL }}
+          CADENCE_TEST_EMAIL: ${{ secrets.CADENCE_TEST_EMAIL }}
+          CADENCE_TEST_PASSWORD: ${{ secrets.CADENCE_TEST_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: test-results/ }
