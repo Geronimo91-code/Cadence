@@ -46,6 +46,27 @@ test('generate a plan end to end', async ({ page }) => {
       await expect(sheet).toBeVisible({ timeout: 10000 });
       out.sheetOk = (await sheet.locator('.ex').count()) > 0 && (await sheet.locator('#sessRpe button').count()) === 10;
     }
+    // layout diagnostics: per-day session counts and any element wider than its container
+    out.layout = await page.evaluate(() => {
+      const view = document.querySelector('#view');
+      const vw = view.getBoundingClientRect().width;
+      const days = [...document.querySelectorAll('.daygroup')].map((g) => ({
+        day: g.querySelector('.dcol .d')?.textContent,
+        slots: g.querySelectorAll('.slot').length,
+        rest: g.querySelectorAll('.slot.rest').length,
+      }));
+      const overflow = [...document.querySelectorAll('.daygroup, .slot, .card')]
+        .filter((e) => e.getBoundingClientRect().width > vw + 1)
+        .map((e) => e.className + ':' + Math.round(e.getBoundingClientRect().width) + '>' + Math.round(vw));
+      // does the time label sit on top of the title?
+      const overlaps = [...document.querySelectorAll('.slot')].filter((sl) => {
+        const w = sl.querySelector('.when'), t = sl.querySelector('strong');
+        if (!w || !t) return false;
+        const a = w.getBoundingClientRect(), b = t.getBoundingClientRect();
+        return a.right > b.left + 1 && a.bottom > b.top + 1 && a.top < b.bottom - 1;
+      }).length;
+      return { viewWidth: Math.round(vw), days, overflow, overlaps, daysShown: days.length };
+    });
     out.step = 'done';
   } finally {
     fs.writeFileSync('gen-result.json', JSON.stringify(out, null, 2));

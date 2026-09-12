@@ -78,6 +78,15 @@ jobs:
       - name: 'Generate: session view renders'
         if: inputs.generate && always()
         run: node check-gen.mjs session-view
+      - name: 'Generate: all 7 days shown'
+        if: inputs.generate && always()
+        run: node check-gen.mjs all-days-shown
+      - name: 'Generate: nothing wider than the screen'
+        if: inputs.generate && always()
+        run: node check-gen.mjs layout-fits
+      - name: 'Generate: no overlapping labels'
+        if: inputs.generate && always()
+        run: node check-gen.mjs no-overlap
       - name: 'Generate: no page errors'
         if: inputs.generate && always()
         run: node check-gen.mjs no-page-errors

@@ -338,17 +338,18 @@ textarea.input { min-height: 90px; resize: vertical; }
 .clubtabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 4px; }
 .clubtabs .chip { flex: 0 0 auto; }
 .clubtabs .chip.add { border-style: dashed; }
-.daygroup { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.daygroup { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); max-width: 100%; }
 .daygroup:last-child { border-bottom: 0; }
 .daygroup .dcol { width: 42px; flex: 0 0 auto; padding-top: 2px; }
 .daygroup .dcol .d { font-family: var(--font-display); font-weight: 700; font-size: .95rem; color: var(--ink-3); }
 .daygroup.today .dcol .d { color: var(--amber); }
 .daygroup .dcol .n { font-size: .7rem; color: var(--ink-3); }
-.daygroup .slots { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.daygroup .slots { flex: 1; min-width: 0; max-width: 100%; display: grid; gap: 8px; }
 .daygroup .movebar { display: flex; gap: 8px; flex-wrap: wrap; }
-.slot { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 100%; box-sizing: border-box; text-align: left; background: var(--sage-2); border-radius: var(--r-m); padding: 10px 12px; }
+.slot { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; text-align: left; background: var(--sage-2); border-radius: var(--r-m); padding: 10px 12px; }
+.slot > .status { flex: 0 0 auto; white-space: nowrap; }
 .slot.rest { background: transparent; border: 1.5px dashed var(--line); }
-.slot .when { font-size: .68rem; font-weight: 600; color: var(--green-2); text-transform: uppercase; letter-spacing: .03em; width: 40px; flex: 0 0 auto; line-height: 1.2; }
+.slot .when { display: block; font-size: .66rem; font-weight: 700; color: var(--green-2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
 .slot .body { flex: 1; min-width: 0; overflow: hidden; }
 .slot .body strong { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot .body span { font-size: .82rem; color: var(--ink-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1060,7 +1061,7 @@ function viewPlan(el) {
       if (!isRest) row.type = 'button';
       row.className = 'slot' + (isRest ? ' rest' : '');
       const when = sess.timeOfDay ? T(sess.timeOfDay) : (real.length > 1 ? (sess.slot ? T('later') : T('first')) : '');
-      row.innerHTML = `${when ? `<span class="when">${esc(when)}</span>` : ''}<span class="body"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
+      row.innerHTML = `<span class="body">${when ? `<span class="when">${esc(when)}</span>` : ''}<strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
       if (!isRest) row.onclick = () => openSession(sess);
       slots.append(row);
     });

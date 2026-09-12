@@ -15,4 +15,7 @@ if (what === 'not-quota') { if (r.status === 429) fail('daily quota reached: ' +
 if (what === 'not-server-error') { if (r.status === 500) fail('server error: ' + r.error); }
 if (what === 'not-bad-request') { if (r.status === 400) fail('bad request: ' + r.error); }
 if (what === 'not-auth') { if (r.status === 401 || r.status === 403) fail('auth problem: ' + r.error); }
+if (what === 'layout-fits') { if (r.layout?.overflow?.length) fail('elements wider than the screen: ' + r.layout.overflow.join(', ')); }
+if (what === 'no-overlap') { if (r.layout?.overlaps) fail(r.layout.overlaps + ' slot(s) have the time label on top of the title'); }
+if (what === 'all-days-shown') { if (r.layout && r.layout.daysShown !== 7) fail('only ' + r.layout.daysShown + ' days rendered: ' + JSON.stringify(r.layout.days)); }
 if (what === 'no-page-errors') { if (r.pageErrors.length) fail(r.pageErrors.join(' | ')); }
