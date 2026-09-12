@@ -1,9 +1,9 @@
 {
-  "step": "done",
-  "status": 200,
-  "error": null,
-  "days": 7,
-  "trainable": 4,
-  "sheetOk": true,
+  "step": "generating",
+  "status": 500,
+  "error": "{\"error\":\"Could not generate a plan right now\"}",
+  "days": null,
+  "trainable": null,
+  "sheetOk": null,
   "pageErrors": []
 }
