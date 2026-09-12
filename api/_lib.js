@@ -268,8 +268,10 @@ export function validatePlan(plan) {
     const real = ofDay.filter((s) => s.type !== 'rest');
     // A day is either rest, or up to two real sessions; a rest entry alongside real ones is dropped
     ofDay = real.length ? real.slice(0, 2) : [ofDay[0] || { day: d, slot: 0, timeOfDay: null, title: 'Rest', type: 'rest', fixed: false, durationMin: 0, intent: 'Recovery day.', warmup: [], exercises: [], cooldown: [] }];
+    // Time of day wins over the model's slot numbering, which is often arbitrary
     const order = { morning: 0, afternoon: 1, evening: 2 };
-    ofDay.sort((a, b) => (a.slot - b.slot) || ((order[a.timeOfDay] ?? 1) - (order[b.timeOfDay] ?? 1)));
+    const rank = (x) => (x.timeOfDay ? order[x.timeOfDay] : (x.slot || 0) + 0.5);
+    ofDay.sort((a, b) => rank(a) - rank(b) || (a.slot || 0) - (b.slot || 0));
     ofDay.forEach((s, i) => { s.slot = i; s.day = d; out.push(s); });
   }
   plan.sessions = out;

@@ -55,4 +55,4 @@ clubs/{clubId}/notes/{uid}     coach note fed into the member's next review
 `.github/workflows/smoke.yml` runs a headless Chromium against the live site after every push. Add these repository secrets (GitHub → Settings → Secrets and variables → Actions):
 - `CADENCE_URL` — e.g. https://cadence-xi-one.vercel.app
 - `CADENCE_TEST_EMAIL` / `CADENCE_TEST_PASSWORD` — an email/password account created in Firebase → Authentication → Users → Add user
-Without the two account secrets the sign-in test is skipped and only the route checks run.
+Tests: API routes and auth, sign-in and tab navigation, Today fits one screen, the session view, nutrition/log/club screens and the language switch, and the per-day preference editor. Two heavier tests run only on manual dispatch with the `generate` input: full plan generation and layout measurement. Results are published to the `test-results` branch as JSON.

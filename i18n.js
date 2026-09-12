@@ -2,6 +2,7 @@
 window.CADENCE_LANGS = { en: 'English', fr: 'Français', nl: 'Nederlands', tr: 'Türkçe', es: 'Español' };
 window.CADENCE_I18N = {
 fr: {
+"Could not generate a plan right now": "Impossible de générer un plan pour le moment",
 "planned": "prévu",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "Facultatif : fixe l'heure ou le type pour un jour. Laisse à Cadence et il décide.", "Let Cadence decide": "Cadence décide", "Any time": "N'importe quand", "Morning": "Matin", "Afternoon": "Après-midi", "Evening": "Soir", "Speed": "Vitesse", "Conditioning": "Conditionnement", "Skills / practice": "Technique / entraînement", "Mobility": "Mobilité", "Match": "Match", "2nd": "2e", "Add a second session this day": "Ajouter une seconde séance ce jour",
 "Top half: morning · bottom half: afternoon or evening": "Haut : matin · bas : après-midi ou soir",
@@ -56,6 +57,7 @@ fr: {
 "strength": "force", "speed": "vitesse", "conditioning": "conditionnement", "skills": "technique", "match": "match", "mobility": "mobilité", "rest": "repos",
 },
 nl: {
+"Could not generate a plan right now": "Kan nu geen plan maken",
 "planned": "gepland",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "Optioneel: leg een tijd of focus vast per dag. Laat je het open, dan kiest Cadence.", "Let Cadence decide": "Cadence beslist", "Any time": "Elk moment", "Morning": "Ochtend", "Afternoon": "Middag", "Evening": "Avond", "Speed": "Snelheid", "Conditioning": "Conditie", "Skills / practice": "Techniek / training", "Mobility": "Mobiliteit", "Match": "Wedstrijd", "2nd": "2e", "Add a second session this day": "Tweede sessie deze dag",
 "Top half: morning · bottom half: afternoon or evening": "Boven: ochtend · onder: middag of avond",
@@ -110,6 +112,7 @@ nl: {
 "strength": "kracht", "speed": "snelheid", "conditioning": "conditie", "skills": "techniek", "match": "wedstrijd", "mobility": "mobiliteit", "rest": "rust",
 },
 tr: {
+"Could not generate a plan right now": "Şu anda plan oluşturulamadı",
 "planned": "planlı",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "İsteğe bağlı: bir gün için saat veya odak belirle. Boş bırakırsan Cadence karar verir.", "Let Cadence decide": "Cadence karar versin", "Any time": "Fark etmez", "Morning": "Sabah", "Afternoon": "Öğleden sonra", "Evening": "Akşam", "Speed": "Hız", "Conditioning": "Kondisyon", "Skills / practice": "Teknik / antrenman", "Mobility": "Mobilite", "Match": "Maç", "2nd": "2.", "Add a second session this day": "Bu güne ikinci antrenman ekle",
 "Top half: morning · bottom half: afternoon or evening": "Üst: sabah · alt: öğleden sonra veya akşam",
@@ -164,6 +167,7 @@ tr: {
 "strength": "kuvvet", "speed": "hız", "conditioning": "kondisyon", "skills": "teknik", "match": "maç", "mobility": "mobilite", "rest": "dinlenme",
 },
 es: {
+"Could not generate a plan right now": "No se pudo generar un plan ahora",
 "planned": "previsto",
 "Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.": "Opcional: fija una hora o un enfoque para cualquier día. Si lo dejas, Cadence decide.", "Let Cadence decide": "Que decida Cadence", "Any time": "Cualquier hora", "Morning": "Mañana", "Afternoon": "Tarde", "Evening": "Noche", "Speed": "Velocidad", "Conditioning": "Acondicionamiento", "Skills / practice": "Técnica / entrenamiento", "Mobility": "Movilidad", "Match": "Partido", "2nd": "2ª", "Add a second session this day": "Añadir una segunda sesión ese día",
 "Top half: morning · bottom half: afternoon or evening": "Arriba: mañana · abajo: tarde o noche",
