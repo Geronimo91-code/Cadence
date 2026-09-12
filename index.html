@@ -112,10 +112,14 @@ textarea.input { min-height: 90px; resize: vertical; }
 .week .day { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .week .day .lbl { font-size: .8rem; color: var(--ink-3); font-weight: 500; }
 .week .bar {
-  width: 100%; aspect-ratio: 1 / 2.4; border-radius: 10px; background: var(--sage); border: 0;
-  transition: background .15s, transform .12s; position: relative;
+  width: 100%; aspect-ratio: 1 / 2.4; border-radius: 10px; background: transparent; border: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 3px; transition: transform .12s; position: relative;
 }
-.week .bar[aria-pressed="true"] { background: var(--green); }
+.week .bar i { display: block; flex: 1; background: var(--sage); border-radius: 6px; transition: background .15s; }
+.week .bar i:first-child { border-radius: 8px 8px 4px 4px; }
+.week .bar i:last-child { border-radius: 4px 4px 8px 8px; }
+.week .bar i.on { background: var(--green); }
+.week .bar[aria-pressed="true"] i { background: var(--green); }
 .week .bar.today::after {
   content: ''; position: absolute; left: 50%; bottom: -12px; width: 6px; height: 6px; border-radius: 50%;
   background: var(--amber); transform: translateX(-50%);
@@ -341,14 +345,14 @@ textarea.input { min-height: 90px; resize: vertical; }
 .daygroup.today .dcol .d { color: var(--amber); }
 .daygroup .dcol .n { font-size: .7rem; color: var(--ink-3); }
 .daygroup .slots { flex: 1; min-width: 0; display: grid; gap: 8px; }
-.slot { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--sage-2); border-radius: var(--r-m); padding: 10px 12px; }
+.daygroup .movebar { display: flex; gap: 8px; flex-wrap: wrap; }
+.slot { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 100%; box-sizing: border-box; text-align: left; background: var(--sage-2); border-radius: var(--r-m); padding: 10px 12px; }
 .slot.rest { background: transparent; border: 1.5px dashed var(--line); }
-.slot .when { font-size: .7rem; font-weight: 600; color: var(--green-2); text-transform: uppercase; letter-spacing: .04em; width: 44px; flex: 0 0 auto; }
-.slot .body { flex: 1; min-width: 0; }
-.slot .body strong { display: block; font-weight: 600; }
-.slot .body span { font-size: .82rem; color: var(--ink-2); }
+.slot .when { font-size: .68rem; font-weight: 600; color: var(--green-2); text-transform: uppercase; letter-spacing: .03em; width: 40px; flex: 0 0 auto; line-height: 1.2; }
+.slot .body { flex: 1; min-width: 0; overflow: hidden; }
+.slot .body strong { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot .body span { font-size: .82rem; color: var(--ink-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot .chev { color: var(--ink-3); }
-.week .bar.two { background: linear-gradient(to bottom, var(--green) 0 47%, var(--bg) 47% 53%, var(--green) 53% 100%); }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -495,14 +499,23 @@ async function api(path, body, { timeoutMs = 150000, slowMsg = T('Still working 
   if (!r.ok) throw new Error(data.error || 'Something went wrong');
   return data;
 }
-function weekStrip(activeDays, { small = false, readonly = true, onToggle, doubleDays = [] } = {}) {
+// slots: { [day]: { am, pm } } — fills the two halves of each bar; activeDays is the plain on/off used in onboarding
+function weekStrip(activeDays, { small = false, readonly = true, onToggle, slots = null } = {}) {
   const t = todayIndex();
   const el = document.createElement('div');
   el.className = 'week' + (small ? ' small' : '') + (readonly ? ' readonly' : '');
   DAYS.forEach((d, i) => {
     const day = document.createElement('div'); day.className = 'day';
-    const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'bar' + (i === t ? ' today' : '') + (doubleDays.includes(i) ? ' two' : '');
-    bar.setAttribute('aria-pressed', activeDays.includes(i)); bar.setAttribute('aria-label', d);
+    const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'bar' + (i === t ? ' today' : '');
+    const am = document.createElement('i'), pm = document.createElement('i');
+    if (slots) {
+      const sl = slots[i] || {};
+      if (sl.am) am.classList.add('on');
+      if (sl.pm) pm.classList.add('on');
+      bar.setAttribute('aria-label', `${T(d)}: ${[sl.am && T('morning'), sl.pm && T('evening')].filter(Boolean).join(', ') || T('Rest')}`);
+    } else bar.setAttribute('aria-label', T(d));
+    bar.append(am, pm);
+    bar.setAttribute('aria-pressed', activeDays.includes(i));
     if (onToggle) bar.onclick = () => { const on = bar.getAttribute('aria-pressed') !== 'true'; bar.setAttribute('aria-pressed', on); onToggle(i, on); };
     const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = T(d);
     day.append(bar, lbl); el.append(day);
@@ -989,9 +1002,15 @@ async function viewToday(el) {
     el.append(c2); $('#btnOpenToday' + (i + 2)).onclick = () => openSession(extra);
   });
   const strip = document.createElement('div'); strip.style.marginTop = '22px';
-  const byDayCount = {};
-  state.plan.sessions.filter((s) => s.type !== 'rest').forEach((s) => { byDayCount[s.day] = (byDayCount[s.day] || 0) + 1; });
-  strip.append(weekStrip(Object.keys(byDayCount).map(Number), { small: true, doubleDays: Object.entries(byDayCount).filter(([, n]) => n > 1).map(([d]) => Number(d)) }));
+  const slotMap = {};
+  state.plan.sessions.filter((x) => x.type !== 'rest').forEach((x) => {
+    const cell = slotMap[x.day] || (slotMap[x.day] = { am: false, pm: false });
+    if (x.timeOfDay === 'morning') cell.am = true;
+    else if (x.timeOfDay === 'afternoon' || x.timeOfDay === 'evening') cell.pm = true;
+    else if (x.slot) cell.pm = true; else cell.am = true;
+  });
+  strip.append(weekStrip(Object.keys(slotMap).map(Number), { small: true, slots: slotMap }));
+  el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin-top:8px;text-align:center">${T('Top half: morning · bottom half: afternoon or evening')}</p>`);
   el.append(strip);
   if (p.nutrition) {
     const trainingDay = !!session && session.type !== 'rest';
@@ -1046,7 +1065,7 @@ function viewPlan(el) {
       slots.append(row);
     });
     if (real.length) {
-      const mv = document.createElement('div'); mv.style.display = 'flex'; mv.style.gap = '8px';
+      const mv = document.createElement('div'); mv.className = 'movebar';
       real.forEach((sess) => { if (!planIsCurrent()) return; const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.style.fontSize = '.78rem'; b.style.padding = '5px 10px'; b.textContent = T('Move') + (real.length > 1 ? ' · ' + (sess.timeOfDay ? T(sess.timeOfDay) : sess.slot ? T('later') : T('first')) : ''); b.onclick = () => askDay(sess); mv.append(b); });
       if (mv.children.length) slots.append(mv);
     }

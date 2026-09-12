@@ -3,6 +3,7 @@ window.CADENCE_LANGS = { en: 'English', fr: 'Français', nl: 'Nederlands', tr: '
 window.CADENCE_I18N = {
 fr: {
 "Top half: morning · bottom half: afternoon or evening": "Haut : matin · bas : après-midi ou soir",
+"Top half: morning · bottom half: afternoon or evening": "Haut : matin · bas : après-midi ou soir",
 "later": "plus tard", "first": "d'abord",
 "sessions": "séances",
 "Another club": "Autre club", "You are already in that club.": "Tu es déjà dans ce club.", "Five clubs is the limit.": "Cinq clubs maximum.",
@@ -53,6 +54,7 @@ fr: {
 "strength": "force", "speed": "vitesse", "conditioning": "conditionnement", "skills": "technique", "match": "match", "mobility": "mobilité", "rest": "repos",
 },
 nl: {
+"Top half: morning · bottom half: afternoon or evening": "Boven: ochtend · onder: middag of avond",
 "Top half: morning · bottom half: afternoon or evening": "Boven: ochtend · onder: middag of avond",
 "later": "later", "first": "eerst",
 "sessions": "sessies",
@@ -105,6 +107,7 @@ nl: {
 },
 tr: {
 "Top half: morning · bottom half: afternoon or evening": "Üst: sabah · alt: öğleden sonra veya akşam",
+"Top half: morning · bottom half: afternoon or evening": "Üst: sabah · alt: öğleden sonra veya akşam",
 "later": "sonra", "first": "önce",
 "sessions": "antrenman",
 "Another club": "Başka kulüp", "You are already in that club.": "Zaten o kulüptesin.", "Five clubs is the limit.": "En fazla beş kulüp.",
@@ -155,6 +158,7 @@ tr: {
 "strength": "kuvvet", "speed": "hız", "conditioning": "kondisyon", "skills": "teknik", "match": "maç", "mobility": "mobilite", "rest": "dinlenme",
 },
 es: {
+"Top half: morning · bottom half: afternoon or evening": "Arriba: mañana · abajo: tarde o noche",
 "Top half: morning · bottom half: afternoon or evening": "Arriba: mañana · abajo: tarde o noche",
 "later": "después", "first": "primero",
 "sessions": "sesiones",
