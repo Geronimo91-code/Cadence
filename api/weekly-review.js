@@ -56,12 +56,13 @@ async function reviewWeek(uid, profile, reviewWeek) {
     if (l.sessionRpe) rpes.push(l.sessionRpe);
     stats.setsDone += l.setsDone || 0; stats.setsTotal += l.setsTotal || 0;
     let line = `- ${when} · ${s.title} (${s.type}): ${l.status.toUpperCase()}${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`;
+    if (l.replacedWith) line += `\n    · replaced the planned session with: "${l.replacedWith}"`;
     if (Array.isArray(l.exercises)) {
       for (const ex of l.exercises) {
         const doneSets = ex.sets.filter((st) => st.done);
         if (!doneSets.length) { line += `\n    · ${ex.name}: not done`; continue; }
         const desc = doneSets.map((st) => `${st.reps ?? '?'}${st.load ? '×' + st.load + 'kg' : ''}`).join(', ');
-        line += `\n    · ${ex.name} (planned ${ex.prescribed}): did ${desc}${ex.rpe ? `, RPE ${ex.rpe}` : ''}${doneSets.length < ex.sets.length ? `, ${ex.sets.length - doneSets.length} set(s) dropped` : ''}`;
+        line += `\n    · ${ex.name}${ex.added ? ' (added by the athlete)' : ex.swapped ? ' (swapped in by the athlete)' : ` (planned ${ex.prescribed})`}: did ${desc}${ex.rpe ? `, RPE ${ex.rpe}` : ''}${doneSets.length < ex.sets.length ? `, ${ex.sets.length - doneSets.length} set(s) dropped` : ''}`;
       }
     }
     return line;
@@ -94,6 +95,7 @@ Review principles:
 - Progression: if a session was DONE and session RPE ≤ 8, progress it next week (small load or volume increase, or harder variation). RPE 9–10: hold. Adherence below 50% or repeated fatigue/soreness notes: make next week lighter (deload) and say so. Skip reasons that point to schedule problems: move sessions, don't add more.
 - When the athlete logged real loads (kg), use those numbers to prescribe next week's loads explicitly.
 - Injury or pain mentioned in a note overrides progression for that movement.
+- When the athlete swapped, added or replaced exercises or whole sessions, take that as a signal about what actually fits their week and equipment: keep what they chose if it serves the goal, and say so in the adjustments.
 - If a coach's note is given, treat it as an instruction from the athlete's coach and follow it, mentioning it in the adjustments.
 - Stay in the periodisation phase given for next week.
 

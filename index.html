@@ -315,6 +315,14 @@ textarea.input { min-height: 90px; resize: vertical; }
 .member .who span { font-size: .8rem; color: var(--ink-2); }
 .adh { width: 54px; height: 8px; border-radius: 4px; background: var(--sage-2); overflow: hidden; flex: 0 0 auto; }
 .adh i { display: block; height: 100%; background: var(--green); }
+.ex.swapped .name > span:first-child::after { content: ' ✎'; color: var(--green); font-size: .8em; }
+.addex { width: 100%; border: 1.5px dashed var(--line); border-radius: var(--r-m); padding: 12px; color: var(--ink-2); margin-top: 12px; background: transparent; }
+.addex:hover { background: var(--sage-2); }
+.swapbar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.swapbar .chip { font-size: .82rem; padding: 6px 11px; }
+.dlg { position: fixed; inset: 0; background: rgba(21,32,27,.45); display: grid; place-items: end center; z-index: 60; }
+.dlg .panel { background: var(--bg); width: 100%; max-width: 560px; border-radius: var(--r-l) var(--r-l) 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); }
+.dlg .row { gap: 10px; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -1002,7 +1010,7 @@ function openSession(raw, weekIdOverride, logOverride) {
   // Draft: from existing log if it has set data, otherwise from the prescription
   const draft = existing && Array.isArray(existing.exercises) ? JSON.parse(JSON.stringify(existing)) : {
     status: existing?.status || null, durationMin: existing?.durationMin || sess.durationMin, sessionRpe: existing?.sessionRpe || null, note: existing?.note || '',
-    exercises: sess.exercises.map((x) => ({ name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null,
+    exercises: sess.exercises.map((x) => ({ name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null, swapped: false,
       sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: numOnly(x.reps), load: numOnly(x.load), done: false })) })),
   };
 
@@ -1013,7 +1021,9 @@ function openSession(raw, weekIdOverride, logOverride) {
     <div class="muted small">${sess.durationMin} min planned</div>
     ${sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
     <div class="block"><h3>${T('Warm-up')}</h3>${list(sess.warmup)}</div>
-    <div class="block"><h3>${T('Main work')}</h3><p class="muted small" style="margin-bottom:4px">${sess.exercises.length ? T('Reps and load are prefilled from the plan. Change them to what you did and tap ✓ per set.') : T('Follow your club session, then log how it went below.')}</p><div id="logEx"></div></div>
+    <div class="block"><h3>${T('Main work')}</h3><p class="muted small" style="margin-bottom:4px">${sess.exercises.length ? T('Reps and load are prefilled from the plan. Change them to what you did and tap ✓ per set.') : T('Follow your club session, then log how it went below.')}</p><div id="logEx"></div>
+      <button class="addex" id="btnAddEx">${T('+ Add an exercise I did')}</button>
+      <div class="swapbar"><button class="chip" id="btnDidSomethingElse">${T('I did something else entirely')}</button></div></div>
     <div class="block"><h3>${T('Cool-down')}</h3>${list(sess.cooldown)}</div>
     <div class="block">
       <div class="field"><label>${T('How hard was the whole session? (RPE 1–10)')} <button type="button" class="btn ghost sm" id="btnRpeInfo" style="padding:2px 8px;color:var(--green)">${T('What is RPE?')}</button></label><div class="rpe" id="sessRpe"></div></div>
@@ -1029,27 +1039,42 @@ function openSession(raw, weekIdOverride, logOverride) {
   sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') history.back(); });
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
 
-  // ---- exercise rows with set inputs ----
+  // ---- exercise rows with set inputs (editable: swap, add, remove) ----
   const exWrap = $('#logEx', sheet);
-  sess.exercises.forEach((px, ei) => {
-    const ex = draft.exercises[ei] || (draft.exercises[ei] = { name: px.name, prescribed: `${px.sets}×${px.reps}`, rpe: null, sets: [{ reps: numOnly(px.reps), load: numOnly(px.load), done: false }] });
-    const card = document.createElement('div'); card.className = 'ex';
-    card.innerHTML = `<div class="name"><span>${esc(px.name)}</span><span class="rx">${px.sets ? px.sets + '×' : ''}${esc(px.reps)}</span></div>
-      <div class="meta">${[px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
-      ${px.cues ? `<div class="cues">${esc(px.cues)}</div>` : ''}
-      <div class="setgrid"><span class="h">Set</span><span class="h">${T('Reps')}</span><span class="h">${T('Load (kg)')}</span><span></span></div>`;
-    const grid = card.querySelector('.setgrid');
-    ex.sets.forEach((st, si) => {
-      const n = document.createElement('span'); n.className = 'n'; n.textContent = si + 1;
-      const r = document.createElement('input'); r.className = 'input'; r.type = 'number'; r.inputMode = 'decimal'; r.value = st.reps ?? ''; r.placeholder = '–'; r.oninput = () => { st.reps = r.value === '' ? null : Number(r.value); };
-      const l = document.createElement('input'); l.className = 'input'; l.type = 'number'; l.inputMode = 'decimal'; l.step = '0.5'; l.value = st.load ?? ''; l.placeholder = '–'; l.oninput = () => { st.load = l.value === '' ? null : Number(l.value); };
-      const c = document.createElement('button'); c.type = 'button'; c.className = 'check'; c.setAttribute('aria-pressed', st.done); c.setAttribute('aria-label', 'Set ' + (si + 1) + ' done'); c.innerHTML = svgCheck;
-      c.onclick = () => { st.done = !st.done; c.setAttribute('aria-pressed', st.done); if (st.done && si + 1 < ex.sets.length) { const nx = ex.sets[si + 1]; if (nx.reps == null) nx.reps = st.reps; if (nx.load == null) nx.load = st.load; const ins = grid.querySelectorAll('input'); ins[(si + 1) * 2].value = nx.reps ?? ''; ins[(si + 1) * 2 + 1].value = nx.load ?? ''; } };
-      grid.append(n, r, l, c);
+  const renderExercises = () => {
+    exWrap.innerHTML = '';
+    draft.exercises.forEach((ex, ei) => {
+      const px = sess.exercises[ei] || {};
+      const card = document.createElement('div'); card.className = 'ex' + (ex.swapped ? ' swapped' : '');
+      card.innerHTML = `<div class="name"><span>${esc(ex.name)}</span><span class="rx">${ex.swapped ? '' : (px.sets ? px.sets + '×' : '') + esc(px.reps || '')}</span></div>
+        <div class="meta">${ex.swapped ? T('your change') : [px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
+        ${!ex.swapped && px.cues ? `<div class="cues">${esc(px.cues)}</div>` : ''}
+        <div class="swapbar"><button class="chip" data-swap="${ei}">${T('Swap')}</button><button class="chip" data-addset="${ei}">${T('+ set')}</button>${ex.sets.length > 1 ? `<button class="chip" data-delset="${ei}">${T('− set')}</button>` : ''}<button class="chip" data-delex="${ei}">${T('Remove')}</button></div>
+        <div class="setgrid"><span class="h">${T('Set')}</span><span class="h">${T('Reps')}</span><span class="h">${T('Load (kg)')}</span><span></span></div>`;
+      const grid = card.querySelector('.setgrid');
+      ex.sets.forEach((st, si) => {
+        const n = document.createElement('span'); n.className = 'n'; n.textContent = si + 1;
+        const r = document.createElement('input'); r.className = 'input'; r.type = 'number'; r.inputMode = 'decimal'; r.value = st.reps ?? ''; r.placeholder = '–'; r.oninput = () => { st.reps = r.value === '' ? null : Number(r.value); };
+        const l = document.createElement('input'); l.className = 'input'; l.type = 'number'; l.inputMode = 'decimal'; l.step = '0.5'; l.value = st.load ?? ''; l.placeholder = '–'; l.oninput = () => { st.load = l.value === '' ? null : Number(l.value); };
+        const c = document.createElement('button'); c.type = 'button'; c.className = 'check'; c.setAttribute('aria-pressed', st.done); c.setAttribute('aria-label', T('Set') + ' ' + (si + 1)); c.innerHTML = svgCheck;
+        c.onclick = () => { st.done = !st.done; c.setAttribute('aria-pressed', st.done); if (st.done && si + 1 < ex.sets.length) { const nx = ex.sets[si + 1]; if (nx.reps == null) nx.reps = st.reps; if (nx.load == null) nx.load = st.load; const ins = grid.querySelectorAll('input'); ins[(si + 1) * 2].value = nx.reps ?? ''; ins[(si + 1) * 2 + 1].value = nx.load ?? ''; } };
+        grid.append(n, r, l, c);
+      });
+      const rpe = document.createElement('div'); rpe.className = 'rpe';
+      for (let i = 6; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'RPE ' + i; b.setAttribute('aria-pressed', ex.rpe === i); b.onclick = () => { ex.rpe = ex.rpe === i ? null : i; $$('button', rpe).forEach((x) => x.setAttribute('aria-pressed', x === b && ex.rpe === i)); }; rpe.append(b); }
+      card.append(rpe); exWrap.append(card);
     });
-    const rpe = document.createElement('div'); rpe.className = 'rpe';
-    for (let i = 6; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'RPE ' + i; b.setAttribute('aria-pressed', ex.rpe === i); b.onclick = () => { ex.rpe = ex.rpe === i ? null : i; $$('button', rpe).forEach((x) => x.setAttribute('aria-pressed', x === b && ex.rpe === i)); }; rpe.append(b); }
-    card.append(rpe); exWrap.append(card);
+    $$('[data-swap]', exWrap).forEach((b) => { b.onclick = () => askText(T('What did you do instead?'), draft.exercises[b.dataset.swap].name, (v) => { const ex = draft.exercises[b.dataset.swap]; ex.name = v; ex.swapped = true; renderExercises(); }); });
+    $$('[data-addset]', exWrap).forEach((b) => { b.onclick = () => { const ex = draft.exercises[b.dataset.addset]; const last = ex.sets[ex.sets.length - 1] || {}; ex.sets.push({ reps: last.reps ?? null, load: last.load ?? null, done: false }); renderExercises(); }; });
+    $$('[data-delset]', exWrap).forEach((b) => { b.onclick = () => { const ex = draft.exercises[b.dataset.delset]; if (ex.sets.length > 1) ex.sets.pop(); renderExercises(); }; });
+    $$('[data-delex]', exWrap).forEach((b) => { b.onclick = () => { draft.exercises.splice(Number(b.dataset.delex), 1); renderExercises(); }; });
+  };
+  renderExercises();
+  $('#btnAddEx', sheet).onclick = () => askText(T('What else did you do?'), '', (v) => { draft.exercises.push({ name: v, prescribed: '', rpe: null, swapped: true, added: true, sets: [{ reps: null, load: null, done: true }] }); renderExercises(); });
+  $('#btnDidSomethingElse', sheet).onclick = () => askText(T('What did you do instead of this session?'), '', (v) => {
+    draft.replacedWith = v;
+    draft.exercises = [{ name: v, prescribed: '', rpe: null, swapped: true, added: true, sets: [{ reps: null, load: null, done: true }] }];
+    renderExercises(); toast(T('Logged as a different session — add the details below'));
   });
   const sr = $('#sessRpe', sheet);
   for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', draft.sessionRpe === i); b.onclick = () => { draft.sessionRpe = draft.sessionRpe === i ? null : i; $$('button', sr).forEach((x) => x.setAttribute('aria-pressed', x === b && draft.sessionRpe === i)); }; sr.append(b); }
@@ -1061,7 +1086,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     else {
       const total = draft.exercises.reduce((a, x) => a + x.sets.length, 0);
       const done = draft.exercises.reduce((a, x) => a + x.sets.filter((st) => st.done).length, 0);
-      Object.assign(rec, { exercises: draft.exercises, durationMin: Number($('#logDur', sheet).value) || 0, sessionRpe: draft.sessionRpe, setsDone: done, setsTotal: total,
+      Object.assign(rec, { exercises: draft.exercises, replacedWith: draft.replacedWith || null, durationMin: Number($('#logDur', sheet).value) || 0, sessionRpe: draft.sessionRpe, setsDone: done, setsTotal: total,
         status: total === 0 ? 'done' : done === 0 ? 'skipped' : done < total ? 'partial' : 'done' });
       if (total > 0 && done === 0 && !confirm(T('No sets ticked — save this as skipped?'))) { btn.disabled = false; btn.textContent = existing ? T('Update log') : T('Save session'); return; }
     }
@@ -1093,6 +1118,18 @@ function openRpeInfo() {
   const close = () => { sheet.remove(); document.body.style.overflow = 'hidden'; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+}
+function askText(title, value, onOk) {
+  const dlg = document.createElement('div'); dlg.className = 'dlg';
+  dlg.innerHTML = `<div class="panel"><h3>${esc(title)}</h3><div class="field" style="margin-top:12px"><input class="input" id="dlgIn" value="${esc(value)}" placeholder="${T('e.g. Ran 5 km instead')}"></div><div class="row"><button class="btn secondary" id="dlgCancel">${T('Cancel')}</button><button class="btn" id="dlgOk">${T('Save')}</button></div></div>`;
+  document.body.append(dlg);
+  const input = $('#dlgIn', dlg); input.focus(); input.select();
+  const close = () => dlg.remove();
+  dlg.onclick = (e) => { if (e.target === dlg) close(); };
+  $('#dlgCancel', dlg).onclick = close;
+  const ok = () => { const v = input.value.trim(); if (!v) { toast(T('Type what you did.')); return; } close(); onOk(v); };
+  $('#dlgOk', dlg).onclick = ok;
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
 }
 function numOnly(v) { const m = String(v ?? '').match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
 
