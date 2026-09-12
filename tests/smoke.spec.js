@@ -23,7 +23,7 @@ test('sign in with email and reach the app', async ({ page }) => {
     await expect(page.locator('#obStep h2')).toContainText("Let's start with you");
     return; // fresh test account: onboarding rendering is enough for a smoke test
   }
-  for (const [view, title] of [['plan', 'This week'], ['log', 'Log'], ['nutrition', 'Nutrition'], ['profile', 'Profile'], ['today', 'Today']]) {
+  for (const [view, title] of [['plan', 'This week'], ['log', 'Log'], ['nutrition', 'Nutrition'], ['club', 'Club'], ['profile', 'Profile'], ['today', 'Today']]) {
     await page.click(`.tab[data-view="${view}"]`);
     await expect(page.locator('#topTitle')).toHaveText(title);
   }
