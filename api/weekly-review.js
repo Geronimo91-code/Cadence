@@ -122,7 +122,7 @@ ${sessionLines.join('\n')}
 Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slice(0, 10)}.`;
 
   {
-    const out = await callModel({ system, user: userMsg, maxTokens: 5000, retries: 0, deadline: started + 50000 });
+    const out = await callModel({ system, user: userMsg, maxTokens: 9000, retries: 0, deadline: started + 50000 });
     const next = validatePlan(out.nextWeek);
     next.weekId = nextId; next.createdAt = new Date().toISOString(); next.source = 'review'; next.reviewOf = reviewWeek;
     const review = {

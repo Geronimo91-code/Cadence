@@ -101,13 +101,48 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
   throw new Error(failures.join(' | ') || (lastErr && lastErr.message) || 'model call failed');
 }
 
-// Free/open models often wrap JSON in prose or code fences; pull out the first balanced object.
+// Free/open models wrap JSON in prose, and a truncated answer needs repairing before it parses.
 function extractJson(text) {
   const cleaned = text.replace(/```(?:json)?/gi, '').trim();
   const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('Model did not return JSON');
-  return JSON.parse(cleaned.slice(start, end + 1));
+  if (start === -1) throw new Error('Model did not return JSON');
+  const body = cleaned.slice(start);
+  const end = body.lastIndexOf('}');
+  if (end !== -1) {
+    try { return JSON.parse(body.slice(0, end + 1)); } catch (_) { /* fall through to repair */ }
+  }
+  return JSON.parse(repairJson(body));
+}
+
+// Close whatever the model left open, discarding the final incomplete element
+export function repairJson(src) {
+  let depth = 0, inStr = false, esc = false, lastSafe = -1;
+  const stack = [];
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (esc) { esc = false; continue; }
+    if (ch === '\\') { esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (ch === '{' || ch === '[') { stack.push(ch); depth++; }
+    else if (ch === '}' || ch === ']') { stack.pop(); depth--; if (depth >= 1) lastSafe = i; }
+  }
+  if (lastSafe === -1) throw new Error('Model did not return usable JSON');
+  let out = src.slice(0, lastSafe + 1);
+  // rebuild the closers for whatever is still open at that point
+  const open = [];
+  inStr = false; esc = false;
+  for (let i = 0; i < out.length; i++) {
+    const ch = out[i];
+    if (esc) { esc = false; continue; }
+    if (ch === '\\') { esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (ch === '{' || ch === '[') open.push(ch);
+    else if (ch === '}' || ch === ']') open.pop();
+  }
+  while (open.length) out += open.pop() === '{' ? '}' : ']';
+  return out;
 }
 
 // ISO week id like 2026-W37, used as the plan document id

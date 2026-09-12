@@ -23,7 +23,7 @@ ${planShape(id)}`;
   const userMsg = athleteBlock(profile, id) + '\nDays already passed this week should still be filled in for reference.';
 
   try {
-    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 4000, retries: 1, deadline: started + 50000 }));
+    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, deadline: started + 50000 }));
     plan.weekId = id;
     plan.createdAt = new Date().toISOString();
     plan.source = 'profile';
