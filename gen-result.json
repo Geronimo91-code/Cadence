@@ -1,7 +1,7 @@
 {
   "step": "generating",
-  "status": 500,
-  "error": "{\"error\":\"Could not generate a plan right now\"}",
+  "status": 503,
+  "error": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"openrouter timed out\"}",
   "days": null,
   "trainable": null,
   "sheetOk": null,
