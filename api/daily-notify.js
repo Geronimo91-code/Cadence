@@ -4,6 +4,10 @@ import { requireCron, db, weekId } from './_lib.js';
 
 export default async function handler(req, res) {
   if (!requireCron(req, res)) return;
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_SUBJECT) {
+    console.error('daily-notify: VAPID keys missing');
+    return res.status(503).json({ error: 'VAPID keys missing', sent: 0 });
+  }
   webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
 
   const users = await db().collectionGroup('push').get();
@@ -14,15 +18,16 @@ export default async function handler(req, res) {
     const sub = subDoc.data();
     const today = todayInZone(sub.timezone || 'Europe/Brussels');
     const plan = await planForWeek(uid, today.weekId);
-    const session = plan?.sessions?.find((s) => s.day === today.weekday);
-    if (!session) continue;
-    if (session.type === 'rest' && sub.skipRestDays) continue;
+    const todays = (plan?.sessions || []).filter((s) => s.day === today.weekday);
+    if (!todays.length) continue;
+    const real = todays.filter((s) => s.type !== 'rest');
+    if (!real.length && sub.skipRestDays) continue;
 
-    const payload = {
-      title: session.type === 'rest' ? 'Rest day' : `Today: ${session.title}`,
-      body: session.type === 'rest' ? 'Recover well. Tomorrow is coming.' : `${session.durationMin} min · ${session.exercises.length} exercises`,
-      url: `/?session=${plan.weekId}-${session.day}`,
-    };
+    const payload = real.length === 0
+      ? { title: 'Rest day', body: 'Recover well. Tomorrow is coming.', url: '/' }
+      : real.length === 1
+        ? { title: `Today: ${real[0].title}`, body: `${real[0].durationMin} min · ${real[0].exercises.length} exercises`, url: `/?session=${plan.weekId}-${real[0].day}-${real[0].slot || 0}` }
+        : { title: `Today: ${real.length} sessions`, body: real.map((s) => `${s.timeOfDay || ''} ${s.title}`.trim()).join(' · '), url: '/' };
     try {
       await webpush.sendNotification(sub.subscription, JSON.stringify(payload));
       sent++;

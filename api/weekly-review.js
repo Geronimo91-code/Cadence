@@ -1,5 +1,5 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey } from './_lib.js';
 
 export { reviewWeek };
 
@@ -34,7 +34,7 @@ async function reviewWeek(uid, profile, reviewWeek) {
   const nextId = weekIdOffset(reviewWeek, 1);
 
   const logsSnap = await db().collection(`users/${uid}/logs`).where('weekId', '==', reviewWeek).get();
-  const logs = new Map(logsSnap.docs.map((d) => [d.data().day, d.data()]));
+  const logs = new Map(logsSnap.docs.map((d) => [d.id, d.data()]));
   const weightsSnap = await db().collection(`users/${uid}/weights`).orderBy('at', 'desc').limit(6).get();
   const weights = weightsSnap.docs.map((d) => d.data()).reverse();
   const prevReview = await db().doc(`users/${uid}/reviews/${weekIdOffset(reviewWeek, -1)}`).get();
@@ -49,12 +49,13 @@ async function reviewWeek(uid, profile, reviewWeek) {
   const stats = { planned: planned.length, done: 0, partial: 0, skipped: 0, missed: 0, avgRpe: null, setsDone: 0, setsTotal: 0 };
   const rpes = [];
   const sessionLines = planned.map((s) => {
-    const l = logs.get(s.day);
-    if (!l) { stats.missed++; return `- ${DAY_NAMES[s.day]} · ${s.title} (${s.type}, ${s.durationMin} min): NOT LOGGED (treat as missed)`; }
+    const l = logs.get(sessionKey(reviewWeek, s.day, s.slot || 0));
+    const when = `${DAY_NAMES[s.day]}${s.timeOfDay ? ' ' + s.timeOfDay : ''}`;
+    if (!l) { stats.missed++; return `- ${when} · ${s.title} (${s.type}, ${s.durationMin} min): NOT LOGGED (treat as missed)`; }
     stats[l.status === 'done' ? 'done' : l.status === 'partial' ? 'partial' : 'skipped']++;
     if (l.sessionRpe) rpes.push(l.sessionRpe);
     stats.setsDone += l.setsDone || 0; stats.setsTotal += l.setsTotal || 0;
-    let line = `- ${DAY_NAMES[s.day]} · ${s.title} (${s.type}): ${l.status.toUpperCase()}${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`;
+    let line = `- ${when} · ${s.title} (${s.type}): ${l.status.toUpperCase()}${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`;
     if (Array.isArray(l.exercises)) {
       for (const ex of l.exercises) {
         const doneSets = ex.sets.filter((st) => st.done);

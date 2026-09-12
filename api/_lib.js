@@ -121,6 +121,8 @@ export function phaseFor(profile, ref = new Date()) {
 
 export const PLAN_RULES = `Rules:
 - Only schedule sessions on the athlete's available days. Every other day is a "rest" session with a one-line recovery suggestion.
+- Each session has a "slot": 0 for the day's first session, 1 for a second one. Only give a day two sessions when the athlete allows doubles (see their profile) and it makes sense — typically a shorter gym or speed session in the morning and club practice or a longer session later. Never two hard high-intensity sessions on the same day, never doubles on consecutive days for a beginner, and keep at least one full rest day in the week.
+- Set "timeOfDay" to morning, afternoon or evening on every non-rest session; with two sessions the earlier one must come first.
 - Fixed commitments (club practice, matches) are sacred: put them on their day as a session of type "skills" or "match" with fixed=true, keep exercises to a short pre-practice activation, and do not stack a hard session on the same day.
 - Respect injuries and limits literally.
 - The FIRST goal leads the week; other goals get one focused slot or are woven into sessions.
@@ -137,7 +139,9 @@ export function planShape(id) {
  "focus": "one sentence on what this week is for",
  "sessions": [
    {
-     "day": 0,                       // 0=Monday … 6=Sunday, one entry per day, 7 entries total
+     "day": 0,                       // 0=Monday … 6=Sunday; every day appears at least once
+     "slot": 0,                      // 0 = only/first session that day, 1 = optional second session
+     "timeOfDay": "morning|afternoon|evening",
      "title": "short name",
      "type": "strength|speed|conditioning|skills|match|mobility|rest",
      "fixed": false,
@@ -153,7 +157,7 @@ export function planShape(id) {
  "rationale": "2–3 sentences to the athlete explaining the week's logic",
  "nextWeekHint": "one sentence on how the following week should progress if this one goes well"
 }
-Rest days: type "rest", durationMin 0, empty warmup/exercises/cooldown arrays, intent = the recovery suggestion.`;
+Rest days: type "rest", slot 0, durationMin 0, empty warmup/exercises/cooldown arrays, intent = the recovery suggestion.`;
 }
 
 export function athleteBlock(p, id, ref = new Date()) {
@@ -165,6 +169,7 @@ export function athleteBlock(p, id, ref = new Date()) {
 - Goals in order: ${goals.join(' > ')}${p.goalNote ? `\n- Specific aim: ${p.goalNote}` : ''}
 - Available days: ${p.days.map((d) => DAY_NAMES[d]).join(', ')}
 - Typical session length: ${p.sessionMin} min
+- Two sessions in one day: ${p.doubles === 'often' ? 'yes, happy to train twice on some days (e.g. gym in the morning, club practice in the evening)' : p.doubles === 'sometimes' ? 'occasionally, at most once or twice a week, only when the second one is easy or is club practice' : 'no, one session per day only'}
 - Fixed commitments: ${p.fixed || 'none'}
 - Equipment: ${p.equipment.join(', ')}
 - Injuries / limits: ${p.injuries || 'none'}
@@ -175,30 +180,42 @@ export function athleteBlock(p, id, ref = new Date()) {
 
 export function validatePlan(plan) {
   if (!plan || !Array.isArray(plan.sessions) || plan.sessions.length === 0) throw new Error('missing sessions');
-  const byDay = new Map(plan.sessions.map((s) => [Number(s.day), s]));
-  plan.sessions = DAY_NAMES.map((_, i) => {
-    const s = byDay.get(i) || { day: i, type: 'rest', title: 'Rest', intent: 'Recovery day.' };
-    return {
-      day: i,
-      title: String(s.title || (s.type === 'rest' ? 'Rest' : 'Session')),
-      type: ['strength', 'speed', 'conditioning', 'skills', 'match', 'mobility', 'rest'].includes(s.type) ? s.type : 'conditioning',
-      fixed: !!s.fixed,
-      durationMin: Number(s.durationMin) || 0,
-      intent: String(s.intent || ''),
-      warmup: Array.isArray(s.warmup) ? s.warmup.map(String) : [],
-      exercises: Array.isArray(s.exercises) ? s.exercises.map((x) => ({
-        name: String(x.name || ''), sets: Number(x.sets) || 0, reps: String(x.reps ?? ''), load: String(x.load ?? ''),
-        restSec: Number(x.restSec) || 0, cues: String(x.cues || ''),
-      })).filter((x) => x.name) : [],
-      cooldown: Array.isArray(s.cooldown) ? s.cooldown.map(String) : [],
-    };
-  });
+  const clean = plan.sessions.map((s) => ({
+    day: Math.max(0, Math.min(6, Number(s.day) || 0)),
+    slot: Number(s.slot) === 1 ? 1 : 0,
+    timeOfDay: ['morning', 'afternoon', 'evening'].includes(s.timeOfDay) ? s.timeOfDay : null,
+    title: String(s.title || (s.type === 'rest' ? 'Rest' : 'Session')),
+    type: ['strength', 'speed', 'conditioning', 'skills', 'match', 'mobility', 'rest'].includes(s.type) ? s.type : 'conditioning',
+    fixed: !!s.fixed,
+    durationMin: Number(s.durationMin) || 0,
+    intent: String(s.intent || ''),
+    warmup: Array.isArray(s.warmup) ? s.warmup.map(String) : [],
+    exercises: Array.isArray(s.exercises) ? s.exercises.map((x) => ({
+      name: String(x.name || ''), sets: Number(x.sets) || 0, reps: String(x.reps ?? ''), load: String(x.load ?? ''),
+      restSec: Number(x.restSec) || 0, cues: String(x.cues || ''),
+    })).filter((x) => x.name) : [],
+    cooldown: Array.isArray(s.cooldown) ? s.cooldown.map(String) : [],
+  }));
+  const out = [];
+  for (let d = 0; d < 7; d++) {
+    let ofDay = clean.filter((s) => s.day === d);
+    const real = ofDay.filter((s) => s.type !== 'rest');
+    // A day is either rest, or up to two real sessions; a rest entry alongside real ones is dropped
+    ofDay = real.length ? real.slice(0, 2) : [ofDay[0] || { day: d, slot: 0, timeOfDay: null, title: 'Rest', type: 'rest', fixed: false, durationMin: 0, intent: 'Recovery day.', warmup: [], exercises: [], cooldown: [] }];
+    const order = { morning: 0, afternoon: 1, evening: 2 };
+    ofDay.sort((a, b) => (a.slot - b.slot) || ((order[a.timeOfDay] ?? 1) - (order[b.timeOfDay] ?? 1)));
+    ofDay.forEach((s, i) => { s.slot = i; s.day = d; out.push(s); });
+  }
+  plan.sessions = out;
   plan.phase = plan.phase || 'base';
   plan.focus = plan.focus || '';
   plan.rationale = plan.rationale || '';
   plan.nextWeekHint = plan.nextWeekHint || '';
   return plan;
 }
+
+// Stable id for a session's log document; slot 0 keeps the original shape so older logs still match
+export function sessionKey(weekId, day, slot) { return `${weekId}-${day}` + (slot ? `-${slot}` : ''); }
 
 // Monday (UTC) of an ISO week id, and id arithmetic
 export function mondayOf(id) {

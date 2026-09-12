@@ -554,7 +554,7 @@ const STEPS = [
       if (!(d.heightCm >= 120 && d.heightCm <= 230)) return T('Enter your height in cm.'); if (!(d.weightKg >= 30 && d.weightKg <= 250)) return T('Enter your weight in kg.'); if (!d.sex) return T('Choose an option for sex.'); } },
   { key: 'sports', title: T('What do you play or train?'), sub: T('Pick everything you do regularly. Your main sport goes first.'), render: renderSports, validate: () => { if (!ob.data.sports?.length) return T('Pick at least one sport.'); if (!ob.data.level) return T('Choose your training level.'); } },
   { key: 'goal', title: T('What are you working toward?'), sub: T('Pick up to three, in order of importance. The first one leads the plan.'), render: renderGoal, validate: () => { if (!ob.data.goals?.length) return T('Choose at least one goal.'); } },
-  { key: 'availability', title: T('When can you train?'), sub: T('Tap the days you can commit to. Club practices and matches count too.'), render: renderAvailability, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); } },
+  { key: 'availability', title: T('When can you train?'), sub: T('Tap the days you can commit to. Club practices and matches count too.'), render: renderAvailability, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); if (!ob.data.doubles) return T('Choose whether you can train twice in a day.'); } },
   { key: 'setup', title: T('What do you have access to?'), sub: T('And anything the plan should work around.'), render: renderSetup, validate: () => { if (!ob.data.equipment?.length) return T('Pick at least one option.'); } },
   { key: 'deadline', title: T('Anything on the calendar?'), sub: T('A tournament, a race, a season start. Cadence builds toward it and tapers before it.'), render: renderDeadline, validate: () => { if (ob.data.hasDeadline && (!ob.data.deadlineDate || !ob.data.deadlineName)) return T('Add the event name and date.'); } },
   { key: 'nutrition', title: T('Eating to match'), sub: T('Daily calorie and protein targets, adjusted with your training week.'), render: renderNutrition, validate: () => { if (!ob.data.nutritionGoal) return T('Choose an option.'); } },
@@ -670,6 +670,8 @@ function renderAvailability(el) {
   el.append(weekStrip(d.days, { readonly: false, onToggle: (i, on) => { d.days = on ? [...new Set([...d.days, i])].sort() : d.days.filter((x) => x !== i); } }));
   const h = document.createElement('h3'); h.textContent = T('Typical session length'); h.style.margin = '30px 0 10px'; el.append(h);
   el.append(chipGroup(['30 ' + T('min'), '45 ' + T('min'), '60 ' + T('min'), '75 ' + T('min'), '90+ ' + T('min')], d.sessionMin ? [d.sessionMin + ' ' + T('min')] : [], (v) => { d.sessionMin = parseInt(v[0]); }, { multi: false }));
+  const hD = document.createElement('h3'); hD.textContent = T('Two sessions in one day?'); hD.style.margin = '30px 0 10px'; el.append(hD);
+  el.append(optionGroup([['no', 'One session a day', 'Never stack two in a day'], ['sometimes', 'Sometimes', 'Once or twice a week, if the second is easy or is club practice'], ['often', 'Often', 'e.g. gym in the morning, team practice in the evening']], d.doubles || 'no', (v) => { d.doubles = v; }));
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fTime">${T('Usual start time')}</label><input class="input" id="fTime" type="time"><span class="hint">${T('Used for calendar reminders. Sessions themselves aren\'t locked to it.')}</span></div>`);
   bind($('#fTime'), 'sessionTime'); if (!$('#fTime').value) { $('#fTime').value = '18:00'; ob.data.sessionTime = ob.data.sessionTime || '18:00'; }
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">Fixed commitments <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fFixed" placeholder="e.g. Club practice Tue & Thu 19:30, matches most Sundays"></textarea><span class="hint">${T('Cadence plans around these instead of replacing them.')}</span></div>`);
@@ -724,7 +726,7 @@ async function saveProfile() {
   const profile = {
     name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg,
     sports: d.sports, level: d.level, goals: d.goals, goal: d.goals[0], goalNote: d.goalNote || '',
-    days: d.days, sessionMin: d.sessionMin, sessionTime: d.sessionTime || '18:00', fixed: d.fixed || '',
+    days: d.days, sessionMin: d.sessionMin, sessionTime: d.sessionTime || '18:00', doubles: d.doubles || 'no', fixed: d.fixed || '',
     equipment: d.equipment, injuries: d.injuries || '',
     deadline: d.hasDeadline ? { name: d.deadlineName, date: d.deadlineDate } : null,
     nutrition: d.nutritionGoal === 'none' ? null : { goal: d.nutritionGoal, diet: d.diet, kcalAdjust: (ob.editing && state.profile?.nutrition?.goal === d.nutritionGoal) ? (state.profile.nutrition.kcalAdjust || 0) : 0 },
@@ -829,7 +831,8 @@ function openReview(r) {
   $('#btnGoNext', sheet).onclick = async () => { history.back(); await loadPlan(r.nextWeekId); navigate('plan'); };
   history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
 }
-function logId(sess) { return state.plan.weekId + '-' + sess.day; }
+function sessionKey(wk, day, slot) { return wk + '-' + day + (slot ? '-' + slot : ''); }
+function logId(sess) { return sessionKey(state.plan.weekId, sess.day, sess.slot || 0); }
 function logFor(sess) { return state.logs[logId(sess)]; }
 function statusHtml(log) {
   if (!log) return '';
@@ -843,7 +846,7 @@ function enterApp() {
   const params = new URLSearchParams(location.search);
   navigate(params.get('view') || 'today');
   const deep = params.get('session');
-  if (deep && state.plan) { const day = Number(deep.split('-').pop()); const sess = state.plan.sessions.find((x) => x.day === day); if (sess && sess.type !== 'rest') openSession(sess); history.replaceState(null, '', '/'); }
+  if (deep && state.plan) { const parts = deep.split('-'); const slot = parts.length > 3 ? Number(parts.pop()) : 0; const day = Number(parts.pop()); const sess = state.plan.sessions.find((x) => x.day === day && (x.slot || 0) === slot); if (sess && sess.type !== 'rest') openSession(sess); history.replaceState(null, '', '/'); }
 }
 $$('.tab').forEach((t) => { t.onclick = () => navigate(t.dataset.view); });
 function navigate(view) {
@@ -895,14 +898,16 @@ async function viewToday(el) {
     el.append(c); $('#btnOpenReview').onclick = () => openReview(state.review);
   }
   const t = todayIndex();
-  const session = state.plan.sessions?.find((s) => s.day === t);
-  if (session) session.exercises = Array.isArray(session.exercises) ? session.exercises : [];
+  const todays = (state.plan.sessions || []).filter((s) => s.day === t);
+  todays.forEach((x) => { x.exercises = Array.isArray(x.exercises) ? x.exercises : []; });
+  const realToday = todays.filter((x) => x.type !== 'rest');
+  const session = realToday[0] || todays[0];
   const c = document.createElement('div'); c.className = 'card';
   if (!session || session.type === 'rest') {
     c.innerHTML = `<span class="badge rest">${T('Rest day')}</span><h3 style="margin:10px 0 6px">${esc(session?.title || T('Rest'))}</h3><p class="muted">${esc(session?.intent || T('Nothing scheduled. Recover, eat well, move lightly if you feel like it.'))}</p>`;
   } else {
     const lg = logFor(session);
-    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(T(session.type))}">${esc(T(session.type))}${session.fixed ? ' · fixed' : ''}</span>${statusHtml(lg)}</div>
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(session.type)}">${esc(T(session.type))}${session.timeOfDay ? ' · ' + T(session.timeOfDay) : ''}${session.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg)}</div>
       <h3 style="margin:10px 0 2px">${esc(session.title)}</h3>
       <div class="muted small">${session.durationMin} min · ${session.exercises.length} exercise${session.exercises.length === 1 ? '' : 's'}</div>
       <p class="muted" style="margin:10px 0 14px">${esc(session.intent)}</p>
@@ -910,8 +915,17 @@ async function viewToday(el) {
   }
   el.append(c);
   if (session && session.type !== 'rest') $('#btnOpenToday').onclick = () => openSession(session);
+  realToday.slice(1).forEach((extra, i) => {
+    const lg2 = logFor(extra); const c2 = document.createElement('div'); c2.className = 'card';
+    c2.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(extra.type)}">${esc(T(extra.type))}${extra.timeOfDay ? ' · ' + T(extra.timeOfDay) : ''}${extra.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg2)}</div>
+      <h3 style="margin:10px 0 2px">${esc(extra.title)}</h3>
+      <div class="muted small">${extra.durationMin} ${T('min')} · ${extra.exercises.length} ${extra.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
+      <p class="muted" style="margin:10px 0 14px">${esc(extra.intent)}</p>
+      <button class="btn${lg2 ? ' secondary' : ''}" id="btnOpenToday${i + 2}">${lg2 ? T('View session') : T('Open session')}</button>`;
+    el.append(c2); $('#btnOpenToday' + (i + 2)).onclick = () => openSession(extra);
+  });
   const strip = document.createElement('div'); strip.style.marginTop = '22px';
-  strip.append(weekStrip(state.plan.sessions.filter((s) => s.type !== 'rest').map((s) => s.day), { small: true }));
+  strip.append(weekStrip([...new Set(state.plan.sessions.filter((s) => s.type !== 'rest').map((s) => s.day))], { small: true }));
   el.append(strip);
   if (p.nutrition) {
     const trainingDay = !!session && session.type !== 'rest';
@@ -945,11 +959,13 @@ function viewPlan(el) {
   if (!p.sessions.some((x) => Array.isArray(x.warmup))) el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('This plan is in an older format')}</strong><div class="muted small">${T('Use Rebuild this week below to get full session details.')}</div></div>`);
   const t = todayIndex();
   const card = document.createElement('div'); card.className = 'card';
-  [...p.sessions].sort((a, b) => a.day - b.day).forEach((sess) => {
+  const sorted = [...p.sessions].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0));
+  sorted.forEach((sess, idx) => {
     const row = document.createElement('button'); row.type = 'button'; row.className = 'session-row' + (sess.day === t ? ' today' : '');
     const isRest = sess.type === 'rest';
     const lg = isRest ? null : logFor(sess);
-    row.innerHTML = `<span class="dow">${T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : esc(sess.type) + ' · ' + sess.durationMin + ' min' + (sess.fixed ? ' · fixed' : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
+    const sameDayAsPrev = idx > 0 && sorted[idx - 1].day === sess.day;
+    row.innerHTML = `<span class="dow">${sameDayAsPrev ? '' : T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : (sess.timeOfDay ? T(sess.timeOfDay) + ' · ' : '') + esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
     if (!isRest) row.onclick = () => openSession(sess);
     card.append(row);
   });
@@ -976,7 +992,7 @@ function openSession(raw, weekIdOverride, logOverride) {
   const wk = weekIdOverride || state.plan?.weekId;
   const sess = { warmup: [], exercises: [], cooldown: [], intent: '', fixed: false, durationMin: 0, type: 'conditioning', ...raw };
   sess.warmup = Array.isArray(sess.warmup) ? sess.warmup : []; sess.cooldown = Array.isArray(sess.cooldown) ? sess.cooldown : []; sess.exercises = Array.isArray(sess.exercises) ? sess.exercises : [];
-  const existing = logOverride || (wk === state.plan?.weekId ? logFor(sess) : null);
+  const existing = logOverride || (wk === state.plan?.weekId ? state.logs[sessionKey(wk, sess.day, sess.slot || 0)] : null);
   const isPastWeek = wk < isoWeekId();
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', sess.title);
   const list = (items) => items.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : `<p class="muted small">${T('None')}</p>`;
@@ -1040,7 +1056,7 @@ function openSession(raw, weekIdOverride, logOverride) {
 
   const save = async (btn, skipped) => {
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
-    const rec = { weekId: wk, day: sess.day, title: sess.title, type: sess.type, loggedAt: existing?.loggedAt || new Date().toISOString(), updatedAt: new Date().toISOString(), note: $('#logNote', sheet).value.trim() };
+    const rec = { weekId: wk, day: sess.day, slot: sess.slot || 0, title: sess.title, type: sess.type, loggedAt: existing?.loggedAt || new Date().toISOString(), updatedAt: new Date().toISOString(), note: $('#logNote', sheet).value.trim() };
     if (skipped) { Object.assign(rec, { status: 'skipped', exercises: null, durationMin: 0, sessionRpe: null, setsDone: 0, setsTotal: 0 }); }
     else {
       const total = draft.exercises.reduce((a, x) => a + x.sets.length, 0);
@@ -1050,8 +1066,9 @@ function openSession(raw, weekIdOverride, logOverride) {
       if (total > 0 && done === 0 && !confirm(T('No sets ticked — save this as skipped?'))) { btn.disabled = false; btn.textContent = existing ? T('Update log') : T('Save session'); return; }
     }
     try {
-      await db.doc('users/' + state.user.uid + '/logs/' + wk + '-' + sess.day).set(rec);
-      if (wk === state.plan?.weekId) state.logs[wk + '-' + sess.day] = rec;
+      const key = sessionKey(wk, sess.day, sess.slot || 0);
+      await db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
+      if (wk === state.plan?.weekId) state.logs[key] = rec;
       postActivity(rec).catch(() => {});
       toast(rec.status === 'skipped' ? T('Saved as skipped') : T('Session saved'));
       history.back();
@@ -1174,7 +1191,7 @@ async function viewLog(el) {
       row.onclick = async () => {
         let plan = state.plans.find((x) => x.weekId === l.weekId);
         if (!plan) { try { const d = await db.doc('users/' + state.user.uid + '/plans/' + l.weekId).get(); plan = d.exists ? d.data() : null; } catch (_) {} }
-        const sess = plan?.sessions?.find((x) => x.day === l.day);
+        const sess = plan?.sessions?.find((x) => x.day === l.day && (x.slot || 0) === (l.slot || 0));
         if (sess) openSession(sess, l.weekId, l); else openLog(l);
       };
       hist.append(row);
@@ -1305,8 +1322,8 @@ async function postActivity(rec) {
   if (!state.clubId) return;
   if (!state.me) await loadClub();
   if (!state.me || state.me.hidden) return;
-  const id = state.user.uid + '-' + rec.weekId + '-' + rec.day;
-  await db.doc('clubs/' + state.clubId + '/activity/' + id).set({ uid: state.user.uid, name: state.profile.name, weekId: rec.weekId, day: rec.day, title: rec.title, type: rec.type, status: rec.status, sessionRpe: rec.sessionRpe || null, at: new Date().toISOString() });
+  const id = state.user.uid + '-' + rec.weekId + '-' + rec.day + '-' + (rec.slot || 0);
+  await db.doc('clubs/' + state.clubId + '/activity/' + id).set({ uid: state.user.uid, name: state.profile.name, weekId: rec.weekId, day: rec.day, slot: rec.slot || 0, title: rec.title, type: rec.type, status: rec.status, sessionRpe: rec.sessionRpe || null, at: new Date().toISOString() });
 }
 function initials(n) { return (n || '?').trim().split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase(); }
 function makeCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return [...crypto.getRandomValues(new Uint8Array(6))].map((x) => A[x % A.length]).join(''); }
@@ -1384,13 +1401,13 @@ async function renderCoachList(el, c, members) {
 async function openMember(c, r) {
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
   const t = todayIndex();
-  const logBy = new Map(r.logs.map((l) => [l.day, l]));
+  const logBy = new Map(r.logs.map((l) => [l.day + '-' + (l.slot || 0), l]));
   let review = null; try { const q = await db.collection('users/' + r.m.uid + '/reviews').orderBy('weekId', 'desc').limit(1).get(); review = q.empty ? null : q.docs[0].data(); } catch (_) {}
   let note = ''; try { const n = await db.doc('clubs/' + c.id + '/notes/' + r.m.uid).get(); note = n.exists ? (n.data().text || '') : ''; } catch (_) {}
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${esc(r.m.name)}</h2></div>
     <h1>${T('This week')}</h1>
-    ${r.plan ? `<p class="muted small"><span class="badge">${esc(r.plan.phase)}</span> &nbsp;${esc(r.plan.focus)}</p><div class="card">${[...r.plan.sessions].sort((a, b) => a.day - b.day).map((s) => { const l = logBy.get(s.day); const isRest = s.type === 'rest'; return `<div class="session-row ${s.day === t ? 'today' : ''}" style="cursor:default"><span class="dow">${T(DAYS[s.day])}</span><span class="main"><strong>${esc(s.title)}</strong><span>${isRest ? esc(s.intent || '') : esc(T(s.type)) + ' · ' + s.durationMin + ' ' + T('min') + (l?.sessionRpe ? ' · RPE ' + l.sessionRpe : '') + (l?.note ? ' · ' + esc(l.note) : '')}</span></span>${l ? statusHtml(l) : ''}</div>`; }).join('')}</div>` : `<div class="card"><p class="muted">${T('No plan this week')}</p></div>`}
+    ${r.plan ? `<p class="muted small"><span class="badge">${esc(r.plan.phase)}</span> &nbsp;${esc(r.plan.focus)}</p><div class="card">${[...r.plan.sessions].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0)).map((s) => { const l = logBy.get(s.day + '-' + (s.slot || 0)); const isRest = s.type === 'rest'; return `<div class="session-row ${s.day === t ? 'today' : ''}" style="cursor:default"><span class="dow">${T(DAYS[s.day])}</span><span class="main"><strong>${esc(s.title)}</strong><span>${isRest ? esc(s.intent || '') : esc(T(s.type)) + ' · ' + s.durationMin + ' ' + T('min') + (l?.sessionRpe ? ' · RPE ' + l.sessionRpe : '') + (l?.note ? ' · ' + esc(l.note) : '')}</span></span>${l ? statusHtml(l) : ''}</div>`; }).join('')}</div>` : `<div class="card"><p class="muted">${T('No plan this week')}</p></div>`}
     ${review ? `<div class="card sage"><h3>${T('Last review')} · ${esc(review.weekId)}</h3><p class="muted" style="margin-top:6px">${esc(review.summary)}</p>${review.adjustments?.length ? `<ul class="review-list">${review.adjustments.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</div>` : ''}
     <div class="card"><h3>${T('Coach note')}</h3><p class="muted small" style="margin:4px 0 10px">${T('Goes into this player\'s next weekly review as an instruction. They can read it too.')}</p><textarea class="input" id="coachNote" placeholder="${T('e.g. Add one extra throwing session, keep sprints short, knee is still sensitive')}">${esc(note)}</textarea><button class="btn" id="btnSaveNote" style="margin-top:10px">${T('Save note')}</button></div>
   </div>`;
@@ -1443,7 +1460,7 @@ function viewProfile(el) {
       <div class="muted small">${p.age} · ${p.heightCm} cm · ${p.weightKg} kg · ${esc(T(p.sports[0]))}</div>
       <div class="list" style="margin-top:12px">
         <div class="li"><span>${T('Goals')}</span><span class="muted">${esc((p.goals || [p.goal]).map((g) => T(GOALS.find((x) => x[0] === g)?.[1] || '')).join(', '))}</span></div>
-        <div class="li"><span>${T('Training days')}</span><span class="muted">${p.days.map((i) => T(DAYS[i])).join(', ')}</span></div>
+        <div class="li"><span>${T('Training days')}</span><span class="muted">${p.days.map((i) => T(DAYS[i])).join(', ')}${p.doubles && p.doubles !== 'no' ? ' · ' + T('doubles') : ''}</span></div>
         <div class="li"><span>${T('Deadline')}</span><span class="muted">${p.deadline ? esc(p.deadline.name) : T('None')}</span></div>
         <div class="li"><span>${T('Nutrition')}</span><span class="muted">${p.nutrition ? esc(T(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1] || '')) : T('Off')}</span></div>
       </div>
@@ -1453,6 +1470,7 @@ function viewProfile(el) {
       <div class="list">
         <div class="li"><div><div>${T('Language')}</div><span class="muted">${T('Plans, reviews and cues are written in this language too.')}</span></div><select class="input" id="selLang" style="width:auto;padding:8px 10px">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === LANG ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
         <div class="li"><div><div>${T('Daily reminder')}</div><span class="muted">${T('One notification each morning with today\'s session')}</span></div><button class="switch" id="swPush" role="switch" aria-checked="false" aria-label="Daily reminder"></button></div>
+        <div class="li"><div><div>${T('Test notification')}</div><span class="muted">${T('Send one to this device right now.')}</span></div><button class="btn sm secondary" id="btnTestPush">${T('Send')}</button></div>
       </div>
     </div>
     <div class="card">
@@ -1506,9 +1524,10 @@ function viewProfile(el) {
   $('#selLang').onchange = async (ev) => { setLang(ev.target.value); try { await db.doc('users/' + state.user.uid).set({ profile: { lang: LANG } }, { merge: true }); state.profile.lang = LANG; } catch (_) {} navigate('profile'); };
   $('#btnSignOut').onclick = () => auth.signOut();
   setupPushToggle();
+  $('#btnTestPush').onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = '…'; try { await api('/api/test-notify', {}, { timeoutMs: 25000 }); toast(T('Sent — check your notifications')); } catch (e) { toast(e.message); } b.disabled = false; b.textContent = T('Send'); };
 }
 function profileToOb(p) {
-  return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
+  return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), doubles: p.doubles || 'no', hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
 }
 function greeting() { const h = new Date().getHours(); return h < 12 ? T('Morning') : h < 18 ? T('Afternoon') : T('Evening'); }
 
