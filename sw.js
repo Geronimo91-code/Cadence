@@ -1,6 +1,6 @@
 // Cadence service worker — app shell cache + push handling
-const CACHE_NAME = 'cadence-v7';
-const SHELL = ['/', '/index.html', '/i18n.js', '/manifest.json', '/icon.svg'];
+const CACHE_NAME = 'cadence-v8';
+const SHELL = ['/', '/index.html', '/i18n.js', '/manifest.json', '/icon.svg', '/privacy.html', '/terms.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

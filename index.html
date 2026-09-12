@@ -329,6 +329,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 .timer b { font-family: var(--font-display); font-size: 1.2rem; min-width: 52px; text-align: center; }
 .timer button { color: var(--white); opacity: .75; padding: 4px 8px; }
 .timer.done { background: var(--green); }
+.offline { position: fixed; left: 0; right: 0; top: 0; background: var(--amber); color: #3d2a06; text-align: center; font-size: .85rem; font-weight: 600; padding: 6px 12px; z-index: 70; transform: translateY(-100%); transition: transform .2s; }
+.offline.show { transform: none; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -363,6 +365,7 @@ textarea.input { min-height: 90px; resize: vertical; }
     <div class="field"><input class="input" id="authPass" type="password" placeholder="Password (8+ characters)" data-i18n-ph="Password (8+ characters)" autocomplete="current-password"></div>
     <button class="btn" id="btnEmail" data-i18n="Sign in">Sign in</button>
     <div class="error" id="authError"></div>
+    <p class="muted small" style="text-align:center;margin-top:20px"><a href="/privacy.html" style="color:var(--ink-2)" data-i18n="Privacy">Privacy</a> · <a href="/terms.html" style="color:var(--ink-2)" data-i18n="Terms">Terms</a></p>
     <div class="auth-switch" id="authSwitch">New here? <button id="btnToggleMode" data-i18n="Create an account">Create an account</button></div>
   </div>
 </section>
@@ -402,6 +405,7 @@ textarea.input { min-height: 90px; resize: vertical; }
   </nav>
 </section>
 
+<div class="offline" id="offlineBar" role="status" data-i18n="Offline — your logs are saved on this device and sync when you're back">Offline — your logs are saved on this device and sync when you're back</div>
 <div class="toast" id="toast" role="status"></div>
 
 <!-- Firebase (compat build keeps the single-file setup simple) -->
@@ -946,7 +950,7 @@ async function viewToday(el) {
     c.innerHTML = `<span class="badge rest">${T('Rest day')}</span><h3 style="margin:10px 0 6px">${esc(session?.title || T('Rest'))}</h3><p class="muted">${esc(session?.intent || T('Nothing scheduled. Recover, eat well, move lightly if you feel like it.'))}</p>`;
   } else {
     const lg = logFor(session);
-    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(session.type)}">${esc(T(session.type))}${session.timeOfDay ? ' · ' + T(session.timeOfDay) : ''}${session.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg)}</div>
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(session.type)}">${esc(T(session.type))}${session.timeOfDay ? ' · ' + T(session.timeOfDay) : ''}${session.teamSession ? ' · ' + T('team') : session.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg)}</div>
       <h3 style="margin:10px 0 2px">${esc(session.title)}</h3>
       <div class="muted small">${session.durationMin} min · ${session.exercises.length} exercise${session.exercises.length === 1 ? '' : 's'}</div>
       <p class="muted" style="margin:10px 0 14px">${esc(session.intent)}</p>
@@ -956,7 +960,7 @@ async function viewToday(el) {
   if (session && session.type !== 'rest') $('#btnOpenToday').onclick = () => openSession(session);
   realToday.slice(1).forEach((extra, i) => {
     const lg2 = logFor(extra); const c2 = document.createElement('div'); c2.className = 'card';
-    c2.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(extra.type)}">${esc(T(extra.type))}${extra.timeOfDay ? ' · ' + T(extra.timeOfDay) : ''}${extra.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg2)}</div>
+    c2.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(extra.type)}">${esc(T(extra.type))}${extra.timeOfDay ? ' · ' + T(extra.timeOfDay) : ''}${extra.teamSession ? ' · ' + T('team') : extra.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg2)}</div>
       <h3 style="margin:10px 0 2px">${esc(extra.title)}</h3>
       <div class="muted small">${extra.durationMin} ${T('min')} · ${extra.exercises.length} ${extra.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
       <p class="muted" style="margin:10px 0 14px">${esc(extra.intent)}</p>
@@ -1004,7 +1008,7 @@ function viewPlan(el) {
     const isRest = sess.type === 'rest';
     const lg = isRest ? null : logFor(sess);
     const sameDayAsPrev = idx > 0 && sorted[idx - 1].day === sess.day;
-    row.innerHTML = `<span class="dow">${sameDayAsPrev ? '' : T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : (sess.timeOfDay ? T(sess.timeOfDay) + ' · ' : '') + esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
+    row.innerHTML = `<span class="dow">${sameDayAsPrev ? '' : T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : (sess.timeOfDay ? T(sess.timeOfDay) + ' · ' : '') + esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + T('team') : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
     if (!isRest) row.onclick = () => openSession(sess);
     if (!isRest && planIsCurrent()) {
       const mv = document.createElement('button'); mv.type = 'button'; mv.className = 'chip'; mv.textContent = T('Move'); mv.style.marginLeft = '6px'; mv.style.flex = '0 0 auto';
@@ -1130,7 +1134,15 @@ function openSession(raw, weekIdOverride, logOverride) {
     }
     try {
       const key = sessionKey(wk, sess.day, sess.slot || 0);
-      await db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
+      const write = db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
+      if (!navigator.onLine) {
+        // Firestore keeps the write queued locally and sends it on reconnect
+        state.logs[key] = rec; exHistory = null;
+        toast(T('Saved on this device — it will sync when you are back online'));
+        history.back();
+        return;
+      }
+      await write;
       if (wk === state.plan?.weekId) state.logs[key] = rec;
       exHistory = null;
       postActivity(rec).catch(() => {});
@@ -1633,6 +1645,7 @@ function viewProfile(el) {
     </div>
     <div class="card">
       <div class="list">
+        <div class="li"><span>${T('Privacy and terms')}</span><span><a href="/privacy.html" class="muted">${T('Privacy')}</a> · <a href="/terms.html" class="muted">${T('Terms')}</a></span></div>
         <div class="li"><span>${T('Signed in as')}</span><span class="muted">${esc(state.user.email || T('Google account'))}</span></div>
         <div class="li"><div><div>${T('Export my data')}</div><span class="muted">${T('Everything Cadence stores about you, as a JSON file.')}</span></div><button class="btn sm secondary" id="btnExport">${T('Export')}</button></div>
         <div class="li"><div><div>${T('Delete my account')}</div><span class="muted">${T('Removes your profile, plans, logs and meals permanently.')}</span></div><button class="btn sm secondary" id="btnDelete" style="color:var(--red)">${T('Delete')}</button></div>
@@ -1724,6 +1737,11 @@ function setupInstall() {
   else if (ios) $('#installHint').textContent = T('Safari: tap Share, then "Add to Home Screen".');
   else $('#installHint').textContent = T('Use your browser menu → "Install app" or "Add to Home screen".');
 }
+function paintOnline() { $('#offlineBar').classList.toggle('show', !navigator.onLine); }
+window.addEventListener('online', () => { paintOnline(); toast(T('Back online — syncing')); });
+window.addEventListener('offline', paintOnline);
+paintOnline();
+
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 </script>
 </body>

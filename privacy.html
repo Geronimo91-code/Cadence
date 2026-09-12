@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence — Privacy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F6F7F4;--ink:#15201B;--ink2:#4A5A52;--line:#DCE3DE;--green:#1E6B49}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Instrument Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+.wrap{max-width:680px;margin:0 auto;padding:48px 20px 80px}
+h1,h2{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.015em;line-height:1.15}
+h1{font-size:2.2rem;margin-bottom:8px}h2{font-size:1.25rem;margin:32px 0 8px}
+p,li{color:var(--ink2);margin-bottom:10px}ul{padding-left:20px}
+a{color:var(--green)}.date{color:var(--ink2);font-size:.9rem;margin-bottom:28px}
+.back{display:inline-block;margin-bottom:28px;color:var(--green);text-decoration:none;font-weight:600}
+table{width:100%;border-collapse:collapse;margin:10px 0 18px}td,th{text-align:left;padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top;font-size:.95rem}
+th{font-weight:600;color:var(--ink)}td{color:var(--ink2)}
+</style></head><body><div class="wrap">
+<a class="back" href="/">‹ Cadence</a>
+<h1>Privacy</h1>
+<p class="date">Last updated 12 September 2026</p>
+
+<p>Cadence is a training planner run by an individual, not a company. This page explains what it stores, who can see it, and how to get rid of it. Plain language, no legal padding.</p>
+
+<h2>What is stored</h2>
+<table>
+<tr><th>Data</th><th>Why</th></tr>
+<tr><td>Email address and sign-in identity</td><td>To let you back into your account (handled by Google Firebase Authentication)</td></tr>
+<tr><td>Profile: name, age, sex, height, weight, sports, level, goals, available days, equipment, injuries or limits, deadline, language</td><td>To build training plans that fit you</td></tr>
+<tr><td>Plans, logged sessions, weekly reviews</td><td>The core of the app</td></tr>
+<tr><td>Weight history, and, if you enable nutrition, daily targets and the meals you log</td><td>Nutrition targets and progress charts</td></tr>
+<tr><td>Push subscription and time zone, if you turn reminders on</td><td>To send the daily reminder</td></tr>
+<tr><td>Club membership and role, if you join a club</td><td>Coach access and the club feed</td></tr>
+</table>
+
+<h2>Where it goes</h2>
+<ul>
+<li><strong>Google Firebase</strong> (Firestore and Authentication) stores your account and data.</li>
+<li><strong>Vercel</strong> hosts the app and runs its server functions.</li>
+<li><strong>AI model providers</strong> — Google Gemini, and OpenRouter as a fallback — receive the parts of your profile and logs needed to write a plan, a weekly review or a meal estimate. Photos you send for meal estimation are processed by the same providers and are not stored by Cadence.</li>
+</ul>
+<p>Cadence does not sell your data, does not show ads, and does not share anything with anyone else.</p>
+
+<h2>Who can see your data inside the app</h2>
+<ul>
+<li><strong>You</strong> — everything.</li>
+<li><strong>Coaches of a club you join</strong> — your plans, logged sessions and weekly reviews, so they can coach you. Never your nutrition, your meals or your weight.</li>
+<li><strong>Other members of your club</strong> — only the sessions you finish, and only while you keep yourself visible in the club feed and leaderboard. You can hide yourself at any time in the Club tab.</li>
+</ul>
+<p>Leaving a club ends coach access immediately.</p>
+
+<h2>Your choices</h2>
+<ul>
+<li><strong>Export</strong> — Profile → Export my data gives you everything as a JSON file.</li>
+<li><strong>Delete</strong> — Profile → Delete my account erases your profile, plans, logs, meals, weights and club membership, and your sign-in account. This is immediate and cannot be undone.</li>
+<li><strong>Nutrition</strong> is optional; turn it off in Edit setup and nothing about food is stored.</li>
+<li><strong>Reminders</strong> can be switched off, which deletes the push subscription.</li>
+</ul>
+<p>Under the GDPR you also have the right to access, correct, restrict or object to processing, and to complain to your data protection authority. The export and delete buttons cover access and erasure directly; for anything else, get in touch.</p>
+
+<h2>How long it is kept</h2>
+<p>Until you delete it. There is no automatic expiry, because training history is more useful the longer it runs.</p>
+
+<h2>Children</h2>
+<p>Cadence is not intended for anyone under 16. If a minor plays in your club, they should use it through a parent or coach account.</p>
+
+<h2>Security</h2>
+<p>Traffic is encrypted. Database rules restrict every document to its owner, with the narrow coach exception above. No system is perfect; please don't store anything here you would be upset to lose or reveal.</p>
+
+<h2>Contact</h2>
+<p>Questions, corrections or deletion requests: use the contact address shown in the app or in the repository this is built from.</p>
+</div></body></html>

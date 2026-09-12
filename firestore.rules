@@ -43,6 +43,10 @@ service cloud.firestore {
         allow create, update: if isMember(clubId) && request.resource.data.uid == request.auth.uid;
         allow delete: if isMember(clubId) && resource.data.uid == request.auth.uid;
       }
+      match /teamSessions/{id} {
+        allow read: if isMember(clubId);
+        allow write: if false;  // written by the server only
+      }
       match /notes/{uid} {
         allow read: if isCoach(clubId) || isOwner(uid);
         allow write: if isCoach(clubId);

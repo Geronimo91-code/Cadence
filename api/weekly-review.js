@@ -36,6 +36,14 @@ async function reviewWeek(uid, profile, reviewWeek) {
   const logsSnap = await db().collection(`users/${uid}/logs`).where('weekId', '==', reviewWeek).get();
   const logs = new Map(logsSnap.docs.map((d) => [d.id, d.data()]));
   const weightsSnap = await db().collection(`users/${uid}/weights`).orderBy('at', 'desc').limit(6).get();
+  // Training load: session RPE × minutes, this week vs the previous four (acute:chronic)
+  const loadWeeks = [reviewWeek, ...[1, 2, 3, 4].map((n) => weekIdOffset(reviewWeek, -n))];
+  const loadSnaps = await Promise.all(loadWeeks.map((w) => db().collection(`users/${uid}/logs`).where('weekId', '==', w).get()));
+  const weekLoads = loadSnaps.map((snap) => snap.docs.reduce((a, d) => { const l = d.data(); return a + ((l.sessionRpe || 0) * (l.durationMin || 0)); }, 0));
+  const acute = weekLoads[0];
+  const priors = weekLoads.slice(1).filter((v) => v > 0);
+  const chronic = priors.length ? priors.reduce((a, b) => a + b, 0) / priors.length : 0;
+  const acwr = chronic ? Math.round((acute / chronic) * 100) / 100 : null;
   const weights = weightsSnap.docs.map((d) => d.data()).reverse();
   const prevReview = await db().doc(`users/${uid}/reviews/${weekIdOffset(reviewWeek, -1)}`).get();
   let coachNote = '';
@@ -83,6 +91,9 @@ async function reviewWeek(uid, profile, reviewWeek) {
       nutritionLine = `Nutrition (${n} of 7 days logged, goal: ${profile.nutrition.goal}): avg ${Math.round(tot.kcal / n)} kcal vs target ${Math.round(tot.tk / n)}; avg protein ${Math.round(tot.protein / n)} g vs target ${Math.round(tot.tp / n)} g.`;
     } else nutritionLine = `Nutrition tracking on (goal: ${profile.nutrition.goal}) but no meals logged this week.`;
   }
+  const loadLine = acute
+    ? `Training load (session RPE × minutes): this week ${acute}${chronic ? `, four-week average ${Math.round(chronic)}, acute:chronic ratio ${acwr}` : ' (no history yet)'}.`
+    : 'Training load: nothing with both RPE and duration logged this week.';
   const weightLine = weights.length > 1 ? `Weight trend: ${weights.map((w) => `${w.kg} kg (${w.at.slice(5, 10)})`).join(' → ')}` : `Weight: ${profile.weightKg} kg (no trend yet)`;
   const nextMonday = mondayOf(nextId);
 
@@ -95,6 +106,7 @@ Review principles:
 - Progression: if a session was DONE and session RPE ≤ 8, progress it next week (small load or volume increase, or harder variation). RPE 9–10: hold. Adherence below 50% or repeated fatigue/soreness notes: make next week lighter (deload) and say so. Skip reasons that point to schedule problems: move sessions, don't add more.
 - When the athlete logged real loads (kg), use those numbers to prescribe next week's loads explicitly.
 - Injury or pain mentioned in a note overrides progression for that movement.
+- Training load: an acute:chronic ratio above 1.3 means the jump in load was large — hold or reduce volume next week and say so plainly. Below 0.8 means detraining — it is safe to add. Between 0.8 and 1.3 is the comfortable zone. Ignore the ratio when there is no four-week history.
 - When the athlete swapped, added or replaced exercises or whole sessions, take that as a signal about what actually fits their week and equipment: keep what they chose if it serves the goal, and say so in the adjustments.
 - If a coach's note is given, treat it as an instruction from the athlete's coach and follow it, mentioning it in the adjustments.
 - Stay in the periodisation phase given for next week.
@@ -117,6 +129,7 @@ Return ONLY a JSON object with this shape:
 Week under review: ${reviewWeek} (phase: ${plan.phase}; focus: ${plan.focus})
 Adherence: ${stats.adherence}% — ${stats.done} done, ${stats.partial} partial, ${stats.skipped} skipped, ${stats.missed} not logged, of ${stats.planned} planned. ${stats.setsTotal ? `Sets: ${stats.setsDone}/${stats.setsTotal}.` : ''} ${stats.avgRpe ? `Average session RPE: ${stats.avgRpe}.` : 'No RPE logged.'}
 ${weightLine}
+${loadLine}
 ${nutritionLine}
 ${prevReview.exists ? `Previous week's adjustments were: ${(prevReview.data().adjustments || []).join('; ')}` : 'This is the first review.'}
 Plan's own hint for next week: ${plan.nextWeekHint || 'none'}
@@ -133,7 +146,7 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
     next.weekId = nextId; next.createdAt = new Date().toISOString(); next.source = 'review'; next.reviewOf = reviewWeek;
     const review = {
       weekId: reviewWeek, nextWeekId: nextId, createdAt: next.createdAt, stats,
-      summary: String(out.summary || ''), wins: arr(out.wins), watchouts: arr(out.watchouts), adjustments: arr(out.adjustments), nutritionNote: String(out.nutritionNote || ''),
+      load: { acute, chronic: Math.round(chronic), acwr }, summary: String(out.summary || ''), wins: arr(out.wins), watchouts: arr(out.watchouts), adjustments: arr(out.adjustments), nutritionNote: String(out.nutritionNote || ''),
     };
     const batch = db().batch();
     batch.set(db().doc(`users/${uid}/reviews/${reviewWeek}`), review);
