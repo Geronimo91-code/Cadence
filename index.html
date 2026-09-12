@@ -354,6 +354,15 @@ textarea.input { min-height: 90px; resize: vertical; }
 .slot .body strong { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot .body span { font-size: .82rem; color: var(--ink-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot .chev { color: var(--ink-3); }
+.dayprefs { display: grid; gap: 10px; margin-top: 14px; }
+.dayrow { border: 1.5px solid var(--line); border-radius: var(--r-m); background: var(--white); padding: 10px 12px; }
+.dayrow .top { display: flex; align-items: center; gap: 10px; }
+.dayrow .top b { font-family: var(--font-display); width: 38px; flex: 0 0 auto; }
+.dayrow .sel { display: flex; gap: 8px; flex: 1; min-width: 0; }
+.dayrow select { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--white); font-size: .88rem; }
+.dayrow .second { display: flex; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); align-items: center; }
+.dayrow .second .lbl2 { font-size: .7rem; color: var(--ink-3); width: 38px; flex: 0 0 auto; text-transform: uppercase; }
+.dayrow .addslot { font-size: .8rem; color: var(--green); font-weight: 600; margin-top: 8px; padding: 2px 0; background: none; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -720,16 +729,49 @@ function renderGoal(el) {
 }
 function renderAvailability(el) {
   const d = ob.data;
-  el.append(weekStrip(d.days, { readonly: false, onToggle: (i, on) => { d.days = on ? [...new Set([...d.days, i])].sort() : d.days.filter((x) => x !== i); } }));
+  el.append(weekStrip(d.days, { readonly: false, onToggle: (i, on) => {
+    d.days = on ? [...new Set([...d.days, i])].sort((a, b) => a - b) : d.days.filter((x) => x !== i);
+    if (!on && d.dayPrefs) delete d.dayPrefs[i];
+    const w = $('.dayprefs'); if (w) renderDayPrefs(w);
+  } }));
   const h = document.createElement('h3'); h.textContent = T('Typical session length'); h.style.margin = '30px 0 10px'; el.append(h);
   el.append(chipGroup(['30 ' + T('min'), '45 ' + T('min'), '60 ' + T('min'), '75 ' + T('min'), '90+ ' + T('min')], d.sessionMin ? [d.sessionMin + ' ' + T('min')] : [], (v) => { d.sessionMin = parseInt(v[0]); }, { multi: false }));
   const hD = document.createElement('h3'); hD.textContent = T('Two sessions in one day?'); hD.style.margin = '30px 0 10px'; el.append(hD);
   el.append(optionGroup([['no', 'One session a day', 'Never stack two in a day'], ['sometimes', 'Sometimes', 'Once or twice a week, if the second is easy or is club practice'], ['often', 'Often', 'e.g. gym in the morning, team practice in the evening']], d.doubles || 'no', (v) => { d.doubles = v; }));
+  const prefWrap = document.createElement('div'); prefWrap.className = 'dayprefs'; el.append(prefWrap); renderDayPrefs(prefWrap);
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fTime">${T('Usual start time')}</label><input class="input" id="fTime" type="time"><span class="hint">${T('Used for calendar reminders. Sessions themselves aren\'t locked to it.')}</span></div>`);
   bind($('#fTime'), 'sessionTime'); if (!$('#fTime').value) { $('#fTime').value = '18:00'; ob.data.sessionTime = ob.data.sessionTime || '18:00'; }
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">Fixed commitments <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fFixed" placeholder="e.g. Club practice Tue & Thu 19:30, matches most Sundays"></textarea><span class="hint">${T('Cadence plans around these instead of replacing them.')}</span></div>`);
   bind($('#fFixed'), 'fixed');
 }
+const FOCUS_OPTIONS = [['', 'Let Cadence decide'], ['strength', 'Strength'], ['speed', 'Speed'], ['conditioning', 'Conditioning'], ['skills', 'Skills / practice'], ['mobility', 'Mobility'], ['match', 'Match']];
+const TIME_OPTIONS = [['', 'Any time'], ['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening']];
+function renderDayPrefs(wrap) {
+  const d = ob.data; d.dayPrefs = d.dayPrefs || {};
+  wrap.innerHTML = '';
+  if (!d.days.length) return;
+  wrap.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin:6px 0 0">${T('Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.')}</p>`);
+  const allowDouble = (d.doubles || 'no') !== 'no';
+  d.days.forEach((day) => {
+    const slots = d.dayPrefs[day] || (d.dayPrefs[day] = [{ time: '', focus: '' }]);
+    const row = document.createElement('div'); row.className = 'dayrow';
+    const sel = (opts, val, cls) => `<select class="${cls}">${opts.map(([v, l]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${T(l)}</option>`).join('')}</select>`;
+    row.innerHTML = `<div class="top"><b>${T(DAYS[day])}</b><div class="sel">${sel(TIME_OPTIONS, slots[0].time, 'p-time')}${sel(FOCUS_OPTIONS, slots[0].focus, 'p-focus')}</div></div>
+      ${slots[1] ? `<div class="second"><span class="lbl2">${T('2nd')}</span><div class="sel">${sel(TIME_OPTIONS, slots[1].time, 'p-time2')}${sel(FOCUS_OPTIONS, slots[1].focus, 'p-focus2')}</div><button type="button" class="btn ghost sm p-del" style="padding:4px 8px;color:var(--red)">✕</button></div>` : ''}
+      ${allowDouble && !slots[1] ? `<button type="button" class="addslot p-add">+ ${T('Add a second session this day')}</button>` : ''}`;
+    row.querySelector('.p-time').onchange = (e) => { slots[0].time = e.target.value; };
+    row.querySelector('.p-focus').onchange = (e) => { slots[0].focus = e.target.value; };
+    if (slots[1]) {
+      row.querySelector('.p-time2').onchange = (e) => { slots[1].time = e.target.value; };
+      row.querySelector('.p-focus2').onchange = (e) => { slots[1].focus = e.target.value; };
+      row.querySelector('.p-del').onclick = () => { slots.splice(1, 1); renderDayPrefs(wrap); };
+    }
+    const add = row.querySelector('.p-add');
+    if (add) add.onclick = () => { slots.push({ time: 'evening', focus: '' }); renderDayPrefs(wrap); };
+    wrap.append(row);
+  });
+}
+
 function renderSetup(el) {
   const d = ob.data;
   el.append(chipGroup(EQUIPMENT, d.equipment, (v) => { d.equipment = v; }));
@@ -780,6 +822,7 @@ async function saveProfile() {
     name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg,
     sports: d.sports, level: d.level, goals: d.goals, goal: d.goals[0], goalNote: d.goalNote || '',
     days: d.days, sessionMin: d.sessionMin, sessionTime: d.sessionTime || '18:00', doubles: d.doubles || 'no', fixed: d.fixed || '',
+    dayPrefs: Object.fromEntries(Object.entries(d.dayPrefs || {}).map(([day, slots]) => [day, (slots || []).filter((x) => x.time || x.focus)]).filter(([day, slots]) => slots.length && d.days.includes(Number(day)))),
     equipment: d.equipment, injuries: d.injuries || '',
     deadline: d.hasDeadline ? { name: d.deadlineName, date: d.deadlineDate } : null,
     nutrition: d.nutritionGoal === 'none' ? null : { goal: d.nutritionGoal, diet: d.diet, kcalAdjust: (ob.editing && state.profile?.nutrition?.goal === d.nutritionGoal) ? (state.profile.nutrition.kcalAdjust || 0) : 0 },
@@ -1788,7 +1831,7 @@ function viewProfile(el) {
   $('#btnTestPush').onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = '…'; try { await api('/api/test-notify', {}, { timeoutMs: 25000 }); toast(T('Sent — check your notifications')); } catch (e) { toast(e.message); } b.disabled = false; b.textContent = T('Send'); };
 }
 function profileToOb(p) {
-  return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), doubles: p.doubles || 'no', hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
+  return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), doubles: p.doubles || 'no', dayPrefs: JSON.parse(JSON.stringify(p.dayPrefs || {})), hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
 }
 function greeting() { const h = new Date().getHours(); return h < 12 ? T('Morning') : h < 18 ? T('Afternoon') : T('Evening'); }
 
