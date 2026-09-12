@@ -331,6 +331,9 @@ textarea.input { min-height: 90px; resize: vertical; }
 .timer.done { background: var(--green); }
 .offline { position: fixed; left: 0; right: 0; top: 0; background: var(--amber); color: #3d2a06; text-align: center; font-size: .85rem; font-weight: 600; padding: 6px 12px; z-index: 70; transform: translateY(-100%); transition: transform .2s; }
 .offline.show { transform: none; }
+.clubtabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 4px; }
+.clubtabs .chip { flex: 0 0 auto; }
+.clubtabs .chip.add { border-style: dashed; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -455,7 +458,7 @@ function translateStatic() {
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const state = { user: null, profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null, clubId: null, club: null, me: null };
+const state = { user: null, profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null, clubIds: [], clubId: null, club: null, me: null, clubNames: {} };
 
 function show(id) { translateStatic(); ['auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
 let toastTimer;
@@ -538,7 +541,10 @@ auth.onAuthStateChanged(async (user) => {
   try {
     const snap = await db.doc('users/' + user.uid).get();
     state.profile = snap.exists ? snap.data().profile : null;
-    state.clubId = snap.exists ? (snap.data().clubId || null) : null;
+    const udata = snap.exists ? snap.data() : {};
+    state.clubIds = Array.isArray(udata.clubIds) ? udata.clubIds : (udata.clubId ? [udata.clubId] : []);
+    state.clubId = state.clubIds[0] || null;
+    if (!Array.isArray(udata.clubIds) && udata.clubId) { db.doc('users/' + user.uid).set({ clubIds: [udata.clubId] }, { merge: true }).catch(() => {}); }
     if (state.profile?.lang && LANGS[state.profile.lang]) setLang(state.profile.lang);
   } catch (e) { console.error(e); state.profile = null; }
   if (!state.profile) { startOnboarding(); return; }
@@ -950,7 +956,7 @@ async function viewToday(el) {
     c.innerHTML = `<span class="badge rest">${T('Rest day')}</span><h3 style="margin:10px 0 6px">${esc(session?.title || T('Rest'))}</h3><p class="muted">${esc(session?.intent || T('Nothing scheduled. Recover, eat well, move lightly if you feel like it.'))}</p>`;
   } else {
     const lg = logFor(session);
-    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(session.type)}">${esc(T(session.type))}${session.timeOfDay ? ' · ' + T(session.timeOfDay) : ''}${session.teamSession ? ' · ' + T('team') : session.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg)}</div>
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(session.type)}">${esc(T(session.type))}${session.timeOfDay ? ' · ' + T(session.timeOfDay) : ''}${session.teamSession ? ' · ' + esc(session.clubName || T('team')) : session.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg)}</div>
       <h3 style="margin:10px 0 2px">${esc(session.title)}</h3>
       <div class="muted small">${session.durationMin} min · ${session.exercises.length} exercise${session.exercises.length === 1 ? '' : 's'}</div>
       <p class="muted" style="margin:10px 0 14px">${esc(session.intent)}</p>
@@ -960,7 +966,7 @@ async function viewToday(el) {
   if (session && session.type !== 'rest') $('#btnOpenToday').onclick = () => openSession(session);
   realToday.slice(1).forEach((extra, i) => {
     const lg2 = logFor(extra); const c2 = document.createElement('div'); c2.className = 'card';
-    c2.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(extra.type)}">${esc(T(extra.type))}${extra.timeOfDay ? ' · ' + T(extra.timeOfDay) : ''}${extra.teamSession ? ' · ' + T('team') : extra.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg2)}</div>
+    c2.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(extra.type)}">${esc(T(extra.type))}${extra.timeOfDay ? ' · ' + T(extra.timeOfDay) : ''}${extra.teamSession ? ' · ' + esc(extra.clubName || T('team')) : extra.fixed ? ' · ' + T('fixed') : ''}</span>${statusHtml(lg2)}</div>
       <h3 style="margin:10px 0 2px">${esc(extra.title)}</h3>
       <div class="muted small">${extra.durationMin} ${T('min')} · ${extra.exercises.length} ${extra.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
       <p class="muted" style="margin:10px 0 14px">${esc(extra.intent)}</p>
@@ -1008,7 +1014,7 @@ function viewPlan(el) {
     const isRest = sess.type === 'rest';
     const lg = isRest ? null : logFor(sess);
     const sameDayAsPrev = idx > 0 && sorted[idx - 1].day === sess.day;
-    row.innerHTML = `<span class="dow">${sameDayAsPrev ? '' : T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : (sess.timeOfDay ? T(sess.timeOfDay) + ' · ' : '') + esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + T('team') : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
+    row.innerHTML = `<span class="dow">${sameDayAsPrev ? '' : T(DAYS[sess.day])}</span><span class="main"><strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : (sess.timeOfDay ? T(sess.timeOfDay) + ' · ' : '') + esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
     if (!isRest) row.onclick = () => openSession(sess);
     if (!isRest && planIsCurrent()) {
       const mv = document.createElement('button'); mv.type = 'button'; mv.className = 'chip'; mv.textContent = T('Move'); mv.style.marginLeft = '6px'; mv.style.flex = '0 0 auto';
@@ -1475,19 +1481,44 @@ async function viewNutrition(el) {
    Club
    ============================================================ */
 async function loadClub() {
-  if (!state.clubId) { state.club = null; state.me = null; return; }
+  if (!state.clubIds.length) { state.club = null; state.me = null; state.clubId = null; return; }
+  if (!state.clubIds.includes(state.clubId)) state.clubId = state.clubIds[0];
   try {
+    const docs = await Promise.all(state.clubIds.map((id) => db.doc('clubs/' + id).get()));
+    const alive = [];
+    docs.forEach((d, i) => { if (d.exists) { alive.push(state.clubIds[i]); state.clubNames[d.id] = d.data().name; } });
+    if (alive.length !== state.clubIds.length) {
+      state.clubIds = alive; await db.doc('users/' + state.user.uid).set({ clubIds: alive }, { merge: true });
+      if (!alive.includes(state.clubId)) state.clubId = alive[0] || null;
+    }
+    if (!state.clubId) { state.club = null; state.me = null; return; }
     const [c, m] = await Promise.all([db.doc('clubs/' + state.clubId).get(), db.doc('clubs/' + state.clubId + '/members/' + state.user.uid).get()]);
-    if (!c.exists || !m.exists) { state.clubId = null; state.club = null; state.me = null; await db.doc('users/' + state.user.uid).set({ clubId: null }, { merge: true }); return; }
+    if (!c.exists || !m.exists) { await leaveClubLocally(state.clubId); return; }
     state.club = { id: c.id, ...c.data() }; state.me = m.data();
   } catch (e) { console.error(e); state.club = null; }
 }
+async function leaveClubLocally(id) {
+  state.clubIds = state.clubIds.filter((x) => x !== id);
+  state.clubId = state.clubIds[0] || null; state.club = null; state.me = null;
+  await db.doc('users/' + state.user.uid).set({ clubIds: state.clubIds }, { merge: true });
+}
+async function joinClubDoc(clubId, code, role) {
+  await db.doc('clubs/' + clubId + '/members/' + state.user.uid).set({ uid: state.user.uid, name: state.profile.name, role, code, hidden: false, joinedAt: new Date().toISOString() });
+  const ids = [...new Set([...state.clubIds, clubId])];
+  await db.doc('users/' + state.user.uid).set({ clubIds: ids, clubId: ids[0] }, { merge: true });
+  state.clubIds = ids; state.clubId = clubId;
+}
 async function postActivity(rec) {
-  if (!state.clubId) return;
-  if (!state.me) await loadClub();
-  if (!state.me || state.me.hidden) return;
+  if (!state.clubIds.length) return;
   const id = state.user.uid + '-' + rec.weekId + '-' + rec.day + '-' + (rec.slot || 0);
-  await db.doc('clubs/' + state.clubId + '/activity/' + id).set({ uid: state.user.uid, name: state.profile.name, weekId: rec.weekId, day: rec.day, slot: rec.slot || 0, title: rec.title, type: rec.type, status: rec.status, sessionRpe: rec.sessionRpe || null, at: new Date().toISOString() });
+  const payload = { uid: state.user.uid, name: state.profile.name, weekId: rec.weekId, day: rec.day, slot: rec.slot || 0, title: rec.title, type: rec.type, status: rec.status, sessionRpe: rec.sessionRpe || null, at: new Date().toISOString() };
+  await Promise.all(state.clubIds.map(async (clubId) => {
+    try {
+      const me = await db.doc('clubs/' + clubId + '/members/' + state.user.uid).get();
+      if (!me.exists || me.data().hidden) return;
+      await db.doc('clubs/' + clubId + '/activity/' + id).set(payload);
+    } catch (_) {}
+  }));
 }
 function initials(n) { return (n || '?').trim().split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase(); }
 function makeCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return [...crypto.getRandomValues(new Uint8Array(6))].map((x) => A[x % A.length]).join(''); }
@@ -1496,6 +1527,13 @@ async function viewClub(el) {
   await loadClub();
   if (!state.club) { renderClubJoin(el); return; }
   const c = state.club, me = state.me, coach = me.role === 'coach';
+  if (state.clubIds.length > 1 || true) {
+    const tabs = document.createElement('div'); tabs.className = 'clubtabs';
+    state.clubIds.forEach((id) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = state.clubNames[id] || '…'; b.setAttribute('aria-pressed', id === state.clubId); b.onclick = async () => { state.clubId = id; await db.doc('users/' + state.user.uid).set({ clubId: id }, { merge: true }); navigate('club'); }; tabs.append(b); });
+    if (state.clubIds.length < 5) { const add = document.createElement('button'); add.type = 'button'; add.className = 'chip add'; add.textContent = '+ ' + T('Another club'); add.onclick = () => renderClubJoin(el, true); tabs.append(add); }
+    el.append(tabs);
+  }
+  const body = document.createElement('div'); el.append(body); el = body;
   el.innerHTML = `
     <div class="card" style="margin-top:0">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>${esc(c.name)}</h3><span class="badge">${esc(T(c.sport || ''))}</span></div>
@@ -1515,7 +1553,7 @@ async function viewClub(el) {
   $('#swVisible').onclick = async (ev) => { const on = ev.currentTarget.getAttribute('aria-checked') !== 'true'; await db.doc('clubs/' + c.id + '/members/' + state.user.uid).set({ hidden: !on }, { merge: true }); state.me.hidden = !on; ev.currentTarget.setAttribute('aria-checked', on); };
   $('#btnLeave').onclick = async () => {
     if (!confirm(T('Leave this club? Coaches will no longer see your training.'))) return;
-    try { await db.doc('clubs/' + c.id + '/members/' + state.user.uid).delete(); await db.doc('users/' + state.user.uid).set({ clubId: null }, { merge: true }); state.clubId = null; state.club = null; toast(T('You left the club')); navigate('club'); } catch (e) { toast(T('Could not leave.')); }
+    try { await db.doc('clubs/' + c.id + '/members/' + state.user.uid).delete(); await leaveClubLocally(c.id); toast(T('You left the club')); navigate('club'); } catch (e) { toast(T('Could not leave.')); }
   };
 
   const [mq, aq] = await Promise.all([
@@ -1582,8 +1620,9 @@ async function openMember(c, r) {
   $('#btnSaveNote', sheet).onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; try { await db.doc('clubs/' + c.id + '/notes/' + r.m.uid).set({ text: $('#coachNote', sheet).value.trim(), by: state.user.uid, byName: state.profile.name, at: new Date().toISOString() }); toast(T('Note saved')); } catch (e) { toast(T('Could not save.')); } b.disabled = false; };
 }
 
-function renderClubJoin(el) {
+function renderClubJoin(el, adding) {
   el.innerHTML = `
+    ${adding ? `<button class="btn ghost sm" id="joinBack" style="padding-left:0;margin-bottom:6px">‹ ${T('Back')}</button>` : ''}
     <div class="card" style="margin-top:0"><h3>${T('Join a club')}</h3><p class="muted small" style="margin:4px 0 10px">${T('Got a code from your coach? Enter it here.')}</p>
       <div class="row" style="align-items:stretch"><input class="input" id="joinCode" placeholder="ABC123" autocapitalize="characters" maxlength="8" style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-display);font-weight:700;font-size:1.1rem;min-width:0"><button class="btn" id="btnJoin" style="flex:0 0 auto;width:auto;padding-inline:22px">${T('Join')}</button></div></div>
     <div class="card"><h3>${T('Create a club')}</h3><p class="muted small" style="margin:4px 0 10px">${T('You become its first coach and get an invite code to share.')}</p>
@@ -1591,6 +1630,7 @@ function renderClubJoin(el) {
       <div class="field"><input class="input" id="clubSport" placeholder="${T('Sport')}" value="${esc(state.profile.sports?.[0] || '')}"></div>
       <button class="btn secondary" id="btnCreate">${T('Create club')}</button></div>
     <p class="muted small" style="margin-top:14px">${T('In a club, coaches can see your plans, logged sessions and reviews and leave you notes. Other members only see the sessions you finish, if you choose to appear. Nutrition and weight are never shared.')}</p>`;
+  if (adding) $('#joinBack').onclick = () => navigate('club');
   $('#btnJoin').onclick = async (ev) => {
     const code = $('#joinCode').value.trim().toUpperCase(); if (code.length < 4) { toast(T('Enter the invite code.')); return; }
     const b = ev.currentTarget; b.disabled = true;
@@ -1598,9 +1638,10 @@ function renderClubJoin(el) {
       const q = await db.collection('clubs').where('inviteCode', '==', code).limit(1).get();
       if (q.empty) { toast(T('No club with that code.')); b.disabled = false; return; }
       const club = q.docs[0];
-      await db.doc('clubs/' + club.id + '/members/' + state.user.uid).set({ uid: state.user.uid, name: state.profile.name, role: 'member', code, hidden: false, joinedAt: new Date().toISOString() });
-      await db.doc('users/' + state.user.uid).set({ clubId: club.id }, { merge: true });
-      state.clubId = club.id; toast(T('Welcome to') + ' ' + club.data().name); navigate('club');
+      if (state.clubIds.includes(club.id)) { toast(T('You are already in that club.')); b.disabled = false; return; }
+      if (state.clubIds.length >= 5) { toast(T('Five clubs is the limit.')); b.disabled = false; return; }
+      await joinClubDoc(club.id, code, 'member');
+      toast(T('Welcome to') + ' ' + club.data().name); navigate('club');
     } catch (e) { console.error(e); toast(T('Could not join. Check the code.')); b.disabled = false; }
   };
   $('#btnCreate').onclick = async (ev) => {
@@ -1608,10 +1649,10 @@ function renderClubJoin(el) {
     const b = ev.currentTarget; b.disabled = true;
     try {
       const code = makeCode();
+      if (state.clubIds.length >= 5) { toast(T('Five clubs is the limit.')); b.disabled = false; return; }
       const ref = await db.collection('clubs').add({ name, sport, inviteCode: code, createdBy: state.user.uid, createdAt: new Date().toISOString() });
-      await db.doc('clubs/' + ref.id + '/members/' + state.user.uid).set({ uid: state.user.uid, name: state.profile.name, role: 'coach', code, hidden: false, joinedAt: new Date().toISOString() });
-      await db.doc('users/' + state.user.uid).set({ clubId: ref.id }, { merge: true });
-      state.clubId = ref.id; toast(T('Club created')); navigate('club');
+      await joinClubDoc(ref.id, code, 'coach');
+      toast(T('Club created')); navigate('club');
     } catch (e) { console.error(e); toast(T('Could not create the club.')); b.disabled = false; }
   };
 }

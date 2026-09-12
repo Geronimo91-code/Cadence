@@ -3,19 +3,28 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
-    function clubOf(uid) { return get(/databases/$(database)/documents/users/$(uid)).data.clubId; }
+    function clubsOf(uid) { return get(/databases/$(database)/documents/users/$(uid)).data.clubIds; }
     function memberDoc(clubId, uid) { return get(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid)); }
     function isMember(clubId) { return signedIn() && exists(/databases/$(database)/documents/clubs/$(clubId)/members/$(request.auth.uid)); }
     function isCoach(clubId) { return isMember(clubId) && memberDoc(clubId, request.auth.uid).data.role == 'coach'; }
-    // A coach of the club the user belongs to may read that user's training data (never nutrition or weights)
-    function isCoachOf(uid) { return signedIn() && clubOf(uid) != null && isCoach(clubOf(uid)); }
+    // A coach of ANY club the user belongs to may read that user's training data (never nutrition or weights)
+    function isCoachOfAnyClub(uid) {
+      let ids = clubsOf(uid);
+      return signedIn() && ids != null && ids.size() > 0 && (
+        (ids.size() > 0 && isCoach(ids[0])) ||
+        (ids.size() > 1 && isCoach(ids[1])) ||
+        (ids.size() > 2 && isCoach(ids[2])) ||
+        (ids.size() > 3 && isCoach(ids[3])) ||
+        (ids.size() > 4 && isCoach(ids[4]))
+      );
+    }
 
     // usage/{uid} is written only by the server (Admin SDK); no client access on purpose
     match /users/{uid} {
       allow read, write: if isOwner(uid);
-      match /plans/{doc}   { allow read: if isOwner(uid) || isCoachOf(uid); allow write: if isOwner(uid); }
-      match /logs/{doc}    { allow read: if isOwner(uid) || isCoachOf(uid); allow write: if isOwner(uid); }
-      match /reviews/{doc} { allow read: if isOwner(uid) || isCoachOf(uid); allow write: if isOwner(uid); }
+      match /plans/{doc}   { allow read: if isOwner(uid) || isCoachOfAnyClub(uid); allow write: if isOwner(uid); }
+      match /logs/{doc}    { allow read: if isOwner(uid) || isCoachOfAnyClub(uid); allow write: if isOwner(uid); }
+      match /reviews/{doc} { allow read: if isOwner(uid) || isCoachOfAnyClub(uid); allow write: if isOwner(uid); }
       match /{document=**} { allow read, write: if isOwner(uid); }
     }
 
