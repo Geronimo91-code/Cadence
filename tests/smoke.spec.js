@@ -1,31 +1,73 @@
 import { test, expect } from '@playwright/test';
 
-const URL = process.env.CADENCE_URL || 'https://cadence-xi-one.vercel.app';
-const EMAIL = process.env.CADENCE_TEST_EMAIL, PASS = process.env.CADENCE_TEST_PASSWORD;
+const URL = process.env.CADENCE_URL;
+const EMAIL = process.env.CADENCE_TEST_EMAIL;
+const PASS = process.env.CADENCE_TEST_PASSWORD;
 
-test('site and API routes respond', async ({ request }) => {
-  expect((await request.get(URL)).ok()).toBeTruthy();
-  const sw = await request.get(URL + '/sw.js'); expect(sw.ok()).toBeTruthy();
-  const gp = await request.get(URL + '/api/generate-plan'); expect(gp.status()).toBe(405);
-  const rv = await request.post(URL + '/api/weekly-review'); expect(rv.status()).toBe(401);
-  const cron = await request.get(URL + '/api/daily-notify'); expect(cron.status()).toBe(401);
-});
-
-test('sign in with email and reach the app', async ({ page }) => {
-  test.skip(!EMAIL || !PASS, 'CADENCE_TEST_EMAIL / CADENCE_TEST_PASSWORD secrets not set');
+async function signIn(page) {
   await page.goto(URL);
+  await expect(page.locator('#auth')).toBeVisible({ timeout: 20000 });
   await page.fill('#authEmail', EMAIL);
   await page.fill('#authPass', PASS);
   await page.click('#btnEmail');
-  await expect(page.locator('#onboarding:not(.hidden), #app:not(.hidden)').first()).toBeVisible({ timeout: 30000 });
-  const onboarding = await page.locator('#onboarding').isVisible();
-  if (onboarding) {
-    await expect(page.locator('#obStep h2')).toContainText("Let's start with you");
-    return; // fresh test account: onboarding rendering is enough for a smoke test
-  }
+  await expect(page.locator('#app:not(.hidden), #onboarding:not(.hidden)').first()).toBeVisible({ timeout: 30000 });
+  if (await page.locator('#onboarding').isVisible()) throw new Error('Test account has no profile — complete onboarding once with it');
+}
+
+test('site and API routes', async ({ request }) => {
+  expect((await request.get(URL)).ok()).toBeTruthy();
+  expect((await request.get(URL + '/sw.js')).ok()).toBeTruthy();
+  expect((await request.get(URL + '/i18n.js')).ok()).toBeTruthy();
+  expect((await request.get(URL + '/manifest.json')).ok()).toBeTruthy();
+  expect((await request.get(URL + '/api/generate-plan')).status()).toBe(405);
+  expect((await request.post(URL + '/api/weekly-review')).status()).toBe(401);
+  expect((await request.post(URL + '/api/estimate-meal')).status()).toBe(401);
+  expect((await request.get(URL + '/api/daily-notify')).status()).toBe(401);
+  expect((await request.get(URL + '/api/calendar')).status()).toBe(400);
+});
+
+test('sign in and tabs', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await signIn(page);
   for (const [view, title] of [['plan', 'This week'], ['log', 'Log'], ['nutrition', 'Nutrition'], ['club', 'Club'], ['profile', 'Profile'], ['today', 'Today']]) {
     await page.click(`.tab[data-view="${view}"]`);
     await expect(page.locator('#topTitle')).toHaveText(title);
+    await expect(page.locator('#view')).not.toContainText('Something went wrong');
   }
-  await expect(page.locator('#view')).not.toContainText('Something went wrong');
+  expect(errors, 'uncaught page errors: ' + errors.join(' | ')).toHaveLength(0);
+});
+
+test('plan and session view', async ({ page }) => {
+  await signIn(page);
+  await page.click('.tab[data-view="plan"]');
+  const rows = page.locator('.session-row');
+  await expect(rows.first()).toBeVisible({ timeout: 15000 });
+  const openable = page.locator('.session-row:has(.chev)').first();
+  if (await openable.count()) {
+    await openable.click();
+    const sheet = page.locator('.sheet');
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toContainText('Warm-up');
+    await expect(sheet.locator('#logEx')).toBeVisible();      // set inputs render
+    await expect(sheet.locator('#sessRpe button')).toHaveCount(10);
+    await expect(sheet.locator('#btnSaveLog')).toBeVisible();
+    await sheet.locator('#btnCloseSheet').click();
+    await expect(page.locator('.sheet')).toHaveCount(0);
+  }
+});
+
+test('nutrition and club render', async ({ page }) => {
+  await signIn(page);
+  await page.click('.tab[data-view="nutrition"]');
+  await expect(page.locator('#view')).toBeVisible();
+  await page.click('.tab[data-view="log"]');
+  await expect(page.locator('#view')).toContainText(/Weight|Progress|Sessions/);
+  await page.click('.tab[data-view="club"]');
+  await expect(page.locator('#view')).toContainText(/Club|Join|Leaderboard|Members/);
+  await page.click('.tab[data-view="profile"]');
+  await expect(page.locator('#selLang')).toBeVisible();
+  await page.selectOption('#selLang', 'fr');
+  await expect(page.locator('.tab[data-view="today"]')).toContainText("Aujourd'hui");
+  await page.selectOption('#selLang', 'en');
 });

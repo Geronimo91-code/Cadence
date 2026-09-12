@@ -6,19 +6,33 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    env:
+      CADENCE_URL: ${{ secrets.CADENCE_URL }}
+      CADENCE_TEST_EMAIL: ${{ secrets.CADENCE_TEST_EMAIL }}
+      CADENCE_TEST_PASSWORD: ${{ secrets.CADENCE_TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
+      - name: Secrets present
+        run: test -n "$CADENCE_URL" && test -n "$CADENCE_TEST_EMAIL" && test -n "$CADENCE_TEST_PASSWORD"
       - name: Wait for Vercel deployment
         run: sleep 90
       - run: npm i -D @playwright/test@1.47.2 && npx playwright install --with-deps chromium
-      - run: npx playwright test
-        env:
-          CADENCE_URL: ${{ secrets.CADENCE_URL }}
-          CADENCE_TEST_EMAIL: ${{ secrets.CADENCE_TEST_EMAIL }}
-          CADENCE_TEST_PASSWORD: ${{ secrets.CADENCE_TEST_PASSWORD }}
+      # One step per test so a failure is identifiable from the job summary alone
+      - name: 'Test: site and API routes'
+        if: always()
+        run: npx playwright test -g "site and API routes"
+      - name: 'Test: sign in and tabs'
+        if: always()
+        run: npx playwright test -g "sign in and tabs"
+      - name: 'Test: plan and session view'
+        if: always()
+        run: npx playwright test -g "plan and session view"
+      - name: 'Test: nutrition and club render'
+        if: always()
+        run: npx playwright test -g "nutrition and club render"
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: test-results/ }
