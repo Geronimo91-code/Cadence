@@ -1,7 +1,7 @@
 {
   "step": "generating",
   "status": 503,
-  "error": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"gemini 400: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 400,\\n    \\\"message\\\": \\\"Request contains an invalid argument.\\\",\\n    \\\"status\\\": \\\"INVALID_ARGUMENT\\\"\\n  }\\n}\\n] | gemini 400: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 400,\\n    \\\"message\\\": \\\"Request contains an invalid argument.\\\",\\n    \\\"status\\\": \\\"INVALID_ARGUMENT\\\"\\n",
+  "error": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"Expected ',' or ']' after array element in JSON at position 5856 (line 202 column 10) | gemini timed out | Out of time before the model answered\"}",
   "days": null,
   "trainable": null,
   "sheetOk": null,
