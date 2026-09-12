@@ -48,6 +48,18 @@ jobs:
       - name: 'Generate: not a timeout'
         if: inputs.generate && always()
         run: node check-gen.mjs not-timeout
+      - name: 'Generate: not 429 quota'
+        if: inputs.generate && always()
+        run: node check-gen.mjs not-quota
+      - name: 'Generate: not 401/403 auth'
+        if: inputs.generate && always()
+        run: node check-gen.mjs not-auth
+      - name: 'Generate: not 400 bad request'
+        if: inputs.generate && always()
+        run: node check-gen.mjs not-bad-request
+      - name: 'Generate: not 500 server error'
+        if: inputs.generate && always()
+        run: node check-gen.mjs not-server-error
       - name: 'Generate: HTTP 200'
         if: inputs.generate && always()
         run: node check-gen.mjs http-200

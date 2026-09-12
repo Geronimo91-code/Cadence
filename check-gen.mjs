@@ -10,4 +10,8 @@ if (what === 'http-200') { if (r.status !== 200) fail('HTTP ' + r.status + ' ' +
 if (what === 'seven-days') { if (r.days !== 7) fail('expected 7 day rows, got ' + r.days); }
 if (what === 'has-sessions') { if (!r.trainable) fail('no trainable sessions in the week'); }
 if (what === 'session-view') { if (r.sheetOk !== true) fail('session sheet missing exercises or RPE buttons'); }
+if (what === 'not-quota') { if (r.status === 429) fail('daily quota reached: ' + r.error); }
+if (what === 'not-server-error') { if (r.status === 500) fail('server error: ' + r.error); }
+if (what === 'not-bad-request') { if (r.status === 400) fail('bad request: ' + r.error); }
+if (what === 'not-auth') { if (r.status === 401 || r.status === 403) fail('auth problem: ' + r.error); }
 if (what === 'no-page-errors') { if (r.pageErrors.length) fail(r.pageErrors.join(' | ')); }
