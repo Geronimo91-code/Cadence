@@ -48,37 +48,18 @@ async function reviewWeek(uid, profile, reviewWeek) {
   const prevReview = await db().doc(`users/${uid}/reviews/${weekIdOffset(reviewWeek, -1)}`).get();
   let coachNote = '';
   try {
-    const clubId = (await db().doc(`users/${uid}`).get()).data()?.clubId;
-    if (clubId) { const n = await db().doc(`clubs/${clubId}/notes/${uid}`).get(); if (n.exists && n.data().text) coachNote = `Coach's note for next week (from ${n.data().byName || 'coach'}): "${n.data().text}"`; }
-  } catch (_) {}
-
-  // ---- adherence, computed here so the numbers are exact ----
-  const planned = plan.sessions.filter((s) => s.type !== 'rest');
-  const stats = { planned: planned.length, done: 0, partial: 0, skipped: 0, missed: 0, avgRpe: null, setsDone: 0, setsTotal: 0 };
-  const rpes = [];
-  const sessionLines = planned.map((s) => {
-    const l = logs.get(sessionKey(reviewWeek, s.day, s.slot || 0));
-    const when = `${DAY_NAMES[s.day]}${s.timeOfDay ? ' ' + s.timeOfDay : ''}`;
-    if (!l) { stats.missed++; return `- ${when} · ${s.title} (${s.type}, ${s.durationMin} min): NOT LOGGED (treat as missed)`; }
-    stats[l.status === 'done' ? 'done' : l.status === 'partial' ? 'partial' : 'skipped']++;
-    if (l.sessionRpe) rpes.push(l.sessionRpe);
-    stats.setsDone += l.setsDone || 0; stats.setsTotal += l.setsTotal || 0;
-    let line = `- ${when} · ${s.title} (${s.type}): ${l.status.toUpperCase()}${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`;
-    if (l.replacedWith) line += `\n    · replaced the planned session with: "${l.replacedWith}"`;
-    if (Array.isArray(l.exercises)) {
-      for (const ex of l.exercises) {
-        const doneSets = ex.sets.filter((st) => st.done);
-        if (!doneSets.length) { line += `\n    · ${ex.name}: not done`; continue; }
-        const desc = doneSets.map((st) => `${st.reps ?? '?'}${st.load ? '×' + st.load + 'kg' : ''}`).join(', ');
-        line += `\n    · ${ex.name}${ex.added ? ' (added by the athlete)' : ex.swapped ? ' (swapped in by the athlete)' : ` (planned ${ex.prescribed})`}: did ${desc}${ex.rpe ? `, RPE ${ex.rpe}` : ''}${doneSets.length < ex.sets.length ? `, ${ex.sets.length - doneSets.length} set(s) dropped` : ''}`;
+    const udata = (await db().doc(`users/${uid}`).get()).data() || {};
+    const clubIds = Array.isArray(udata.clubIds) ? udata.clubIds : (udata.clubId ? [udata.clubId] : []);
+    const notes = [];
+    for (const clubId of clubIds) {
+      const n = await db().doc(`clubs/${clubId}/notes/${uid}`).get();
+      if (n.exists && n.data().text) {
+        const club = await db().doc(`clubs/${clubId}`).get();
+        notes.push(`"${n.data().text}" — ${n.data().byName || 'coach'}${club.exists ? ` (${club.data().name})` : ''}`);
       }
     }
-    return line;
-  });
-  stats.avgRpe = rpes.length ? Math.round((rpes.reduce((a, b) => a + b, 0) / rpes.length) * 10) / 10 : null;
-  stats.adherence = stats.planned ? Math.round(((stats.done + stats.partial * 0.5) / stats.planned) * 100) : 0;
-
-  // nutrition adherence for the week (if enabled)
+    if (notes.length) coachNote = `Coach notes for next week: ${notes.join(' | ')}`;
+  } catch (_) {}
   let nutritionLine = 'Nutrition tracking: off.';
   if (profile.nutrition) {
     const mon = mondayOf(reviewWeek); const days = [];
