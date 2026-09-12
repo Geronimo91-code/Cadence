@@ -1081,12 +1081,18 @@ function viewPlan(el) {
   }
   if (reviewed) el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnSeeReview" style="margin-top:16px">${T('Read this week\'s review')}</button>`);
   if (reviewed) $('#btnSeeReview').onclick = () => openReview(state.review);
-  if (planIsCurrent() && p.source !== 'review') el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnRebuild" style="margin-top:10px">${T('Rebuild this week from my profile')}</button>`);
+  if (!planIsPast()) el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnRebuild" style="margin-top:10px">${T('Rebuild this week from my profile')}</button>`);
   if ($('#btnRebuild')) $('#btnRebuild').onclick = async (ev) => {
     if (!confirm(T('Replace this week with a new plan? Your logged sessions stay in history.'))) return;
     const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-    try { state.plan = await api('/api/generate-plan'); await loadPlan(); toast(T('New week ready')); navigate('plan'); }
-    catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Rebuild this week from my profile'); }
+    const before = state.plan?.createdAt;
+    try {
+      const fresh = await api('/api/generate-plan');
+      await loadPlan(fresh.weekId);
+      if (state.plan?.createdAt === before) { state.plan = fresh; state.planWeek = fresh.weekId; }
+      toast(T('New week ready'));
+      navigate('plan');
+    } catch (e) { toast(e.message || T('Could not generate a plan right now')); b.disabled = false; b.textContent = T('Rebuild this week from my profile'); }
   };
 }
 
@@ -1831,7 +1837,22 @@ window.addEventListener('online', () => { paintOnline(); toast(T('Back online â€
 window.addEventListener('offline', paintOnline);
 paintOnline();
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    // Take a new version as soon as it is ready, and reload once so the running app matches it
+    reg.addEventListener('updatefound', () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) sw.postMessage({ type: 'SKIP_WAITING' });
+      });
+    });
+    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+    reg.update().catch(() => {});
+  }).catch(() => {});
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading) return; reloading = true; location.reload(); });
+}
 </script>
 </body>
 </html>

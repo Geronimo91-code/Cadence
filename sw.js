@@ -1,5 +1,5 @@
 // Cadence service worker — app shell cache + push handling
-const CACHE_NAME = 'cadence-v11';
+const CACHE_NAME = 'cadence-v12';
 const SHELL = ['/', '/index.html', '/i18n.js', '/manifest.json', '/icon.svg', '/privacy.html', '/terms.html'];
 
 self.addEventListener('install', (e) => {
@@ -27,6 +27,8 @@ self.addEventListener('fetch', (e) => {
       .catch(() => caches.match(e.request).then((r) => r || caches.match('/index.html')))
   );
 });
+
+self.addEventListener('message', (e) => { if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting(); });
 
 self.addEventListener('push', (e) => {
   let data = { title: 'Cadence', body: 'Your training for today is ready.', url: '/' };
