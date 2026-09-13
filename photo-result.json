@@ -2,11 +2,11 @@
   "step": "done",
   "payloadBytes": 1064,
   "status": 200,
-  "body": "{\"name\":\"Unknown Meal\",\"kcal\":0,\"protein\":0,\"carbs\":0,\"fat\":0}",
+  "body": "{\"name\":\"Unknown food\",\"kcal\":0,\"protein\":0,\"carbs\":0,\"fat\":0,\"recognised\":false}",
   "filled": {
-    "kcal": "0",
-    "protein": "0",
-    "name": "Unknown Meal"
+    "kcal": "",
+    "protein": "",
+    "name": ""
   },
   "errors": []
 }
