@@ -1,7 +1,11 @@
 {
-  "step": "upload",
-  "status": null,
-  "body": null,
-  "filled": null,
+  "step": "done",
+  "status": 200,
+  "body": "{\"name\":\"Black coffee\",\"kcal\":5,\"protein\":0,\"carbs\":1,\"fat\":0}",
+  "filled": {
+    "kcal": "5",
+    "protein": "0",
+    "name": "Black coffee"
+  },
   "errors": []
 }
