@@ -109,6 +109,14 @@ jobs:
         if: always()
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'dayprefs-result.json' }
         run: node publish-result.mjs
+      - name: 'Photo: run'
+        if: always()
+        env: { RUN_PHOTO: '1' }
+        run: npx playwright test -g "meal photo estimation"
+      - name: 'Photo: publish result'
+        if: always()
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'photo-result.json' }
+        run: node publish-result.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: test-results/ }

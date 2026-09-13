@@ -1,6 +1,9 @@
 // POST /api/estimate-meal { description?, image? (data URL, jpeg ≤ ~1 MB) } → { name, kcal, protein, carbs, fat }
 import { requireUser, callModel, checkLimit, db, LANG_NAMES } from './_lib.js';
 
+// Photos arrive as base64 data URLs, which are far larger than the default body limit
+export const config = { api: { bodyParser: { sizeLimit: '6mb' } } };
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const user = await requireUser(req, res);

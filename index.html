@@ -1587,7 +1587,7 @@ async function viewNutrition(el) {
     const file = $('#mealFile').files[0]; if (!file) return;
     const b = $('#mealPhoto'); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
     try {
-      const image = await shrinkImage(file, 900, 0.8);
+      const image = await shrinkImage(file, 720, 0.7);
       applyEstimate(await api('/api/estimate-meal', { description: $('#mealName').value.trim(), image }, { slowMsg: T('Looking at the photo…') }));
     } catch (e) { toast(e.message || T('Could not read the photo.')); }
     b.disabled = false; b.textContent = T('Photo'); $('#mealFile').value = '';
