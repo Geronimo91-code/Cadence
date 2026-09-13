@@ -93,6 +93,14 @@ jobs:
       - name: 'Generate: no page errors'
         if: inputs.generate && always()
         run: node check-gen.mjs no-page-errors
+      - name: 'Meal photo: run'
+        if: inputs.generate && always()
+        env: { RUN_MEAL: '1' }
+        run: npx playwright test -g "meal photo estimate"
+      - name: 'Meal photo: publish result'
+        if: inputs.generate && always()
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'meal-result.json' }
+        run: node publish-result.mjs
       - name: 'Day prefs: run'
         if: always()
         env: { RUN_DAYPREFS: '1' }
