@@ -1,0 +1,12 @@
+{
+  "step": "done",
+  "payloadBytes": 1064,
+  "status": 200,
+  "body": "{\"name\":\"Unknown Meal\",\"kcal\":0,\"protein\":0,\"carbs\":0,\"fat\":0}",
+  "filled": {
+    "kcal": "0",
+    "protein": "0",
+    "name": "Unknown Meal"
+  },
+  "errors": []
+}
