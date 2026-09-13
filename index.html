@@ -1573,6 +1573,25 @@ async function viewNutrition(el) {
 
   const ref = db.doc('users/' + state.user.uid + '/nutrition/' + nutDay);
   let doc = { date: nutDay, meals: [] };
+  // Wire the buttons before any awaits, so an early tap is never ignored
+  const applyEstimate = (r) => { if (!$('#mealName').value.trim() && r.name) $('#mealName').value = r.name; $('#mealK').value = r.kcal; $('#mealP').value = r.protein; $('#mealC').value = r.carbs; $('#mealF').value = r.fat; toast(T('Estimated — adjust if needed, then Add')); };
+  $('#mealEst').onclick = async (ev) => {
+    const name = $('#mealName').value.trim(); if (!name) { toast(T('Describe the meal first.')); return; }
+    const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
+    try { applyEstimate(await api('/api/estimate-meal', { description: name }, { slowMsg: T('Still estimating…') })); }
+    catch (e) { toast(e.message); }
+    b.disabled = false; b.textContent = T('Estimate from name');
+  };
+  $('#mealPhoto').onclick = () => $('#mealFile').click();
+  $('#mealFile').onchange = async () => {
+    const file = $('#mealFile').files[0]; if (!file) return;
+    const b = $('#mealPhoto'); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
+    try {
+      const image = await shrinkImage(file, 900, 0.8);
+      applyEstimate(await api('/api/estimate-meal', { description: $('#mealName').value.trim(), image }, { slowMsg: T('Looking at the photo…') }));
+    } catch (e) { toast(e.message || T('Could not read the photo.')); }
+    b.disabled = false; b.textContent = T('Photo'); $('#mealFile').value = '';
+  };
   try { const d = await ref.get(); if (d.exists) doc = d.data(); } catch (_) {}
   doc.meals = doc.meals || [];
   const render = () => {
@@ -1612,24 +1631,6 @@ async function viewNutrition(el) {
     if (!(kcal > 0)) { toast(T('Add the calories, or tap Estimate.')); return; }
     doc.meals.push({ id: Date.now().toString(36), name, kcal: Math.round(kcal), protein: Number($('#mealP').value) || 0, carbs: Number($('#mealC').value) || 0, fat: Number($('#mealF').value) || 0, at: new Date().toISOString() });
     await persist(); render(); ['#mealName', '#mealK', '#mealP', '#mealC', '#mealF'].forEach((id) => { $(id).value = ''; }); toast(T('Meal added'));
-  };
-  const applyEstimate = (r) => { if (!$('#mealName').value.trim() && r.name) $('#mealName').value = r.name; $('#mealK').value = r.kcal; $('#mealP').value = r.protein; $('#mealC').value = r.carbs; $('#mealF').value = r.fat; toast(T('Estimated — adjust if needed, then Add')); };
-  $('#mealEst').onclick = async (ev) => {
-    const name = $('#mealName').value.trim(); if (!name) { toast(T('Describe the meal first.')); return; }
-    const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-    try { applyEstimate(await api('/api/estimate-meal', { description: name }, { slowMsg: T('Still estimating…') })); }
-    catch (e) { toast(e.message); }
-    b.disabled = false; b.textContent = T('Estimate from name');
-  };
-  $('#mealPhoto').onclick = () => $('#mealFile').click();
-  $('#mealFile').onchange = async () => {
-    const file = $('#mealFile').files[0]; if (!file) return;
-    const b = $('#mealPhoto'); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-    try {
-      const image = await shrinkImage(file, 900, 0.8);
-      applyEstimate(await api('/api/estimate-meal', { description: $('#mealName').value.trim(), image }, { slowMsg: T('Looking at the photo…') }));
-    } catch (e) { toast(e.message || T('Could not read the photo.')); }
-    b.disabled = false; b.textContent = T('Photo'); $('#mealFile').value = '';
   };
 }
 /* ============================================================
