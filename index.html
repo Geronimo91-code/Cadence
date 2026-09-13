@@ -1574,7 +1574,12 @@ async function viewNutrition(el) {
   const ref = db.doc('users/' + state.user.uid + '/nutrition/' + nutDay);
   let doc = { date: nutDay, meals: [] };
   // Wire the buttons before any awaits, so an early tap is never ignored
-  const applyEstimate = (r) => { if (!$('#mealName').value.trim() && r.name) $('#mealName').value = r.name; $('#mealK').value = r.kcal; $('#mealP').value = r.protein; $('#mealC').value = r.carbs; $('#mealF').value = r.fat; toast(T('Estimated — adjust if needed, then Add')); };
+  const applyEstimate = (r) => {
+    if (r && r.recognised === false) { toast(T('Could not tell what that is. Add a short description and try again.')); return; }
+    if (!$('#mealName').value.trim() && r.name) $('#mealName').value = r.name;
+    $('#mealK').value = r.kcal; $('#mealP').value = r.protein; $('#mealC').value = r.carbs; $('#mealF').value = r.fat;
+    toast(T('Estimated — adjust if needed, then Add'));
+  };
   $('#mealEst').onclick = async (ev) => {
     const name = $('#mealName').value.trim(); if (!name) { toast(T('Describe the meal first.')); return; }
     const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';

@@ -19,11 +19,14 @@ export default async function handler(req, res) {
   try { lang = LANG_NAMES[(await db().doc(`users/${user.uid}`).get()).data()?.profile?.lang] || 'English'; } catch (_) {}
   try {
     const out = await callModel({
-      system: `You estimate nutrition for a meal or snack from a description and/or a photo, using typical portion sizes unless sizes are visible or given. Write the name in ${lang}. Return ONLY JSON: {"name":"short meal name","kcal":number,"protein":number,"carbs":number,"fat":number} in kcal and grams, integers.`,
+      system: `You estimate nutrition for a meal or snack from a description and/or a photo, using typical portion sizes unless sizes are visible or given. Write the name in ${lang}. If you cannot tell what the food is, return kcal 0. Return ONLY JSON: {"name":"short meal name","kcal":number,"protein":number,"carbs":number,"fat":number} in kcal and grams, integers.`,
       user: description || 'Estimate this meal from the photo.', image, maxTokens: 1200, timeoutMs: 35000,
     });
     const n = (v) => Math.max(0, Math.round(Number(v) || 0));
-    return res.status(200).json({ name: String(out.name || description || 'Meal').slice(0, 80), kcal: n(out.kcal), protein: n(out.protein), carbs: n(out.carbs), fat: n(out.fat) });
+    const result = { name: String(out.name || description || 'Meal').slice(0, 80), kcal: n(out.kcal), protein: n(out.protein), carbs: n(out.carbs), fat: n(out.fat) };
+    // A zero-calorie answer means it could not tell what the food was
+    result.recognised = result.kcal > 0;
+    return res.status(200).json(result);
   } catch (e) {
     console.error(e);
     const msg = String(e && e.message || e);
