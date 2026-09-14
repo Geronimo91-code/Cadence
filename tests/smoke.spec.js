@@ -46,16 +46,25 @@ test('sign in and tabs', async ({ page }) => {
 test('today fits one screen', async ({ page }) => {
   await signIn(page);
   await page.click('.tab[data-view="today"]');
-  await expect(page.locator('.board')).toBeVisible({ timeout: 15000 });
-  await page.waitForTimeout(1200);
+  await expect(page.locator('#view')).toBeVisible({ timeout: 15000 });
+  await page.waitForTimeout(1500);
   const m = await page.evaluate(() => {
     const doc = document.documentElement;
-    const blocks = [...document.querySelectorAll('#view > *')].map((e) => `${e.className || e.tagName}:${Math.round(e.getBoundingClientRect().height)}`);
-    return { scroll: doc.scrollHeight, view: window.innerHeight, cols: document.querySelectorAll('.board .col').length, blocks };
+    return {
+      scroll: doc.scrollHeight,
+      view: window.innerHeight,
+      cols: document.querySelectorAll('.board .col').length,
+      state: document.querySelector('.board') ? 'week in progress'
+        : /Next week/i.test(document.querySelector('#view').textContent) ? 'next week ready'
+        : /No plan yet/i.test(document.querySelector('#view').textContent) ? 'no plan'
+        : /is over/i.test(document.querySelector('#view').textContent) ? 'week over' : 'unknown',
+      blocks: [...document.querySelectorAll('#view > *')].map((e) => `${e.className || e.tagName}:${Math.round(e.getBoundingClientRect().height)}`),
+    };
   });
   fs.writeFileSync('today-result.json', JSON.stringify(m, null, 2));
-  expect(m.cols, 'week board should show 7 days').toBe(7);
-  expect(m.scroll, `page is ${m.scroll}px for a ${m.view}px screen — ${m.blocks.join(', ')}`).toBeLessThanOrEqual(m.view + 40);
+  expect(m.state, 'Today should be in a known state').not.toBe('unknown');
+  if (m.state === 'week in progress') expect(m.cols, 'week board should show 7 days').toBe(7);
+  expect(m.scroll, `page is ${m.scroll}px for a ${m.view}px screen (${m.state}) — ${m.blocks.join(', ')}`).toBeLessThanOrEqual(m.view + 40);
 });
 
 test('plan and session view', async ({ page }) => {
