@@ -1,8 +1,8 @@
 {
   "step": "done",
   "payloadBytes": 1064,
-  "status": 200,
-  "body": "{\"name\":\"unknown food\",\"kcal\":0,\"protein\":0,\"carbs\":0,\"fat\":0,\"recognised\":false}",
+  "status": 429,
+  "body": "{\"error\":\"The model is busy right now. Try again in a minute, or enter the numbers manually.\",\"detail\":\"gemini 429: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 429,\\n    \\\"message\\\": \\\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: htt",
   "filled": {
     "kcal": "",
     "protein": "",
