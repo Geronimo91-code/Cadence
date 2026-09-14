@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const userDoc = await db().doc(`users/${uid}`).get();
   const profile = userDoc.data()?.profile;
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
-  if (!(await checkLimit(uid, 'review', 4))) return res.status(429).json({ error: 'Review limit reached for today.' });
+  if (!(await checkLimit(uid, 'review', 4, 8))) return res.status(429).json({ error: 'Review limit reached for today.' });
   const wk = (req.body && req.body.weekId) || weekId();
   try {
     const out = await reviewWeek(uid, profile, wk);

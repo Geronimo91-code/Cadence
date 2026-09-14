@@ -389,6 +389,14 @@ textarea.input { min-height: 90px; resize: vertical; }
 .readiness button .e { font-size: 1.1rem; line-height: 1; }
 .readiness button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
 .tip { background: var(--amber-2); border-radius: var(--r-m); padding: 12px 14px; margin-top: 12px; color: #7a5210; font-size: .9rem; }
+.hero { text-align: left; }
+.steps3 { display: grid; gap: 10px; margin: 18px 0 26px; }
+.steps3 .s { display: flex; gap: 12px; align-items: flex-start; }
+.steps3 .s b { width: 22px; height: 22px; border-radius: 50%; background: var(--sage); color: var(--green-2); font-size: .75rem; display: grid; place-items: center; flex: 0 0 auto; margin-top: 2px; }
+.steps3 .s span { color: var(--ink-2); font-size: .92rem; }
+.pathpick { display: grid; gap: 10px; margin-top: 20px; }
+.finish { display: flex; align-items: center; gap: 10px; }
+.finish .body { flex: 1; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -406,11 +414,10 @@ textarea.input { min-height: 90px; resize: vertical; }
     </div>
     <p class="auth-lead" data-i18n="A training week that is built for you and rebuilt every Sunday.">A training week that is built for you and rebuilt every Sunday.</p>
     <p class="muted" data-i18n="Tell Cadence how you train, what you're aiming for, and when. It plans your week, you log what you did, and it adjusts.">Tell Cadence how you train, what you're aiming for, and when. It plans your week, you log what you did, and it adjusts.</p>
-    <div class="list" style="margin:-10px 0 26px">
-      <div class="li"><span data-i18n="Weekly plan built around your club practices and your deadline">Weekly plan built around your club practices and your deadline</span></div>
-      <div class="li"><span data-i18n="Log sets, loads and how it felt, straight from the session">Log sets, loads and how it felt, straight from the session</span></div>
-      <div class="li"><span data-i18n="Every Monday: feedback and a new week, from what you actually did">Every Monday: feedback and a new week, from what you actually did</span></div>
-      <div class="li"><span data-i18n="Daily calorie and protein targets that follow your training days">Daily calorie and protein targets that follow your training days</span></div>
+    <div class="steps3">
+      <div class="s"><b>1</b><span data-i18n="Tell Cadence your sport, your days and your goal — about a minute.">Tell Cadence your sport, your days and your goal — about a minute.</span></div>
+      <div class="s"><b>2</b><span data-i18n="Train and log what you actually did, straight from the session.">Train and log what you actually did, straight from the session.</span></div>
+      <div class="s"><b>3</b><span data-i18n="Every week it reviews your training and writes the next one.">Every week it reviews your training and writes the next one.</span></div>
     </div>
 
     <p class="muted small" style="margin:-14px 0 22px" data-i18n="Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.">Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.</p>
@@ -643,22 +650,42 @@ const STEPS = [
   { key: 'sports', title: T('What do you play or train?'), sub: T('Pick everything you do regularly. Your main sport goes first.'), render: renderSports, validate: () => { if (!ob.data.sports?.length) return T('Pick at least one sport.'); if (!ob.data.level) return T('Choose your training level.'); } },
   { key: 'goal', title: T('What are you working toward?'), sub: T('Pick up to three, in order of importance. The first one leads the plan.'), render: renderGoal, validate: () => { if (!ob.data.goals?.length) return T('Choose at least one goal.'); } },
   { key: 'availability', title: T('When can you train?'), sub: T('Tap the days you can commit to. Club practices and matches count too.'), render: renderAvailability, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); if (!ob.data.doubles) return T('Choose whether you can train twice in a day.'); } },
-  { key: 'setup', title: T('What do you have access to?'), sub: T('And anything the plan should work around.'), render: renderSetup, validate: () => { if (!ob.data.equipment?.length) return T('Pick at least one option.'); } },
-  { key: 'deadline', title: T('Anything on the calendar?'), sub: T('A tournament, a race, a season start. Cadence builds toward it and tapers before it.'), render: renderDeadline, validate: () => { if (ob.data.hasDeadline && (!ob.data.deadlineDate || !ob.data.deadlineName)) return T('Add the event name and date.'); } },
-  { key: 'nutrition', title: T('Eating to match'), sub: T('Daily calorie and protein targets, adjusted with your training week.'), render: renderNutrition, validate: () => { if (!ob.data.nutritionGoal) return T('Choose an option.'); } },
+  { key: 'setup', optional: false, title: T('What do you have access to?'), sub: T('And anything the plan should work around.'), render: renderSetup, validate: () => { if (!ob.data.equipment?.length) return T('Pick at least one option.'); } },
+  { key: 'deadline', optional: true, title: T('Anything on the calendar?'), sub: T('A tournament, a race, a season start. Cadence builds toward it and tapers before it.'), render: renderDeadline, validate: () => { if (ob.data.hasDeadline && (!ob.data.deadlineDate || !ob.data.deadlineName)) return T('Add the event name and date.'); } },
+  { key: 'nutrition', optional: true, title: T('Eating to match'), sub: T('Daily calorie and protein targets, adjusted with your training week.'), render: renderNutrition, validate: () => { if (!ob.data.nutritionGoal) return T('Choose an option.'); } },
   { key: 'review', title: T('Here is your setup'), sub: T('Check it over. You can edit any of this later from Profile.'), render: renderReview },
 ];
 
 function startOnboarding(existing) {
+  if (!existing) { showPathPicker(); return; }
+  beginOnboarding(existing);
+}
+function showPathPicker() {
+  show('onboarding');
+  $('#btnObCancel').classList.add('hidden');
+  $('#obProgress').innerHTML = '';
+  const el = $('#obStep');
+  el.innerHTML = `<h2>${T('Set up your training')}</h2><p class="muted">${T('You can start with the essentials and fill in the rest whenever you like.')}</p>
+    <div class="pathpick">
+      <button type="button" class="option" id="pathQuick"><strong>${T('Quick start')}</strong><span>${T('Sport, days and goal — about a minute. Everything else later.')}</span></button>
+      <button type="button" class="option" id="pathFull"><strong>${T('Full setup')}</strong><span>${T('Add equipment, injuries, a competition date and nutrition now.')}</span></button>
+    </div>`;
+  $('.ob-actions').classList.add('hidden');
+  $('#pathQuick').onclick = () => { $('.ob-actions').classList.remove('hidden'); beginOnboarding(null, true); };
+  $('#pathFull').onclick = () => { $('.ob-actions').classList.remove('hidden'); beginOnboarding(null, false); };
+}
+function beginOnboarding(existing, quick) {
   const fresh = { name: state.user.displayName?.split(' ')[0] || '', days: [], sports: [], equipment: [], goals: [], injuries: '', hasDeadline: false, diet: ['No restrictions'] };
-  ob = { step: 0, editing: !!existing, data: existing ? { ...fresh, ...existing } : fresh };
+  ob = { step: 0, editing: !!existing, quick: !!quick, data: existing ? { ...fresh, ...existing } : fresh };
+  if (quick) { ob.data.equipment = ['Full gym']; ob.data.doubles = 'no'; ob.data.nutritionGoal = 'none'; ob.data.hasDeadline = false; }
   $('#btnObCancel').classList.toggle('hidden', !existing);
   const next = $('#btnObNext'); next.disabled = false;
   show('onboarding'); renderStep();
 }
 function renderStep() {
   const s = STEPS[ob.step];
-  $('#obProgress').innerHTML = STEPS.map((_, i) => `<i class="${i <= ob.step ? 'done' : ''}"></i>`).join('');
+  const shown = STEPS.map((st, i) => i).filter((i) => !(ob.quick && STEPS[i].optional));
+  $('#obProgress').innerHTML = shown.map((i) => `<i class="${i <= ob.step ? 'done' : ''}"></i>`).join('');
   const el = $('#obStep'); el.innerHTML = `<h2>${s.title}</h2><p class="muted">${s.sub}</p>`;
   s.render(el);
   $('#btnObBack').classList.toggle('hidden', ob.step === 0);
@@ -666,13 +693,19 @@ function renderStep() {
   window.scrollTo(0, 0);
   const first = el.querySelector('input:not([type=hidden])'); if (first && ob.step === 0) first.focus();
 }
-$('#btnObBack').onclick = () => { if (ob.step > 0) { ob.step--; renderStep(); } };
+$('#btnObBack').onclick = () => { let i = ob.step - 1; while (i > 0 && ob.quick && STEPS[i].optional) i--; if (i >= 0) { ob.step = i; renderStep(); } };
+function nextStepIndex(from) {
+  let i = from + 1;
+  while (i < STEPS.length - 1 && ob.quick && STEPS[i].optional) i++;
+  return i;
+}
 $('#btnObNext').onclick = async () => {
   try {
     const s = STEPS[ob.step];
     const err = s.validate ? s.validate() : null;
     if (err) { toast(err); return; }
-    if (ob.step < STEPS.length - 1) { ob.step++; renderStep(); return; }
+    const next = nextStepIndex(ob.step);
+    if (next <= STEPS.length - 1 && ob.step < STEPS.length - 1) { ob.step = next; renderStep(); return; }
     await saveProfile();
   } catch (e) { console.error('onboarding step failed', e); toast(T('Something went wrong on this screen. Try again.')); }
 };
@@ -851,6 +884,7 @@ async function saveProfile() {
     dayPrefs: Object.fromEntries(Object.entries(d.dayPrefs || {}).map(([day, slots]) => [day, (slots || []).filter((x) => x.time || x.focus)]).filter(([day, slots]) => slots.length && d.days.includes(Number(day)))),
     equipment: d.equipment, injuries: d.injuries || '',
     deadline: d.hasDeadline ? { name: d.deadlineName, date: d.deadlineDate } : null,
+    nutritionDeclined: d.nutritionGoal === 'none', noDeadline: d.hasDeadline === false, equipmentConfirmed: true,
     nutrition: d.nutritionGoal === 'none' ? null : { goal: d.nutritionGoal, diet: d.diet, kcalAdjust: (ob.editing && state.profile?.nutrition?.goal === d.nutritionGoal) ? (state.profile.nutrition.kcalAdjust || 0) : 0 },
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: LANG,
     updatedAt: new Date().toISOString(),
@@ -1023,7 +1057,7 @@ async function viewToday(el) {
     el.append(c);
     $('#btnGen').onclick = async (ev) => {
       const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-      try { const fresh = await api('/api/generate-plan'); await loadPlan(fresh.weekId); if (!state.plan) state.plan = fresh; toast(T('Your week is ready')); navigate('today'); }
+      try { const fresh = await api('/api/generate-plan'); await loadPlan(fresh.weekId); if (!state.plan) state.plan = fresh; toast(fresh.fallback ? T('The plan service was busy — this week uses a standard template. Rebuild later for a tailored one.') : T('Your week is ready')); navigate('today'); }
       catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Build my first week'); }
     };
     return;
@@ -1106,6 +1140,18 @@ async function viewToday(el) {
     }).catch(() => {});
   }
 
+  // ---- anything the quick start skipped ----
+  const gaps = [];
+  if (!p.equipment || p.equipment.length === 0 || (p.equipment.length === 1 && p.equipment[0] === 'Full gym' && !p.equipmentConfirmed)) gaps.push('equipment');
+  if (!p.deadline && !p.noDeadline) gaps.push('deadline');
+  if (!p.nutrition && !p.nutritionDeclined) gaps.push('nutrition');
+  if (gaps.length >= 2) {
+    const c = document.createElement('div'); c.className = 'card todaycard';
+    c.innerHTML = `<div class="finish"><div class="body"><strong>${T('Finish your setup')}</strong><div class="muted small">${T('Add your equipment, a competition date or nutrition targets to sharpen the plan.')}</div></div><button class="btn sm secondary" id="btnFinishSetup">${T('Add')}</button></div>`;
+    el.append(c);
+    $('#btnFinishSetup').onclick = () => startOnboarding(profileToOb(p));
+  }
+
   // ---- last week's review, only right after a week closes ----
   if (state.review && (t <= 1 || state.review.createdAt > new Date(Date.now() - 2 * 864e5).toISOString())) {
     const c = document.createElement('div'); c.className = 'card sage todaycard';
@@ -1123,6 +1169,7 @@ function viewPlan(el) {
     el.append(seg);
   }
   el.insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:10px"><span class="badge">${esc(p.phase)} phase</span> &nbsp;${esc(weekLabel(p.weekId))}${planIsFuture() ? ' · starts Monday' : ''}</p><p class="muted">${esc(p.focus)}</p>`);
+  if (p.source === 'template') el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('Template week')}</strong><div class="muted small">${T('Built from your settings while the plan service was unavailable. Rebuild for a tailored week.')}</div></div>`);
   if (!p.sessions.some((x) => Array.isArray(x.warmup))) el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('This plan is in an older format')}</strong><div class="muted small">${T('Use Rebuild this week below to get full session details.')}</div></div>`);
   const t = todayIndex();
   const card = document.createElement('div'); card.className = 'card';
@@ -1211,6 +1258,7 @@ function openRebuild() {
         state.profile.days = draft.days; state.profile.dayPrefs = cleanPrefs;
       }
       const fresh = await api('/api/generate-plan', { days: draft.days, dayPrefs: cleanPrefs });
+      if (fresh.fallback) toast(T('The plan service was busy — this week uses a standard template. Rebuild later for a tailored one.'));
       history.back();
       await loadPlan(fresh.weekId);
       if (state.plan?.weekId !== fresh.weekId) { state.plan = fresh; state.planWeek = fresh.weekId; }
@@ -1492,7 +1540,10 @@ async function renderProgress(el) {
   const weights = wq.docs.map((d) => d.data());
   const logs = lq.docs.map((d) => d.data());
   const reviews = rq.docs.map((d) => d.data()).reverse().filter((r) => new Date(r.createdAt) >= since);
-  if (weights.length < 2 && logs.length < 2) { el.textContent = T('Not enough data yet — log a few weeks to see trends.'); return; }
+  if (weights.length < 2 && logs.length < 2) {
+    el.innerHTML = `<p class="muted small" style="margin-top:4px">${T('Not enough data yet — log a few weeks to see trends.')}</p><p class="muted small">${T('Charts appear here: weight, adherence per week, session RPE and your best load per exercise.')}</p>`;
+    return;
+  }
   let html = '';
   if (weights.length >= 2) {
     const diff = weights[weights.length - 1].kg - weights[0].kg;

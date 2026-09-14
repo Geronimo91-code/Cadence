@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (raw.length >= 3_500_000) return res.status(413).json({ error: 'That photo is too large. Try again — Cadence shrinks it first.' });
   const image = raw || null;
   if (!description && !image) return res.status(400).json({ error: 'Describe the meal or add a photo' });
-  if (!(await checkLimit(user.uid, 'estimate', 40))) return res.status(429).json({ error: 'Daily estimate limit reached. Enter the numbers manually for now.' });
+  if (!(await checkLimit(user.uid, 'estimate', 40, 150))) return res.status(429).json({ error: 'Daily estimate limit reached. Enter the numbers manually for now.' });
   let lang = 'English';
   try { lang = LANG_NAMES[(await db().doc(`users/${user.uid}`).get()).data()?.profile?.lang] || 'English'; } catch (_) {}
   try {

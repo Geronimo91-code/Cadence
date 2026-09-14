@@ -318,15 +318,22 @@ export function nutritionTargets(p, trainingDay) {
 }
 
 // ---------------- Per-user daily rate limit (usage/{uid}, server-only collection) ----------------
-export async function checkLimit(uid, key, max) {
+export async function checkLimit(uid, key, max, weekMax) {
   const ref = db().doc(`usage/${uid}`);
-  const day = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const day = now.toISOString().slice(0, 10);
+  const week = weekId(now);
   return db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const d = snap.exists ? snap.data() : {};
-    const cur = d.day === day ? (d[key] || 0) : 0;
-    if (cur >= max) return false;
-    tx.set(ref, { day, ...(d.day === day ? d : {}), [key]: cur + 1 }, { merge: true });
+    const sameDay = d.day === day, sameWeek = d.week === week;
+    const dayCount = sameDay ? (d[key] || 0) : 0;
+    const weekCount = sameWeek ? (d[key + 'Week'] || 0) : 0;
+    if (dayCount >= max) return false;
+    if (weekMax && weekCount >= weekMax) return false;
+    const base = sameDay ? { ...d } : {};
+    if (!sameWeek) for (const k of Object.keys(base)) if (k.endsWith('Week')) delete base[k];
+    tx.set(ref, { ...base, day, week, [key]: dayCount + 1, [key + 'Week']: weekCount + 1 }, { merge: true });
     return true;
   });
 }
@@ -380,4 +387,52 @@ export function canonicalExercise(name) {
 
 export function exerciseMenu() {
   return Object.entries(EXERCISE_LIBRARY).map(([group, list]) => `${group}: ${list.join(', ')}`).join('\n');
+}
+
+// ---------------- Template week (used when no model is available) ----------------
+const TEMPLATES = {
+  strength: { title: 'Full-body strength', type: 'strength', pick: [['lower push', 1], ['lower pull', 1], ['upper push', 1], ['upper pull', 1], ['core', 1]], sets: 3, reps: '6-8', load: 'RPE 7' },
+  speed: { title: 'Speed and acceleration', type: 'speed', pick: [['warmup', 2], ['speed', 3], ['core', 1]], sets: 4, reps: '20-30 m', load: 'full effort, full recovery' },
+  conditioning: { title: 'Conditioning', type: 'conditioning', pick: [['warmup', 1], ['conditioning', 2], ['core', 1]], sets: 4, reps: '2-4 min', load: 'RPE 7-8' },
+  skills: { title: 'Skills and agility', type: 'skills', pick: [['warmup', 2], ['agility', 3]], sets: 4, reps: '4-6 reps', load: 'sharp, not exhausting' },
+  mobility: { title: 'Mobility and recovery', type: 'mobility', pick: [['mobility', 5]], sets: 2, reps: '45 s', load: 'easy' },
+  match: { title: 'Match', type: 'match', pick: [['warmup', 3]], sets: 1, reps: '', load: '' },
+};
+const GOAL_TO_TYPE = { speed: 'speed', strength: 'strength', endurance: 'conditioning', lean: 'strength', fat: 'conditioning', general: 'conditioning' };
+
+// A sensible week built from the athlete's own settings, so a model outage is not a dead end
+export function templatePlan(profile, id) {
+  const days = (profile.days && profile.days.length ? profile.days : [1, 3, 5]).slice(0, 7);
+  const goals = (profile.goals || [profile.goal] || []).filter(Boolean);
+  const rotation = [...new Set([GOAL_TO_TYPE[goals[0]] || 'strength', 'strength', GOAL_TO_TYPE[goals[1]] || 'speed', 'conditioning'])];
+  const prefs = profile.dayPrefs || {};
+  const sessions = [];
+  let r = 0;
+  for (let d = 0; d < 7; d++) {
+    if (!days.includes(d)) {
+      sessions.push({ day: d, slot: 0, timeOfDay: null, title: 'Rest', type: 'rest', fixed: false, durationMin: 0, intent: 'Recovery day — walk, stretch, sleep well.', warmup: [], exercises: [], cooldown: [] });
+      continue;
+    }
+    const slots = (prefs[d] && prefs[d].length ? prefs[d] : [{ time: '', focus: '' }]).slice(0, 2);
+    slots.forEach((slot, i) => {
+      const key = slot.focus || rotation[r++ % rotation.length];
+      const tpl = TEMPLATES[key] || TEMPLATES.strength;
+      const exercises = tpl.pick.flatMap(([group, n]) => (EXERCISE_LIBRARY[group] || []).slice(0, n).map((name) => ({
+        name, sets: tpl.sets, reps: tpl.reps, load: tpl.load, restSec: tpl.type === 'speed' ? 180 : 90, cues: '',
+      })));
+      sessions.push({
+        day: d, slot: i, timeOfDay: slot.time || (i ? 'evening' : null),
+        title: tpl.title, type: tpl.type, fixed: false,
+        durationMin: profile.sessionMin || 60,
+        intent: 'Template session — rebuild the week when the plan service is back for something tailored.',
+        warmup: EXERCISE_LIBRARY.warmup.slice(0, 4).map((x) => `${x}, 30 s`),
+        exercises, cooldown: EXERCISE_LIBRARY.mobility.slice(0, 3).map((x) => `${x}, 45 s`),
+      });
+    });
+  }
+  return {
+    weekId: id, phase: 'base', focus: 'A solid default week built from your own settings.',
+    sessions, rationale: 'The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.',
+    nextWeekHint: '', source: 'template', createdAt: new Date().toISOString(),
+  };
 }

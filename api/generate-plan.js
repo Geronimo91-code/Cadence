@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit } from './_lib.js';
+import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
   if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
 
-  if (!(await checkLimit(user.uid, 'plan', 12))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
+  if (!(await checkLimit(user.uid, 'plan', 12, 30))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const started = Date.now();
   // one-off overrides for this rebuild; the stored profile is untouched unless the client saved it
   const body = req.body || {};
@@ -53,7 +53,15 @@ ${planShape(id)}`;
     return res.status(200).json(plan);
   } catch (e) {
     console.error(e);
-    const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions|timed out|Out of time/i.test(e.message);
-    return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy or slow right now. Try again in a minute.' : 'Could not generate a plan right now', detail: String(e && e.message || e).slice(0, 300) });
+    // Rather than leave the athlete with nothing, fall back to a template week built from their settings
+    try {
+      const plan = templatePlan(profile, id);
+      await db().doc(`users/${user.uid}/plans/${id}`).set(plan);
+      return res.status(200).json({ ...plan, fallback: true, detail: String(e && e.message || e).slice(0, 200) });
+    } catch (inner) {
+      console.error('template fallback failed', inner);
+      const busy = /429|quota|rate|no free|unavailable|did not return JSON|missing sessions|timed out|Out of time/i.test(String(e && e.message || e));
+      return res.status(busy ? 503 : 500).json({ error: busy ? 'The model is busy right now. Try again in a minute.' : 'Could not generate a plan right now', detail: String(e && e.message || e).slice(0, 300) });
+    }
   }
 }
