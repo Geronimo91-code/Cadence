@@ -13,6 +13,25 @@ export default async function handler(req, res) {
 
   if (!(await checkLimit(user.uid, 'plan', 12))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const started = Date.now();
+  // one-off overrides for this rebuild; the stored profile is untouched unless the client saved it
+  const body = req.body || {};
+  if (Array.isArray(body.days) && body.days.length) {
+    profile.days = [...new Set(body.days.map(Number).filter((d) => d >= 0 && d <= 6))].sort((a, b) => a - b);
+  }
+  if (body.dayPrefs && typeof body.dayPrefs === 'object') {
+    const clean = {};
+    for (const [day, slots] of Object.entries(body.dayPrefs)) {
+      const d = Number(day);
+      if (!profile.days.includes(d) || !Array.isArray(slots)) continue;
+      const ok = slots.slice(0, 2).map((x) => ({
+        time: ['morning', 'afternoon', 'evening'].includes(x?.time) ? x.time : '',
+        focus: ['strength', 'speed', 'conditioning', 'skills', 'mobility', 'match'].includes(x?.focus) ? x.focus : '',
+      })).filter((x) => x.time || x.focus);
+      if (ok.length) clean[d] = ok;
+    }
+    profile.dayPrefs = clean;
+  }
+
   const priorPlans = await db().collection(`users/${user.uid}/plans`).get();
   profile.weekNumber = priorPlans.size + 1;
 

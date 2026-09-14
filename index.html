@@ -772,8 +772,8 @@ function renderAvailability(el) {
 }
 const FOCUS_OPTIONS = [['', 'Let Cadence decide'], ['strength', 'Strength'], ['speed', 'Speed'], ['conditioning', 'Conditioning'], ['skills', 'Skills / practice'], ['mobility', 'Mobility'], ['match', 'Match']];
 const TIME_OPTIONS = [['', 'Any time'], ['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening']];
-function renderDayPrefs(wrap) {
-  const d = ob.data; d.dayPrefs = d.dayPrefs || {};
+function renderDayPrefs(wrap, data) {
+  const d = data || ob.data; d.dayPrefs = d.dayPrefs || {};
   wrap.innerHTML = '';
   if (!d.days.length) return;
   wrap.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin:6px 0 0">${T('Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.')}</p>`);
@@ -790,10 +790,10 @@ function renderDayPrefs(wrap) {
     if (slots[1]) {
       row.querySelector('.p-time2').onchange = (e) => { slots[1].time = e.target.value; };
       row.querySelector('.p-focus2').onchange = (e) => { slots[1].focus = e.target.value; };
-      row.querySelector('.p-del').onclick = () => { slots.splice(1, 1); renderDayPrefs(wrap); };
+      row.querySelector('.p-del').onclick = () => { slots.splice(1, 1); renderDayPrefs(wrap, d); };
     }
     const add = row.querySelector('.p-add');
-    if (add) add.onclick = () => { slots.push({ time: 'evening', focus: '' }); renderDayPrefs(wrap); };
+    if (add) add.onclick = () => { slots.push({ time: 'evening', focus: '' }); renderDayPrefs(wrap, d); };
     wrap.append(row);
   });
 }
@@ -1164,17 +1164,59 @@ function viewPlan(el) {
   if (reviewed) el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnSeeReview" style="margin-top:16px">${T('Read this week\'s review')}</button>`);
   if (reviewed) $('#btnSeeReview').onclick = () => openReview(state.review);
   if (!planIsPast()) el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnRebuild" style="margin-top:10px">${T('Rebuild this week from my profile')}</button>`);
-  if ($('#btnRebuild')) $('#btnRebuild').onclick = async (ev) => {
-    if (!confirm(T('Replace this week with a new plan? Your logged sessions stay in history.'))) return;
+  if ($('#btnRebuild')) $('#btnRebuild').onclick = () => openRebuild();
+}
+
+function openRebuild() {
+  const p = state.profile;
+  // start from the profile, but let the athlete change this week without changing their usual setup
+  const draft = { days: [...(p.days || [])], dayPrefs: JSON.parse(JSON.stringify(p.dayPrefs || {})), doubles: p.doubles || 'no' };
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Rebuild this week')}</h2></div>
+    <h1>${T('What does this week look like?')}</h1>
+    <p class="muted">${T('Change the days or what you want to do on them. This only affects this week unless you save it.')}</p>
+    <div class="block"><h3>${T('Days you can train')}</h3><div id="rbDays"></div></div>
+    <div class="block"><h3>${T('Focus per day')}</h3><div class="dayprefs" id="rbPrefs"></div></div>
+    <div class="card">
+      <div class="list"><div class="li"><div><div>${T('Save as my usual week')}</div><span class="muted">${T('Otherwise your profile stays as it is.')}</span></div><button class="switch" id="rbSave" role="switch" aria-checked="false"></button></div></div>
+    </div>
+    <button class="btn" id="rbGo" style="margin-top:4px">${T('Build this week')}</button>
+    <p class="muted small" style="text-align:center;margin-top:8px">${T('Your logged sessions stay in history.')}</p>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+
+  const prefsWrap = $('#rbPrefs', sheet);
+  const paintPrefs = () => renderDayPrefs(prefsWrap, draft);
+  $('#rbDays', sheet).append(weekStrip(draft.days, { readonly: false, onToggle: (i, on) => {
+    draft.days = on ? [...new Set([...draft.days, i])].sort((a, b) => a - b) : draft.days.filter((x) => x !== i);
+    if (!on) delete draft.dayPrefs[i];
+    paintPrefs();
+  } }));
+  paintPrefs();
+
+  let saveToProfile = false;
+  $('#rbSave', sheet).onclick = (ev) => { saveToProfile = ev.currentTarget.getAttribute('aria-checked') !== 'true'; ev.currentTarget.setAttribute('aria-checked', saveToProfile); };
+
+  $('#rbGo', sheet).onclick = async (ev) => {
+    if (!draft.days.length) { toast(T('Pick at least one day.')); return; }
     const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-    const before = state.plan?.createdAt;
+    const cleanPrefs = Object.fromEntries(Object.entries(draft.dayPrefs).map(([d, sl]) => [d, (sl || []).filter((x) => x.time || x.focus)]).filter(([d, sl]) => sl.length && draft.days.includes(Number(d))));
     try {
-      const fresh = await api('/api/generate-plan');
+      if (saveToProfile) {
+        await db.doc('users/' + state.user.uid).set({ profile: { days: draft.days, dayPrefs: cleanPrefs } }, { merge: true });
+        state.profile.days = draft.days; state.profile.dayPrefs = cleanPrefs;
+      }
+      const fresh = await api('/api/generate-plan', { days: draft.days, dayPrefs: cleanPrefs });
+      history.back();
       await loadPlan(fresh.weekId);
-      if (state.plan?.createdAt === before) { state.plan = fresh; state.planWeek = fresh.weekId; }
+      if (state.plan?.weekId !== fresh.weekId) { state.plan = fresh; state.planWeek = fresh.weekId; }
       toast(T('New week ready'));
       navigate('plan');
-    } catch (e) { toast(e.message || T('Could not generate a plan right now')); b.disabled = false; b.textContent = T('Rebuild this week from my profile'); }
+    } catch (e) { toast(e.message || T('Could not generate a plan right now')); b.disabled = false; b.textContent = T('Build this week'); }
   };
 }
 
