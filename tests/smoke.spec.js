@@ -27,6 +27,7 @@ test('site and API routes', async ({ request }) => {
   expect((await request.get(URL + '/api/calendar')).status()).toBe(400);
   expect((await request.post(URL + '/api/club-session')).status()).toBe(401);
   expect((await request.post(URL + '/api/test-notify')).status()).toBe(401);
+  expect((await request.post(URL + '/api/reset-data')).status()).toBe(401);
   expect((await request.get(URL + '/privacy.html')).ok()).toBeTruthy();
   expect((await request.get(URL + '/terms.html')).ok()).toBeTruthy();
 });

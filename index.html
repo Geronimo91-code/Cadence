@@ -1214,6 +1214,38 @@ function viewPlan(el) {
   if ($('#btnRebuild')) $('#btnRebuild').onclick = () => openRebuild();
 }
 
+function openReset() {
+  const dlg = document.createElement('div'); dlg.className = 'dlg';
+  dlg.innerHTML = `<div class="panel"><h3>${T('Start fresh')}</h3>
+    <p class="muted small" style="margin:4px 0 12px">${T('Your account, profile and club stay. Choose what to wipe — this cannot be undone.')}</p>
+    <div class="options" id="resetOpts">
+      <button type="button" class="option" data-scope="training"><strong>${T('Training history')}</strong><span>${T('Plans, logged sessions and weekly reviews')}</span></button>
+      <button type="button" class="option" data-scope="nutrition"><strong>${T('Nutrition history')}</strong><span>${T('Logged meals and weight entries')}</span></button>
+      <button type="button" class="option" data-scope="all"><strong>${T('Everything')}</strong><span>${T('All of the above, back to a blank slate')}</span></button>
+    </div>
+    <button class="btn secondary" id="resetCancel" style="margin-top:12px">${T('Cancel')}</button></div>`;
+  document.body.append(dlg);
+  const close = () => dlg.remove();
+  dlg.onclick = (e) => { if (e.target === dlg) close(); };
+  $('#resetCancel', dlg).onclick = close;
+  $$('[data-scope]', dlg).forEach((b) => { b.onclick = async () => {
+    const scope = b.dataset.scope;
+    const label = scope === 'training' ? T('Training history') : scope === 'nutrition' ? T('Nutrition history') : T('Everything');
+    if (!confirm(`${label} — ${T('delete permanently?')}`)) return;
+    $$('[data-scope]', dlg).forEach((x) => { x.disabled = true; });
+    b.innerHTML = '<span class="spinner"></span>';
+    try {
+      const r = await api('/api/reset-data', { scope });
+      close();
+      state.plan = null; state.plans = []; state.logs = {}; state.review = null; exHistory = null;
+      await loadPlan();
+      const n = Object.values(r.deleted || {}).reduce((a, x) => a + x, 0);
+      toast(`${T('Deleted')} ${n} ${T('records')}`);
+      navigate('today');
+    } catch (e) { toast(e.message); close(); }
+  }; });
+}
+
 function openRebuild() {
   const p = state.profile;
   // start from the profile, but let the athlete change this week without changing their usual setup
@@ -1943,6 +1975,7 @@ function viewProfile(el) {
         <div class="li"><span>${T('Privacy and terms')}</span><span><a href="/privacy.html" class="muted">${T('Privacy')}</a> · <a href="/terms.html" class="muted">${T('Terms')}</a></span></div>
         <div class="li"><span>${T('Signed in as')}</span><span class="muted">${esc(state.user.email || T('Google account'))}</span></div>
         <div class="li"><div><div>${T('Export my data')}</div><span class="muted">${T('Everything Cadence stores about you, as a JSON file.')}</span></div><button class="btn sm secondary" id="btnExport">${T('Export')}</button></div>
+        <div class="li"><div><div>${T('Start fresh')}</div><span class="muted">${T('Delete plans, logs and history but keep your account and setup.')}</span></div><button class="btn sm secondary" id="btnReset">${T('Reset')}</button></div>
         <div class="li"><div><div>${T('Delete my account')}</div><span class="muted">${T('Removes your profile, plans, logs and meals permanently.')}</span></div><button class="btn sm secondary" id="btnDelete" style="color:var(--red)">${T('Delete')}</button></div>
       </div>
       <button class="btn ghost" id="btnSignOut" style="margin-top:8px;padding-left:0">${T('Sign out')}</button>
@@ -1973,6 +2006,7 @@ function viewProfile(el) {
     } catch (e) { toast(T('Export failed.')); }
     b.disabled = false; b.textContent = T('Export');
   };
+  $('#btnReset').onclick = () => openReset();
   $('#btnDelete').onclick = async (ev) => {
     if (!confirm(T('Delete your Cadence account and all data? This cannot be undone.'))) return;
     if (prompt(T('Type DELETE to confirm')) !== 'DELETE') return;
