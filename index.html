@@ -1257,6 +1257,12 @@ function openRebuild() {
     <p class="muted">${T('Change the days or what you want to do on them. This only affects this week unless you save it.')}</p>
     <div class="block"><h3>${T('Days you can train')}</h3><div id="rbDays"></div></div>
     <div class="block"><h3>${T('Focus per day')}</h3><div class="dayprefs" id="rbPrefs"></div></div>
+    <div class="block">
+      <h3>${T('Anything Cadence should know?')}</h3>
+      <p class="muted small" style="margin:4px 0 8px">${T('Injuries, travel, a heavy week at work, a tournament on Sunday — it plans around what you write here.')}</p>
+      <textarea class="input" id="rbNote" placeholder="${T('e.g. Left ankle rolled on Saturday, no jumping or cutting this week')}"></textarea>
+      <div class="list" style="margin-top:6px"><div class="li"><div><div>${T('Keep this as an ongoing limit')}</div><span class="muted">${T('Adds it to your profile so future weeks respect it too.')}</span></div><button class="switch" id="rbKeep" role="switch" aria-checked="false"></button></div></div>
+    </div>
     <div class="card">
       <div class="list"><div class="li"><div><div>${T('Save as my usual week')}</div><span class="muted">${T('Otherwise your profile stays as it is.')}</span></div><button class="switch" id="rbSave" role="switch" aria-checked="false"></button></div></div>
     </div>
@@ -1277,19 +1283,26 @@ function openRebuild() {
   } }));
   paintPrefs();
 
-  let saveToProfile = false;
+  let saveToProfile = false, keepNote = false;
   $('#rbSave', sheet).onclick = (ev) => { saveToProfile = ev.currentTarget.getAttribute('aria-checked') !== 'true'; ev.currentTarget.setAttribute('aria-checked', saveToProfile); };
+  $('#rbKeep', sheet).onclick = (ev) => { keepNote = ev.currentTarget.getAttribute('aria-checked') !== 'true'; ev.currentTarget.setAttribute('aria-checked', keepNote); };
 
   $('#rbGo', sheet).onclick = async (ev) => {
     if (!draft.days.length) { toast(T('Pick at least one day.')); return; }
     const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
     const cleanPrefs = Object.fromEntries(Object.entries(draft.dayPrefs).map(([d, sl]) => [d, (sl || []).filter((x) => x.time || x.focus)]).filter(([d, sl]) => sl.length && draft.days.includes(Number(d))));
+    const note = $('#rbNote', sheet).value.trim();
     try {
+      if (note && keepNote) {
+        const merged = [state.profile.injuries, note].filter(Boolean).join('. ');
+        await db.doc('users/' + state.user.uid).set({ profile: { injuries: merged } }, { merge: true });
+        state.profile.injuries = merged;
+      }
       if (saveToProfile) {
         await db.doc('users/' + state.user.uid).set({ profile: { days: draft.days, dayPrefs: cleanPrefs } }, { merge: true });
         state.profile.days = draft.days; state.profile.dayPrefs = cleanPrefs;
       }
-      const fresh = await api('/api/generate-plan', { days: draft.days, dayPrefs: cleanPrefs });
+      const fresh = await api('/api/generate-plan', { days: draft.days, dayPrefs: cleanPrefs, note });
       if (fresh.fallback) toast(T('The plan service was busy — this week uses a standard template. Rebuild later for a tailored one.'));
       history.back();
       await loadPlan(fresh.weekId);

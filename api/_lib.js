@@ -173,7 +173,7 @@ export const PLAN_RULES = `Rules:
 - Set "timeOfDay" to morning, afternoon or evening on every non-rest session; with two sessions the earlier one must come first.
 - Fixed commitments (club practice, matches) are sacred: put them on their day as a session of type "skills" or "match" with fixed=true, keep exercises to a short pre-practice activation, and do not stack a hard session on the same day.
 - Exercise names: use the exact names from the provided vocabulary wherever the movement exists there. Only invent a name for a sport-specific drill that has no equivalent in the list.
-- Respect injuries and limits literally.
+- Respect injuries and limits literally. If the athlete wrote a note about this week, it outranks every other rule: work around the pain, absence or constraint they describe, and mention in the rationale how you adapted.
 - Where the athlete fixed a day's focus or time, that is not a suggestion: schedule exactly that type at that time. Build the rest of the week around those anchors.
 - The FIRST goal leads the week; other goals get one focused slot or are woven into sessions.
 - If the athlete mentions an existing strength program (e.g. StrongLifts 5x5, a named routine), keep it as-is on its days and build the rest around it.
@@ -240,7 +240,7 @@ ${dayPrefBlock(p)}
 - Two sessions in one day: ${p.doubles === 'often' ? 'yes, happy to train twice on some days (e.g. gym in the morning, club practice in the evening)' : p.doubles === 'sometimes' ? 'occasionally, at most once or twice a week, only when the second one is easy or is club practice' : 'no, one session per day only'}
 - Fixed commitments: ${p.fixed || 'none'}
 - Equipment: ${p.equipment.join(', ')}
-- Injuries / limits: ${p.injuries || 'none'}
+- Injuries / limits: ${p.injuries || 'none'}${p.weekNote ? `\n- WHAT THE ATHLETE SAID ABOUT THIS WEEK (highest priority, overrides everything else): "${p.weekNote}"` : ''}
 - ${phaseFor(p, ref).text}
 - Week ${p.weekNumber || 1} of the current block${((p.weekNumber || 1) % 4 === 0) ? ' — THIS IS A DELOAD WEEK' : ''}.
 - Today: ${DAY_NAMES[(ref.getDay() + 6) % 7]} ${ref.toISOString().slice(0, 10)}; the plan is for ISO week ${id}, Monday to Sunday.

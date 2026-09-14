@@ -15,6 +15,7 @@ export default async function handler(req, res) {
   const started = Date.now();
   // one-off overrides for this rebuild; the stored profile is untouched unless the client saved it
   const body = req.body || {};
+  if (typeof body.note === 'string' && body.note.trim()) profile.weekNote = body.note.trim().slice(0, 400);
   if (Array.isArray(body.days) && body.days.length) {
     profile.days = [...new Set(body.days.map(Number).filter((d) => d >= 0 && d <= 6))].sort((a, b) => a - b);
   }
