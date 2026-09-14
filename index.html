@@ -1327,8 +1327,13 @@ function openSession(raw, weekIdOverride, logOverride) {
   // Draft: from existing log if it has set data, otherwise from the prescription
   const draft = existing && Array.isArray(existing.exercises) ? JSON.parse(JSON.stringify(existing)) : {
     status: existing?.status || null, readiness: existing?.readiness || null, durationMin: existing?.durationMin || sess.durationMin, sessionRpe: existing?.sessionRpe || null, note: existing?.note || '',
-    exercises: sess.exercises.map((x) => ({ name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null, swapped: false,
-      sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: numOnly(x.reps), load: numOnly(x.load), done: false })) })),
+    exercises: sess.exercises.map((x) => {
+      const hist = exHistory?.get((x.name || '').trim().toLowerCase());
+      const lastSet = hist?.sets?.[hist.sets.length - 1];
+      const load = lastSet?.load ?? loadFromPrescription(x.load, state.profile?.weightKg);
+      return { name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null, swapped: false,
+        sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: repsFromPrescription(x.reps), load: load ?? null, done: false })) };
+    }),
   };
 
   sheet.innerHTML = `<div class="container">
@@ -1555,6 +1560,30 @@ function askText(title, value, onOk) {
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
 }
 function numOnly(v) { const m = String(v ?? '').match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
+
+// Reps can be "8", "6-8", "20-30 m" — take the first number, or nothing when it is a distance or time
+function repsFromPrescription(reps) {
+  const t = String(reps ?? '').trim();
+  if (!t || /[a-z]/i.test(t.replace(/each|per side|e\/s/gi, '').trim())) {
+    const bare = t.match(/^(\d+)(?:\s*-\s*\d+)?\s*(each|per side|e\/s)?$/i);
+    return bare ? Number(bare[1]) : null;
+  }
+  const m = t.match(/\d+/);
+  return m ? Number(m[0]) : null;
+}
+
+// Only fill a load when the plan actually states kilograms, or a percentage of bodyweight we can compute.
+// "RPE 7", "bodyweight", "full effort" leave the field empty instead of inventing a number.
+function loadFromPrescription(load, bodyKg) {
+  const t = String(load ?? '');
+  const kg = t.match(/(\d+(?:\.\d+)?)\s*kg/i);
+  if (kg) return Number(kg[1]);
+  const pct = t.match(/(\d+(?:\.\d+)?)\s*%\s*(?:of\s*)?(?:bw|bodyweight|body weight)/i);
+  if (pct && bodyKg) return Math.round((Number(pct[1]) / 100) * bodyKg * 2) / 2;
+  const pctOnly = t.match(/(\d+(?:\.\d+)?)\s*%/);
+  if (pctOnly && /1rm|max/i.test(t)) return null;   // percent of a max we do not know
+  return null;
+}
 
 let progMonths = 3;
 function svgLine(points, { w = 340, h = 110, unit = '' } = {}) {
