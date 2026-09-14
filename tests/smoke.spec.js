@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
 
 const URL = process.env.CADENCE_URL;
 const EMAIL = process.env.CADENCE_TEST_EMAIL;
@@ -46,12 +47,15 @@ test('today fits one screen', async ({ page }) => {
   await signIn(page);
   await page.click('.tab[data-view="today"]');
   await expect(page.locator('.board')).toBeVisible({ timeout: 15000 });
-  const fits = await page.evaluate(() => {
+  await page.waitForTimeout(1200);
+  const m = await page.evaluate(() => {
     const doc = document.documentElement;
-    return { scroll: doc.scrollHeight, view: window.innerHeight, cols: document.querySelectorAll('.board .col').length };
+    const blocks = [...document.querySelectorAll('#view > *')].map((e) => `${e.className || e.tagName}:${Math.round(e.getBoundingClientRect().height)}`);
+    return { scroll: doc.scrollHeight, view: window.innerHeight, cols: document.querySelectorAll('.board .col').length, blocks };
   });
-  expect(fits.cols, 'week board should show 7 days').toBe(7);
-  expect(fits.scroll, `page is ${fits.scroll}px tall for a ${fits.view}px screen`).toBeLessThanOrEqual(fits.view + 40);
+  fs.writeFileSync('today-result.json', JSON.stringify(m, null, 2));
+  expect(m.cols, 'week board should show 7 days').toBe(7);
+  expect(m.scroll, `page is ${m.scroll}px for a ${m.view}px screen — ${m.blocks.join(', ')}`).toBeLessThanOrEqual(m.view + 40);
 });
 
 test('plan and session view', async ({ page }) => {
