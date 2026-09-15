@@ -173,6 +173,7 @@ export const PLAN_RULES = `Rules:
 - Set "timeOfDay" to morning, afternoon or evening on every non-rest session; with two sessions the earlier one must come first.
 - Fixed commitments (club practice, matches) are sacred: put them on their day as a session of type "skills" or "match" with fixed=true, keep exercises to a short pre-practice activation, and do not stack a hard session on the same day.
 - Exercise names: use the exact names from the provided vocabulary wherever the movement exists there. Only invent a name for a sport-specific drill that has no equivalent in the list.
+- When the athlete's own history below shows a load for a movement, prescribe from that number (progress it, hold it, or back it off) instead of a generic percentage. When a movement has no logged load yet, give an RPE and a sensible kilogram range so they have somewhere to start.
 - Loads must be liftable in a real gym. Use kilograms rounded to 2.5 kg for barbell lifts. For anything held as one implement (goblet squat, kettlebell, dumbbell work, split squats, lunges, curls, raises) give a kilogram range that exists as a dumbbell or kettlebell — never a percentage of bodyweight, and never above 40 kg. For bodyweight movements write "bodyweight" and an RPE. Percentages of bodyweight are only acceptable for barbell squat, deadlift, bench press and overhead press.
 - Respect injuries and limits literally. If the athlete wrote a note about this week, it outranks every other rule: work around the pain, absence or constraint they describe, and mention in the rationale how you adapted.
 - Where the athlete fixed a day's focus or time, that is not a suggestion: schedule exactly that type at that time. Build the rest of the week around those anchors.
@@ -450,4 +451,49 @@ export function templatePlan(profile, id) {
     sessions, rationale: 'The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.',
     nextWeekHint: '', source: 'template', createdAt: new Date().toISOString(),
   };
+}
+
+// ---------------- What the athlete has actually lifted ----------------
+// Gives the model real numbers to progress from, instead of guessing loads every week.
+export async function trainingHistoryBlock(uid, { weeks = 8, maxExercises = 24 } = {}) {
+  const since = new Date(Date.now() - weeks * 7 * 864e5).toISOString();
+  let docs = [];
+  try {
+    const q = await db().collection(`users/${uid}/logs`).orderBy('loggedAt', 'desc').limit(120).get();
+    docs = q.docs.map((d) => d.data()).filter((l) => (l.loggedAt || '') >= since);
+  } catch (e) { console.warn('history block failed', e.message); return ''; }
+  if (!docs.length) return '- Training history: nothing logged yet.';
+
+  const byExercise = new Map();
+  for (const log of docs) {
+    for (const ex of log.exercises || []) {
+      const done = (ex.sets || []).filter((st) => st.done);
+      if (!done.length) continue;
+      const key = (ex.name || '').trim();
+      if (!key) continue;
+      const cur = byExercise.get(key) || { name: key, sessions: 0, best: null, last: null, lastAt: null, rpes: [] };
+      cur.sessions++;
+      const maxLoad = Math.max(...done.map((st) => st.load || 0));
+      if (maxLoad > 0 && (cur.best == null || maxLoad > cur.best)) cur.best = maxLoad;
+      if (!cur.lastAt || (log.loggedAt || '') > cur.lastAt) {
+        cur.lastAt = log.loggedAt;
+        cur.last = done.map((st) => `${st.reps ?? '?'}${st.load ? '×' + st.load + 'kg' : ''}`).join(', ');
+      }
+      if (ex.rpe) cur.rpes.push(ex.rpe);
+      byExercise.set(key, cur);
+    }
+  }
+  if (!byExercise.size) return '- Training history: sessions logged, but no sets recorded.';
+
+  const lines = [...byExercise.values()]
+    .sort((a, b) => (b.lastAt || '').localeCompare(a.lastAt || ''))
+    .slice(0, maxExercises)
+    .map((e) => {
+      const rpe = e.rpes.length ? `, typical RPE ${Math.round((e.rpes.reduce((a, b) => a + b, 0) / e.rpes.length) * 10) / 10}` : '';
+      const best = e.best ? `, best ${e.best} kg` : '';
+      return `  · ${e.name}: last ${e.last} on ${String(e.lastAt).slice(0, 10)}${best}${rpe} (${e.sessions} session${e.sessions === 1 ? '' : 's'})`;
+    });
+
+  const skipped = [...byExercise.values()].filter((e) => e.sessions >= 2 && !e.best).length;
+  return `- What the athlete has actually lifted in the last ${weeks} weeks — prescribe loads from these numbers rather than generic percentages, and progress them:\n${lines.join('\n')}${skipped ? `\n  (${skipped} exercise(s) logged without a load — give an RPE or a kilogram range for those)` : ''}`;
 }

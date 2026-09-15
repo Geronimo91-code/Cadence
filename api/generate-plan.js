@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan } from './_lib.js';
+import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, trainingHistoryBlock } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -43,7 +43,8 @@ ${PLAN_RULES}
 
 Return ONLY a JSON object with exactly this shape:
 ${planShape(id)}`;
-  const userMsg = athleteBlock(profile, id) + '\nDays already passed this week should still be filled in for reference.';
+  const history = await trainingHistoryBlock(user.uid);
+  const userMsg = athleteBlock(profile, id) + (history ? '\n' + history : '') + '\nDays already passed this week should still be filled in for reference.';
 
   try {
     const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, deadline: started + 50000 }));

@@ -1,5 +1,5 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock } from './_lib.js';
 
 export { reviewWeek };
 
@@ -108,7 +108,9 @@ Return ONLY a JSON object with this shape:
  "nextWeek": ${planShape(nextId)}
 }`;
 
+  const history = await trainingHistoryBlock(uid);
   const userMsg = `${athleteBlock(profile, nextId, nextMonday)}
+${history}
 
 Week under review: ${reviewWeek} (phase: ${plan.phase}; focus: ${plan.focus})
 Adherence: ${stats.adherence}% — ${stats.done} done, ${stats.partial} partial, ${stats.skipped} skipped, ${stats.missed} not logged, of ${stats.planned} planned. ${stats.setsTotal ? `Sets: ${stats.setsDone}/${stats.setsTotal}.` : ''} ${stats.avgRpe ? `Average session RPE: ${stats.avgRpe}.` : 'No RPE logged.'}
