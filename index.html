@@ -34,6 +34,49 @@
   --tab-h: 64px;
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
   --font-body: 'Instrument Sans', system-ui, sans-serif;
+  --warm-ink: var(--warm-ink);
+  --scrim: rgba(21, 32, 27, .45);
+  --on-accent: #FFFFFF;
+}
+
+/* Dark: near-black surfaces with a warm orange accent */
+:root[data-theme="dark"] {
+  --bg: #0E1012;
+  --ink: #F2F3F1;
+  --ink-2: #A7AFAB;
+  --ink-3: #79817E;
+  --line: #262A2D;
+  --sage: #232829;
+  --sage-2: #1A1E20;
+  --green: #F0862A;
+  --green-2: #FFA357;
+  --amber: #F5B23C;
+  --amber-2: #2A2015;
+  --red: #E4695B;
+  --white: #17191B;
+  --warm-ink: #F5C98A;
+  --scrim: rgba(0, 0, 0, .6);
+  --on-accent: #16120C;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1012;
+    --ink: #F2F3F1;
+    --ink-2: #A7AFAB;
+    --ink-3: #79817E;
+    --line: #262A2D;
+    --sage: #232829;
+    --sage-2: #1A1E20;
+    --green: #F0862A;
+    --green-2: #FFA357;
+    --amber: #F5B23C;
+    --amber-2: #2A2015;
+    --red: #E4695B;
+    --white: #17191B;
+    --warm-ink: #F5C98A;
+    --scrim: rgba(0, 0, 0, .6);
+    --on-accent: #16120C;
+  }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -62,7 +105,7 @@ p.muted, .muted { color: var(--ink-2); }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%; padding: 15px 20px; border-radius: var(--r-m); font-weight: 600;
-  background: var(--green); color: var(--white); transition: background .15s, transform .1s;
+  background: var(--green); color: var(--on-accent); transition: background .15s, transform .1s;
 }
 .btn:hover { background: var(--green-2); }
 .btn:active { transform: scale(.985); }
@@ -94,7 +137,7 @@ textarea.input { min-height: 90px; resize: vertical; }
   padding: 9px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--white);
   font-size: .95rem; transition: all .12s;
 }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--green); color: var(--on-accent); border-color: var(--green); }
 .chip.add { border-style: dashed; color: var(--ink-2); }
 
 /* Option cards (single choice) */
@@ -198,7 +241,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--tab-h) + 26px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px);
-  background: var(--ink); color: var(--white); padding: 12px 18px; border-radius: 12px; font-size: .95rem;
+  background: var(--white); border: 1.5px solid var(--line); color: var(--ink); padding: 12px 18px; border-radius: 12px; font-size: .95rem;
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100% - 40px); z-index: 50;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -206,7 +249,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--sage-2); color: var(--green-2); }
 .badge.rest { background: var(--bg); color: var(--ink-3); border: 1px solid var(--line); }
-.badge.match, .badge.skills { background: var(--amber-2); color: #8a5a10; }
+.badge.match, .badge.skills { background: var(--amber-2); color: var(--warm-ink); }
 .session-row { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .session-row:last-child { border-bottom: 0; }
 .session-row .dow { width: 38px; font-family: var(--font-display); font-weight: 700; font-size: .95rem; color: var(--ink-3); }
@@ -236,11 +279,11 @@ textarea.input { min-height: 90px; resize: vertical; }
 .setgrid .n { font-family: var(--font-display); font-weight: 700; color: var(--ink-3); text-align: center; }
 .setgrid .input { padding: 9px 10px; text-align: center; }
 .check { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--white); display: grid; place-items: center; color: transparent; transition: all .12s; }
-.check[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--white); }
+.check[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--on-accent); }
 .check svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 .rpe { display: flex; gap: 5px; margin-top: 10px; }
 .rpe button { flex: 1; padding: 8px 0; border-radius: 8px; border: 1.5px solid var(--line); background: var(--white); font-size: .85rem; font-weight: 600; }
-.rpe button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.rpe button[aria-pressed="true"] { background: var(--green); color: var(--on-accent); border-color: var(--green); }
 .status { display: inline-flex; align-items: center; gap: 5px; font-size: .8rem; font-weight: 600; }
 .status.done { color: var(--green); } .status.skipped { color: var(--ink-3); } .status.partial { color: var(--amber); }
 .log-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px 0; border-bottom: 1px solid var(--line); }
@@ -262,7 +305,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .stat span { font-size: .8rem; color: var(--ink-2); }
 .seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 10px; }
 .seg button { padding: 7px 14px; font-size: .9rem; font-weight: 500; background: var(--white); color: var(--ink-2); }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+.seg button[aria-pressed="true"] { background: var(--green); color: var(--on-accent); }
 .macro { margin-top: 12px; }
 .macro .lbl { display: flex; justify-content: space-between; font-size: .9rem; }
 .macro .lbl b { font-weight: 600; }
@@ -324,16 +367,16 @@ textarea.input { min-height: 90px; resize: vertical; }
 .addex:hover { background: var(--sage-2); }
 .swapbar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .swapbar .chip { font-size: .82rem; padding: 6px 11px; }
-.dlg { position: fixed; inset: 0; background: rgba(21,32,27,.45); display: grid; place-items: end center; z-index: 60; }
+.dlg { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: end center; z-index: 60; }
 .dlg .panel { background: var(--bg); width: 100%; max-width: 560px; border-radius: var(--r-l) var(--r-l) 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); }
 .dlg .row { gap: 10px; }
 .lasttime { font-size: .82rem; color: var(--ink-2); margin-top: 4px; }
 .lasttime b { font-weight: 600; color: var(--ink); }
-.timer { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tab-h) + 26px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--white); border-radius: 14px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; z-index: 55; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.timer { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tab-h) + 26px + env(safe-area-inset-bottom)); background: var(--white); border: 1.5px solid var(--line); color: var(--ink); border-radius: 14px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; z-index: 55; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
 .timer b { font-family: var(--font-display); font-size: 1.2rem; min-width: 52px; text-align: center; }
 .timer button { color: var(--white); opacity: .75; padding: 4px 8px; }
-.timer.done { background: var(--green); }
-.offline { position: fixed; left: 0; right: 0; top: 0; background: var(--amber); color: #3d2a06; text-align: center; font-size: .85rem; font-weight: 600; padding: 6px 12px; z-index: 70; transform: translateY(-100%); transition: transform .2s; }
+.timer.done { background: var(--green); color: var(--on-accent); border-color: var(--green); }
+.offline { position: fixed; left: 0; right: 0; top: 0; background: var(--amber); color: var(--on-accent); text-align: center; font-size: .85rem; font-weight: 600; padding: 6px 12px; z-index: 70; transform: translateY(-100%); transition: transform .2s; }
 .offline.show { transform: none; }
 .clubtabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 4px; }
 .clubtabs .chip { flex: 0 0 auto; }
@@ -367,7 +410,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .board .col { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; padding: 6px 0 4px; border-radius: 12px; }
 .board .col .lbl { font-size: .7rem; font-weight: 600; color: var(--ink-3); }
 .board .col.today { background: var(--amber-2); }
-.board .col.today .lbl { color: #8a5a10; }
+.board .col.today .lbl { color: var(--warm-ink); }
 .board .track { width: 100%; display: flex; flex-direction: column; gap: 4px; align-items: center; }
 .board .pip { width: 60%; height: 14px; border-radius: 5px; background: var(--sage); }
 .board .pip.none { background: transparent; border: 1.5px dashed var(--line); height: 12px; }
@@ -387,8 +430,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 .readiness { display: flex; gap: 8px; margin-top: 10px; }
 .readiness button { flex: 1; padding: 10px 4px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--white); font-size: .8rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .readiness button .e { font-size: 1.1rem; line-height: 1; }
-.readiness button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
-.tip { background: var(--amber-2); border-radius: var(--r-m); padding: 12px 14px; margin-top: 12px; color: #7a5210; font-size: .9rem; }
+.readiness button[aria-pressed="true"] { background: var(--green); color: var(--on-accent); border-color: var(--green); }
+.tip { background: var(--amber-2); border-radius: var(--r-m); padding: 12px 14px; margin-top: 12px; color: var(--warm-ink); font-size: .9rem; }
 .hero { text-align: left; }
 .steps3 { display: grid; gap: 10px; margin: 18px 0 26px; }
 .steps3 .s { display: flex; gap: 12px; align-items: flex-start; }
@@ -506,6 +549,21 @@ const LANGS = window.CADENCE_LANGS || { en: 'English' };
 const I18N = window.CADENCE_I18N || {};
 function detectLang() { const saved = localStorage.getItem('cadence.lang'); if (saved && LANGS[saved]) return saved; const nav = (navigator.language || 'en').slice(0, 2); return LANGS[nav] ? nav : 'en'; }
 let LANG = detectLang();
+
+/* ---- theme: system, light or dark ---- */
+const THEMES = { system: 'Match my phone', light: 'Light', dark: 'Dark' };
+let THEME = localStorage.getItem('cadence.theme') || 'system';
+function applyTheme(t) {
+  THEME = THEMES[t] ? t : 'system';
+  localStorage.setItem('cadence.theme', THEME);
+  if (THEME === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.dataset.theme = THEME;
+  const dark = THEME === 'dark' || (THEME === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#0E1012' : '#1E6B49');
+}
+applyTheme(THEME);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (THEME === 'system') applyTheme('system'); });
 function T(s) { if (LANG === 'en') return s; const d = I18N[LANG]; return (d && d[s]) || s; }
 function setLang(l) { if (!LANGS[l]) return; LANG = l; localStorage.setItem('cadence.lang', l); document.documentElement.lang = l; translateStatic(); }
 function localeTag() { return { en: 'en-GB', fr: 'fr-BE', nl: 'nl-BE', tr: 'tr-TR', es: 'es-ES' }[LANG] || 'en-GB'; }
@@ -617,6 +675,7 @@ auth.onAuthStateChanged(async (user) => {
     state.clubId = state.clubIds[0] || null;
     if (!Array.isArray(udata.clubIds) && udata.clubId) { db.doc('users/' + user.uid).set({ clubIds: [udata.clubId] }, { merge: true }).catch(() => {}); }
     if (state.profile?.lang && LANGS[state.profile.lang]) setLang(state.profile.lang);
+    if (state.profile?.theme && !localStorage.getItem('cadence.theme')) applyTheme(state.profile.theme);
   } catch (e) { console.error(e); state.profile = null; }
   if (!state.profile) { startOnboarding(); return; }
   await loadPlan();
@@ -2018,6 +2077,7 @@ function viewProfile(el) {
     </div>
     <div class="card">
       <div class="list">
+        <div class="li"><div><div>${T('Appearance')}</div><span class="muted">${T('Dark mode uses a black background with orange highlights.')}</span></div><select class="input" id="selTheme" style="width:auto;padding:8px 10px">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}" ${k === THEME ? 'selected' : ''}>${T(v)}</option>`).join('')}</select></div>
         <div class="li"><div><div>${T('Language')}</div><span class="muted">${T('Plans, reviews and cues are written in this language too.')}</span></div><select class="input" id="selLang" style="width:auto;padding:8px 10px">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === LANG ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
         <div class="li"><div><div>${T('Daily reminder')}</div><span class="muted">${T('One notification each morning with today\'s session')}</span></div><button class="switch" id="swPush" role="switch" aria-checked="false" aria-label="Daily reminder"></button></div>
         <div class="li"><div><div>${T('Test notification')}</div><span class="muted">${T('Send one to this device right now.')}</span></div><button class="btn sm secondary" id="btnTestPush">${T('Send')}</button></div>
@@ -2074,6 +2134,10 @@ function viewProfile(el) {
     catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Delete'); }
   };
   $('#btnEdit').onclick = () => startOnboarding(profileToOb(p));
+  $('#selTheme').onchange = async (ev) => {
+    applyTheme(ev.target.value);
+    try { await db.doc('users/' + state.user.uid).set({ profile: { theme: THEME } }, { merge: true }); state.profile.theme = THEME; } catch (_) {}
+  };
   $('#selLang').onchange = async (ev) => { setLang(ev.target.value); try { await db.doc('users/' + state.user.uid).set({ profile: { lang: LANG } }, { merge: true }); state.profile.lang = LANG; } catch (_) {} navigate('profile'); };
   $('#btnSignOut').onclick = () => auth.signOut();
   setupPushToggle();

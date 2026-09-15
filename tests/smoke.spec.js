@@ -68,6 +68,25 @@ test('today fits one screen', async ({ page }) => {
   expect(m.scroll, `page is ${m.scroll}px for a ${m.view}px screen (${m.state}) — ${m.blocks.join(', ')}`).toBeLessThanOrEqual(m.view + 40);
 });
 
+test('dark theme applies', async ({ page }) => {
+  await signIn(page);
+  await page.click('.tab[data-view="profile"]');
+  await page.selectOption('#selTheme', 'dark');
+  await page.waitForTimeout(400);
+  const c = await page.evaluate(() => {
+    const st = getComputedStyle(document.body);
+    return { bg: st.backgroundColor, ink: st.color, attr: document.documentElement.dataset.theme,
+      accent: getComputedStyle(document.documentElement).getPropertyValue('--green').trim() };
+  });
+  expect(c.attr).toBe('dark');
+  expect(c.bg, 'dark background').toMatch(/rgb\(14, 16, 18\)/);
+  expect(c.accent.toLowerCase(), 'orange accent').toBe('#f0862a');
+  await page.selectOption('#selTheme', 'light');
+  await page.waitForTimeout(300);
+  const back = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  expect(back).toMatch(/rgb\(246, 247, 244\)/);
+});
+
 test('plan and session view', async ({ page }) => {
   await signIn(page);
   await page.click('.tab[data-view="plan"]');

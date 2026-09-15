@@ -41,6 +41,9 @@ jobs:
         if: always()
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'today-result.json' }
         run: node publish-result.mjs || true
+      - name: 'Test: dark theme'
+        if: always()
+        run: npx playwright test -g "dark theme applies"
       - name: 'Test: plan and session view'
         if: always()
         run: npx playwright test -g "plan and session view"
