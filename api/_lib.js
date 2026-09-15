@@ -455,11 +455,11 @@ export function templatePlan(profile, id) {
 
 // ---------------- What the athlete has actually lifted ----------------
 // Gives the model real numbers to progress from, instead of guessing loads every week.
-export async function trainingHistoryBlock(uid, { weeks = 8, maxExercises = 24 } = {}) {
+export async function trainingHistoryBlock(uid, { weeks = 16, maxExercises = 40, maxChars = 4000 } = {}) {
   const since = new Date(Date.now() - weeks * 7 * 864e5).toISOString();
   let docs = [];
   try {
-    const q = await db().collection(`users/${uid}/logs`).orderBy('loggedAt', 'desc').limit(120).get();
+    const q = await db().collection(`users/${uid}/logs`).orderBy('loggedAt', 'desc').limit(260).get();
     docs = q.docs.map((d) => d.data()).filter((l) => (l.loggedAt || '') >= since);
   } catch (e) { console.warn('history block failed', e.message); return ''; }
   if (!docs.length) return '- Training history: nothing logged yet.';
@@ -471,13 +471,16 @@ export async function trainingHistoryBlock(uid, { weeks = 8, maxExercises = 24 }
       if (!done.length) continue;
       const key = (ex.name || '').trim();
       if (!key) continue;
-      const cur = byExercise.get(key) || { name: key, sessions: 0, best: null, last: null, lastAt: null, rpes: [] };
+      const cur = byExercise.get(key) || { name: key, sessions: 0, best: null, first: null, firstAt: null, last: null, lastAt: null, rpes: [] };
       cur.sessions++;
-      const maxLoad = Math.max(...done.map((st) => st.load || 0));
-      if (maxLoad > 0 && (cur.best == null || maxLoad > cur.best)) cur.best = maxLoad;
+      const maxLoad = Math.max(0, ...done.map((st) => st.load || 0));
+      if (maxLoad > 0) {
+        if (cur.best == null || maxLoad > cur.best) cur.best = maxLoad;
+        if (!cur.firstAt || (log.loggedAt || '') < cur.firstAt) { cur.firstAt = log.loggedAt; cur.first = maxLoad; }
+      }
       if (!cur.lastAt || (log.loggedAt || '') > cur.lastAt) {
         cur.lastAt = log.loggedAt;
-        cur.last = done.map((st) => `${st.reps ?? '?'}${st.load ? '×' + st.load + 'kg' : ''}`).join(', ');
+        cur.last = done.map((st) => `${st.reps ?? '?'}${st.load ? '×' + st.load : ''}`).join('/');
       }
       if (ex.rpe) cur.rpes.push(ex.rpe);
       byExercise.set(key, cur);
@@ -485,15 +488,28 @@ export async function trainingHistoryBlock(uid, { weeks = 8, maxExercises = 24 }
   }
   if (!byExercise.size) return '- Training history: sessions logged, but no sets recorded.';
 
-  const lines = [...byExercise.values()]
-    .sort((a, b) => (b.lastAt || '').localeCompare(a.lastAt || ''))
-    .slice(0, maxExercises)
-    .map((e) => {
-      const rpe = e.rpes.length ? `, typical RPE ${Math.round((e.rpes.reduce((a, b) => a + b, 0) / e.rpes.length) * 10) / 10}` : '';
-      const best = e.best ? `, best ${e.best} kg` : '';
-      return `  · ${e.name}: last ${e.last} on ${String(e.lastAt).slice(0, 10)}${best}${rpe} (${e.sessions} session${e.sessions === 1 ? '' : 's'})`;
-    });
+  // Rank by how much the exercise matters to this athlete, not just how recent it is:
+  // frequency counts, heavy loaded lifts count, and recency breaks ties.
+  const now = Date.now();
+  const scored = [...byExercise.values()].map((e) => {
+    const daysAgo = e.lastAt ? (now - new Date(e.lastAt)) / 864e5 : 999;
+    const recency = Math.max(0, 1 - daysAgo / (weeks * 7));
+    return { ...e, score: e.sessions * 2 + (e.best ? 3 : 0) + recency * 4 };
+  }).sort((a, b) => b.score - a.score).slice(0, maxExercises);
 
-  const skipped = [...byExercise.values()].filter((e) => e.sessions >= 2 && !e.best).length;
-  return `- What the athlete has actually lifted in the last ${weeks} weeks — prescribe loads from these numbers rather than generic percentages, and progress them:\n${lines.join('\n')}${skipped ? `\n  (${skipped} exercise(s) logged without a load — give an RPE or a kilogram range for those)` : ''}`;
+  const line = (e) => {
+    const trend = e.best && e.first && e.best > e.first ? ` (from ${e.first})` : '';
+    const best = e.best ? `, best ${e.best}kg${trend}` : '';
+    const rpe = e.rpes.length ? `, RPE~${Math.round((e.rpes.reduce((a, b) => a + b, 0) / e.rpes.length) * 10) / 10}` : '';
+    return `  · ${e.name}: ${e.last} on ${String(e.lastAt).slice(5, 10)}${best}${rpe} ×${e.sessions}`;
+  };
+  const lines = [];
+  let chars = 0;
+  for (const e of scored) {
+    const l = line(e);
+    if (chars + l.length > maxChars) break;
+    lines.push(l); chars += l.length;
+  }
+  const noLoad = scored.filter((e) => e.sessions >= 2 && !e.best).length;
+  return `- What the athlete has actually done in the last ${weeks} weeks (reps×kg per set, most important movements first). Prescribe loads from these numbers — progress, hold or back off — rather than generic percentages:\n${lines.join('\n')}${noLoad ? `\n  (${noLoad} movement(s) logged without a load — give an RPE and a kilogram range for those)` : ''}${scored.length < byExercise.size ? `\n  (${byExercise.size - lines.length} rarer movements omitted)` : ''}`;
 }
