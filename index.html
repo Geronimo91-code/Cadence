@@ -1330,7 +1330,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     exercises: sess.exercises.map((x) => {
       const hist = exHistory?.get((x.name || '').trim().toLowerCase());
       const lastSet = hist?.sets?.[hist.sets.length - 1];
-      const load = lastSet?.load ?? loadFromPrescription(x.load, state.profile?.weightKg);
+      const load = lastSet?.load ?? loadFromPrescription(x.load, state.profile?.weightKg, x.name);
       return { name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null, swapped: false,
         sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: repsFromPrescription(x.reps), load: load ?? null, done: false })) };
     }),
@@ -1572,14 +1572,31 @@ function repsFromPrescription(reps) {
   return m ? Number(m[0]) : null;
 }
 
+// Exercises held as a single implement: a percentage of bodyweight is meaningless and the load is capped by what exists in a gym
+const IMPLEMENT_LIFTS = /goblet|kettlebell|dumbbell|db |split squat|step[- ]up|lunge|curl|raise|fly|pull[- ]?over|row \(dumbbell\)/i;
+const BARBELL_LIFTS = /squat|deadlift|bench|press|row|clean|jerk|snatch|thrust|hip thrust/i;
+
+// Gyms have plates and fixed dumbbells, not decimals: snap to what you can actually load
+function roundLoad(kg, name) {
+  if (kg == null || !isFinite(kg) || kg <= 0) return null;
+  const implement = IMPLEMENT_LIFTS.test(name || '');
+  if (implement) {
+    if (kg > 45) return null;                       // no 50 kg goblet squat exists — better blank than wrong
+    const steps = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36, 40];
+    return steps.reduce((best, v) => (Math.abs(v - kg) < Math.abs(best - kg) ? v : best), steps[0]);
+  }
+  const step = BARBELL_LIFTS.test(name || '') ? 2.5 : 1;
+  return Math.round(kg / step) * step;
+}
+
 // Only fill a load when the plan actually states kilograms, or a percentage of bodyweight we can compute.
 // "RPE 7", "bodyweight", "full effort" leave the field empty instead of inventing a number.
-function loadFromPrescription(load, bodyKg) {
+function loadFromPrescription(load, bodyKg, name) {
   const t = String(load ?? '');
   const kg = t.match(/(\d+(?:\.\d+)?)\s*kg/i);
-  if (kg) return Number(kg[1]);
+  if (kg) return roundLoad(Number(kg[1]), name);
   const pct = t.match(/(\d+(?:\.\d+)?)\s*%\s*(?:of\s*)?(?:bw|bodyweight|body weight)/i);
-  if (pct && bodyKg) return Math.round((Number(pct[1]) / 100) * bodyKg * 2) / 2;
+  if (pct && bodyKg) return roundLoad((Number(pct[1]) / 100) * bodyKg, name);
   const pctOnly = t.match(/(\d+(?:\.\d+)?)\s*%/);
   if (pctOnly && /1rm|max/i.test(t)) return null;   // percent of a max we do not know
   return null;

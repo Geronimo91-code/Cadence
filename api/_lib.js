@@ -173,6 +173,7 @@ export const PLAN_RULES = `Rules:
 - Set "timeOfDay" to morning, afternoon or evening on every non-rest session; with two sessions the earlier one must come first.
 - Fixed commitments (club practice, matches) are sacred: put them on their day as a session of type "skills" or "match" with fixed=true, keep exercises to a short pre-practice activation, and do not stack a hard session on the same day.
 - Exercise names: use the exact names from the provided vocabulary wherever the movement exists there. Only invent a name for a sport-specific drill that has no equivalent in the list.
+- Loads must be liftable in a real gym. Use kilograms rounded to 2.5 kg for barbell lifts. For anything held as one implement (goblet squat, kettlebell, dumbbell work, split squats, lunges, curls, raises) give a kilogram range that exists as a dumbbell or kettlebell — never a percentage of bodyweight, and never above 40 kg. For bodyweight movements write "bodyweight" and an RPE. Percentages of bodyweight are only acceptable for barbell squat, deadlift, bench press and overhead press.
 - Respect injuries and limits literally. If the athlete wrote a note about this week, it outranks every other rule: work around the pain, absence or constraint they describe, and mention in the rationale how you adapted.
 - Where the athlete fixed a day's focus or time, that is not a suggestion: schedule exactly that type at that time. Build the rest of the week around those anchors.
 - The FIRST goal leads the week; other goals get one focused slot or are woven into sessions.
@@ -250,6 +251,20 @@ ${exerciseMenu()}
 - Language: write EVERY athlete-facing string (titles, intent, warm-up, cues, cool-down, rationale, review text) in ${LANG_NAMES[p.lang] || 'English'}. Keep JSON keys and the "type" values in English.`;
 }
 
+// Snap any kilogram figure the model wrote onto something a gym actually has
+const IMPLEMENT_RE = /goblet|kettlebell|dumbbell|split squat|step[- ]up|lunge|curl|raise|fly/i;
+function tidyLoad(load, name) {
+  return String(load ?? '').replace(/(\d+(?:\.\d+)?)\s*kg/gi, (m, n) => {
+    const kg = Number(n);
+    if (IMPLEMENT_RE.test(name || '')) {
+      const steps = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36, 40];
+      const snapped = steps.reduce((best, v) => (Math.abs(v - kg) < Math.abs(best - kg) ? v : best), steps[0]);
+      return `${snapped} kg`;
+    }
+    return `${Math.round(kg / 2.5) * 2.5} kg`;
+  });
+}
+
 export function validatePlan(plan) {
   if (!plan || !Array.isArray(plan.sessions) || plan.sessions.length === 0) throw new Error('missing sessions');
   const clean = plan.sessions.map((s) => ({
@@ -263,7 +278,7 @@ export function validatePlan(plan) {
     intent: String(s.intent || ''),
     warmup: Array.isArray(s.warmup) ? s.warmup.map(String) : [],
     exercises: Array.isArray(s.exercises) ? s.exercises.map((x) => ({
-      name: canonicalExercise(x.name), sets: Number(x.sets) || 0, reps: String(x.reps ?? ''), load: String(x.load ?? ''),
+      name: canonicalExercise(x.name), sets: Number(x.sets) || 0, reps: String(x.reps ?? ''), load: tidyLoad(x.load, x.name),
       restSec: Number(x.restSec) || 0, cues: String(x.cues || ''),
     })).filter((x) => x.name) : [],
     cooldown: Array.isArray(s.cooldown) ? s.cooldown.map(String) : [],

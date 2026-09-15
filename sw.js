@@ -1,5 +1,5 @@
 // Cadence service worker — app shell cache + push handling
-const CACHE_NAME = 'cadence-v23';
+const CACHE_NAME = 'cadence-v24';
 const SHELL = ['/', '/index.html', '/i18n.js', '/manifest.json', '/icon.svg', '/privacy.html', '/terms.html'];
 
 self.addEventListener('install', (e) => {
