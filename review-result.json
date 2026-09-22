@@ -2,9 +2,9 @@
   "step": "done",
   "planWeek": "build phase  7 Sept – 13 Sept",
   "buttonFound": true,
-  "status": 503,
-  "body": "{\"error\":\"The free model is busy or slow right now. Try again in a minute.\",\"detail\":\"gemini 503: [{\\n  \\\"error\\\": {\\n    \\\"code\\\": 503,\\n    \\\"message\\\": \\\"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\\\",\\n    \\\"status\\\": \\\"UNAVAILABLE\\\"\\n  }\\n}\\n] | openrouter timed out\"}",
-  "reviewSheet": false,
-  "toast": "The free model is busy or slow right now. Try again in a minute.",
+  "status": 200,
+  "body": "{\"review\":{\"weekId\":\"2026-W37\",\"nextWeekId\":\"2026-W38\",\"createdAt\":\"2026-09-22T08:04:24.856Z\",\"stats\":{\"planned\":3,\"done\":0,\"partial\":0,\"skipped\":0,\"missed\":3,\"avgRpe\":null,\"setsDone\":0,\"setsTotal\":0,\"adherence\":0},\"load\":{\"acute\":0,\"chronic\":0,\"acwr\":null},\"summary\":\"We had a tough start to the block with no sessions or nutrition logged this past week. Life gets busy, but consistency is key to unlocking your swimming power and strength goals. For this coming week, we will keep the structured se",
+  "reviewSheet": true,
+  "toast": "Week closed. Next week is ready.",
   "errors": []
 }
