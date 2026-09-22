@@ -4,6 +4,10 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      review:
+        description: 'Run the close-the-week test (spends model quota)'
+        type: boolean
+        default: false
       generate:
         description: 'Also run the plan-generation test (spends model quota)'
         type: boolean
@@ -123,6 +127,14 @@ jobs:
       - name: 'Photo: publish result'
         if: always()
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'photo-result.json' }
+        run: node publish-result.mjs
+      - name: 'Review: run'
+        if: inputs.review
+        env: { RUN_REVIEW: '1' }
+        run: npx playwright test -g "close the week"
+      - name: 'Review: publish result'
+        if: inputs.review && always()
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'review-result.json' }
         run: node publish-result.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
