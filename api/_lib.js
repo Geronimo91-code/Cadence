@@ -16,7 +16,12 @@ export function getAdmin() {
   return admin;
 }
 
-export function db() { return getAdmin().firestore(); }
+let firestoreReady = false;
+export function db() {
+  const fs = getAdmin().firestore();
+  if (!firestoreReady) { try { fs.settings({ ignoreUndefinedProperties: true }); } catch (_) { /* already initialised */ } firestoreReady = true; }
+  return fs;
+}
 
 // Verifies the Firebase ID token sent as "Authorization: Bearer <token>"
 export async function requireUser(req, res) {

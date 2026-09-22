@@ -26,6 +26,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
+      - name: 'Lint: no undefined variables'
+        run: |
+          npm i -D eslint@8.57.0 >/dev/null
+          node lint-app.mjs
+          npx eslint api/*.js
+          npx eslint --no-eslintrc --env browser,es2022 --parser-options ecmaVersion:2022 --rule 'no-undef: error' .app-inline.js
       - name: Secrets present
         run: test -n "$CADENCE_URL" && test -n "$CADENCE_TEST_EMAIL" && test -n "$CADENCE_TEST_PASSWORD"
       - name: Wait for Vercel deployment
