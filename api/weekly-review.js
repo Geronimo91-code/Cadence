@@ -1,5 +1,5 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan } from './_lib.js';
 
 export { reviewWeek };
 
@@ -154,12 +154,27 @@ ${sessionLines.join('\n')}
 Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slice(0, 10)}.`;
 
   {
-    const out = await callModel({ system, user: userMsg, maxTokens: 9000, retries: 0, deadline: started + 50000 });
-    const next = validatePlan(out.nextWeek);
-    next.weekId = nextId; next.createdAt = new Date().toISOString(); next.source = 'review'; next.reviewOf = reviewWeek;
+    let out = null, next, modelFailed = null;
+    try {
+      out = await callModel({ system, user: userMsg, maxTokens: 9000, retries: 0, deadline: started + 50000 });
+      next = validatePlan(out.nextWeek);
+      next.source = 'review';
+    } catch (e) {
+      // The providers are down or slow: still close the week with the real numbers and a template next week
+      modelFailed = String(e && e.message || e).slice(0, 200);
+      console.warn('review model failed, using fallback:', modelFailed);
+      next = templatePlan(profile, nextId);
+      out = {};
+    }
+    next.weekId = nextId; next.createdAt = new Date().toISOString(); next.reviewOf = reviewWeek;
+    const fallbackSummary = `You completed ${stats.done} of ${stats.planned} planned sessions${stats.partial ? ` and part of ${stats.partial} more` : ''} — ${stats.adherence}% adherence${stats.avgRpe ? `, average session RPE ${stats.avgRpe}` : ''}. The coaching service was unavailable, so next week follows a standard template built from your settings. Rebuild it later for a tailored plan.`;
     const review = {
       weekId: reviewWeek, nextWeekId: nextId, createdAt: next.createdAt, stats,
-      load: { acute, chronic: Math.round(chronic), acwr }, summary: String(out.summary || ''), wins: arr(out.wins), watchouts: arr(out.watchouts), adjustments: arr(out.adjustments), nutritionNote: String(out.nutritionNote || ''),
+      load: { acute, chronic: Math.round(chronic), acwr },
+      summary: String(out.summary || fallbackSummary),
+      wins: arr(out.wins), watchouts: arr(out.watchouts), adjustments: arr(out.adjustments),
+      nutritionNote: String(out.nutritionNote || ''),
+      ...(modelFailed ? { fallback: true } : {}),
     };
     const batch = db().batch();
     batch.set(db().doc(`users/${uid}/reviews/${reviewWeek}`), review);
@@ -171,7 +186,7 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
       batch.set(db().doc(`users/${uid}`), { profile: { nutrition: { kcalAdjust } } }, { merge: true });
     }
     await batch.commit();
-    return { review, plan: next };
+    return { review, plan: next, ...(modelFailed ? { fallback: true } : {}) };
   }
 }
 function arr(v) { return Array.isArray(v) ? v.map(String).filter(Boolean).slice(0, 5) : []; }

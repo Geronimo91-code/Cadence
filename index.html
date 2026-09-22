@@ -1020,7 +1020,7 @@ async function runReview(btn, weekIdToClose) {
     const out = await api('/api/weekly-review', { weekId: weekIdToClose });
     await loadPlan();
     state.review = out.review;
-    toast(T('Week closed. Next week is ready.'));
+    toast(out.fallback ? T('Week closed with your real numbers. The coach was busy, so next week is a template — rebuild it later.') : T('Week closed. Next week is ready.'));
     navigate('today'); openReview(out.review);
   } catch (e) { toast(e.message); if (btn) { btn.disabled = false; btn.textContent = T('Close the week'); } }
 }
