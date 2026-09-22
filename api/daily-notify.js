@@ -11,32 +11,51 @@ export default async function handler(req, res) {
   webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
 
   const users = await db().collectionGroup('push').get();
-  let sent = 0, removed = 0;
+  const run = { at: new Date().toISOString(), subscribers: users.size, sent: 0, nudged: 0, rest: 0, skipped: 0, removed: 0, failed: 0 };
 
   for (const subDoc of users.docs) {
     const uid = subDoc.ref.parent.parent.id;
     const sub = subDoc.data();
     const today = todayInZone(sub.timezone || 'Europe/Brussels');
-    const plan = await planForWeek(uid, today.weekId);
-    const todays = (plan?.sessions || []).filter((s) => s.day === today.weekday);
-    if (!todays.length) continue;
-    const real = todays.filter((s) => s.type !== 'rest');
-    if (!real.length && sub.skipRestDays) continue;
-
-    const payload = real.length === 0
-      ? { title: 'Rest day', body: 'Recover well. Tomorrow is coming.', url: '/' }
-      : real.length === 1
-        ? { title: `Today: ${real[0].title}`, body: `${real[0].durationMin} min · ${real[0].exercises.length} exercises`, url: `/?session=${plan.weekId}-${real[0].day}-${real[0].slot || 0}` }
-        : { title: `Today: ${real.length} sessions`, body: real.map((s) => `${s.timeOfDay || ''} ${s.title}`.trim()).join(' · '), url: '/' };
+    let outcome;
     try {
-      await webpush.sendNotification(sub.subscription, JSON.stringify(payload));
-      sent++;
+      const plan = await planForWeek(uid, today.weekId);
+      let payload = null;
+      if (!plan) {
+        // no plan this week: say so once a week instead of going quiet
+        if (sub.lastNudgeWeek !== today.weekId) {
+          payload = { title: 'No plan for this week yet', body: 'Open Cadence to close last week and get your new plan.', url: '/?view=plan' };
+          outcome = 'nudged: no plan this week';
+        } else outcome = 'skipped: no plan this week (already nudged)';
+      } else {
+        const todays = (plan.sessions || []).filter((x) => x.day === today.weekday);
+        const real = todays.filter((x) => x.type !== 'rest');
+        if (!real.length) {
+          if (sub.skipRestDays) outcome = 'skipped: rest day';
+          else { payload = { title: 'Rest day', body: 'Recover well. Tomorrow is coming.', url: '/' }; outcome = 'sent: rest day'; }
+        } else if (real.length === 1) {
+          payload = { title: `Today: ${real[0].title}`, body: `${real[0].durationMin} min · ${(real[0].exercises || []).length} exercises`, url: `/?session=${plan.weekId}-${real[0].day}-${real[0].slot || 0}` };
+          outcome = 'sent: ' + real[0].title;
+        } else {
+          payload = { title: `Today: ${real.length} sessions`, body: real.map((x) => `${x.timeOfDay || ''} ${x.title}`.trim()).join(' · '), url: '/' };
+          outcome = `sent: ${real.length} sessions`;
+        }
+      }
+      if (payload) {
+        await webpush.sendNotification(sub.subscription, JSON.stringify(payload));
+        if (outcome.startsWith('nudged')) run.nudged++; else if (outcome.includes('rest')) run.rest++; else run.sent++;
+      } else run.skipped++;
+      await subDoc.ref.set({ lastReminder: { at: run.at, outcome }, ...(outcome.startsWith('nudged') ? { lastNudgeWeek: today.weekId } : {}) }, { merge: true });
     } catch (e) {
-      if (e.statusCode === 404 || e.statusCode === 410) { await subDoc.ref.delete(); removed++; }
-      else console.error(uid, e.message);
+      if (e.statusCode === 404 || e.statusCode === 410) { await subDoc.ref.delete(); run.removed++; continue; }
+      run.failed++;
+      console.error(uid, e.message);
+      await subDoc.ref.set({ lastReminder: { at: run.at, outcome: 'failed: ' + String(e.message || e).slice(0, 120) } }, { merge: true }).catch(() => {});
     }
   }
-  res.status(200).json({ sent, removed });
+  // a small server-only record of each run, so we can tell "never ran" from "ran and skipped you"
+  await db().doc('cron/daily-notify').set(run).catch(() => {});
+  res.status(200).json(run);
 }
 
 async function planForWeek(uid, id) {

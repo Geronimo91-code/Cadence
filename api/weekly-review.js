@@ -31,7 +31,8 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
   const planDoc = await db().doc(`users/${uid}/plans/${reviewWeek}`).get();
   if (!planDoc.exists) return { error: 'No plan found for that week' };
   const plan = planDoc.data();
-  const nextId = weekIdOffset(reviewWeek, 1);
+  // if the athlete is catching up on an older week, the new plan goes to the current week, never into the past
+  const nextId = [weekIdOffset(reviewWeek, 1), weekId()].sort().pop();
   const priorPlans = await db().collection(`users/${uid}/plans`).get();
   profile.weekNumber = priorPlans.size + 1;
 

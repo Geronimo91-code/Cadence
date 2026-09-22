@@ -2080,6 +2080,7 @@ function viewProfile(el) {
         <div class="li"><div><div>${T('Appearance')}</div><span class="muted">${T('Dark mode uses a black background with orange highlights.')}</span></div><select class="input" id="selTheme" style="width:auto;padding:8px 10px">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}" ${k === THEME ? 'selected' : ''}>${T(v)}</option>`).join('')}</select></div>
         <div class="li"><div><div>${T('Language')}</div><span class="muted">${T('Plans, reviews and cues are written in this language too.')}</span></div><select class="input" id="selLang" style="width:auto;padding:8px 10px">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === LANG ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
         <div class="li"><div><div>${T('Daily reminder')}</div><span class="muted">${T('One notification each morning with today\'s session')}</span></div><button class="switch" id="swPush" role="switch" aria-checked="false" aria-label="Daily reminder"></button></div>
+        <div class="li"><div style="flex:1"><div>${T('Reminder status')}</div><span class="muted" id="reminderStatus">${T('Loading…')}</span></div></div>
         <div class="li"><div><div>${T('Test notification')}</div><span class="muted">${T('Send one to this device right now.')}</span></div><button class="btn sm secondary" id="btnTestPush">${T('Send')}</button></div>
       </div>
     </div>
@@ -2141,6 +2142,16 @@ function viewProfile(el) {
   $('#selLang').onchange = async (ev) => { setLang(ev.target.value); try { await db.doc('users/' + state.user.uid).set({ profile: { lang: LANG } }, { merge: true }); state.profile.lang = LANG; } catch (_) {} navigate('profile'); };
   $('#btnSignOut').onclick = () => auth.signOut();
   setupPushToggle();
+  api('/api/cron-status', {}, { timeoutMs: 15000 }).then((st) => {
+    const el = $('#reminderStatus'); if (!el) return;
+    const when = (iso) => iso ? new Date(iso).toLocaleString(localeTag(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    const lines = [];
+    if (!st.subscribed) lines.push(T('Reminders are off on this device.'));
+    else if (st.myLastReminder) lines.push(`${T('Last reminder')}: ${when(st.myLastReminder.at)} — ${st.myLastReminder.outcome}`);
+    else lines.push(T('No reminder has been sent to you yet.'));
+    lines.push(st.dailyNotify ? `${T('Reminder job last ran')}: ${when(st.dailyNotify.at)}` : T('The reminder job has not run since this update — check again tomorrow morning.'));
+    el.innerHTML = lines.map(esc).join('<br>');
+  }).catch(() => { const el = $('#reminderStatus'); if (el) el.textContent = T('Could not load'); });
   $('#btnTestPush').onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = '…'; try { await api('/api/test-notify', {}, { timeoutMs: 25000 }); toast(T('Sent — check your notifications')); } catch (e) { toast(e.message); } b.disabled = false; b.textContent = T('Send'); };
 }
 function profileToOb(p) {

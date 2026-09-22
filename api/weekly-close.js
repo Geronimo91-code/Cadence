@@ -22,5 +22,6 @@ export default async function handler(req, res) {
     try { await reviewWeek(u.id, profile, lastWeek); results.reviewed++; }
     catch (e) { console.error('auto review failed', u.id, e.message); results.failed++; }
   }
+  await db().doc('cron/weekly-close').set({ at: new Date().toISOString(), ...results }).catch(() => {});
   res.status(200).json(results);
 }
