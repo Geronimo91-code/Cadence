@@ -578,7 +578,31 @@ function translateStatic() {
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const state = { user: null, profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null, clubIds: [], clubId: null, club: null, me: null, clubNames: {} };
+const freshUserState = () => ({ profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null, clubIds: [], clubId: null, club: null, me: null, clubNames: {} });
+const state = { user: null, ...freshUserState() };
+let sessionUid = null;
+
+// Forget everything that belongs to the previous account. Runs on sign-out and whenever a different person signs in,
+// so one account's plan, logs or history can never be drawn for the next one.
+async function wipeThisDevice() {
+  // push subscription belongs to this person, so remove it from the browser too
+  try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (_) { /* no push */ }
+  await auth.signOut().catch(() => {});
+  resetSession();
+  // preferences and the offline copy of the database stay on the device unless we remove them
+  Object.keys(localStorage).filter((k) => k.startsWith('cadence.')).forEach((k) => localStorage.removeItem(k));
+  try { await db.terminate(); await db.clearPersistence(); } catch (_) { /* another tab may hold it; the reload below still resets memory */ }
+  location.replace('/');
+}
+
+function resetSession() {
+  Object.assign(state, freshUserState());
+  exHistory = null; nutDay = null; progMonths = 3; ob = { step: 0, data: {} };
+  try { stopRest(); } catch (_) { /* timer not started */ }
+  document.querySelectorAll('.sheet, .dlg, .timer').forEach((el) => el.remove());
+  document.body.style.overflow = '';
+  const view = document.getElementById('view'); if (view) view.innerHTML = '';
+}
 
 function show(id) { translateStatic(); ['auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
 let toastTimer;
@@ -665,8 +689,10 @@ function friendlyAuthError(e) {
 }
 
 auth.onAuthStateChanged(async (user) => {
+  if (!user || sessionUid !== user.uid) resetSession();
+  sessionUid = user ? user.uid : null;
   state.user = user;
-  if (!user) { state.profile = null; show('auth'); return; }
+  if (!user) { show('auth'); return; }
   try {
     const snap = await db.doc('users/' + user.uid).get();
     state.profile = snap.exists ? snap.data().profile : null;
@@ -2131,8 +2157,11 @@ function viewProfile(el) {
     if (!confirm(T('Delete your Cadence account and all data? This cannot be undone.'))) return;
     if (prompt(T('Type DELETE to confirm')) !== 'DELETE') return;
     const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
-    try { await api('/api/delete-account'); toast(T('Account deleted')); await auth.signOut(); }
-    catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Delete'); }
+    try {
+      await api('/api/delete-account');
+      toast(T('Account deleted'));
+      await wipeThisDevice();
+    } catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Delete'); }
   };
   $('#btnEdit').onclick = () => startOnboarding(profileToOb(p));
   $('#selTheme').onchange = async (ev) => {

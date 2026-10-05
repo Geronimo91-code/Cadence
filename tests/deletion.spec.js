@@ -125,6 +125,19 @@ test('account deletion leaves nothing behind', async ({ page }) => {
     const text = await page.locator('#view').textContent();
     out.afterReload = { hasOldPlan: text.includes('LEAK-CHECK'), text: text.slice(0, 140) };
     out.step = 'done';
+
+    // ---- what a correct deletion looks like ----
+    expect(out.deleteStatus, 'delete responded OK').toBe(200);
+    expect(JSON.parse(out.deleteBody).verified?.nothingLeft, 'server verified nothing is left').toBe(true);
+    expect(out.sameUid, 'a new sign-up gets a new identity').toBe(false);
+    expect(out.stateAfterSignup.planTitles, 'no old plan in memory after signing up').toBeNull();
+    expect(out.stateAfterSignup.plans + out.stateAfterSignup.logs, 'no old plans or logs in memory').toBe(0);
+    expect(out.stateAfterSignup.review, 'no old review in memory').toBe(false);
+    expect(out.stateAfterSignup.clubIds, 'no old clubs in memory').toEqual([]);
+    expect(out.todayShowsOldData, 'Today must not show the previous account\'s plan').toBe(false);
+    expect(out.reviewCardShowsOld, 'no previous review').toBe(false);
+    expect(out.clubStillExists, 'the club the deleted account created is gone').toBe(false);
+    expect(out.afterReload.hasOldPlan, 'a clean load shows no old plan').toBe(false);
   } finally {
     // never leave test accounts behind
     try { await page.evaluate(() => (auth.currentUser ? api('/api/delete-account') : null)); } catch (_) { /* best effort */ }
