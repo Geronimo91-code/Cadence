@@ -4,6 +4,10 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      deletion:
+        description: 'Run the account deletion test (creates and deletes a throwaway account)'
+        type: boolean
+        default: false
       review:
         description: 'Run the close-the-week test (spends model quota)'
         type: boolean
@@ -141,6 +145,14 @@ jobs:
       - name: 'Review: publish result'
         if: inputs.review && always()
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'review-result.json' }
+        run: node publish-result.mjs
+      - name: 'Deletion: run'
+        if: inputs.deletion
+        env: { RUN_DELETION: '1' }
+        run: npx playwright test -g "account deletion leaves nothing behind"
+      - name: 'Deletion: publish result'
+        if: inputs.deletion && always()
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'deletion-result.json' }
         run: node publish-result.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
