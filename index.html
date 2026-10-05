@@ -440,6 +440,15 @@ textarea.input { min-height: 90px; resize: vertical; }
 .pathpick { display: grid; gap: 10px; margin-top: 20px; }
 .finish { display: flex; align-items: center; gap: 10px; }
 .finish .body { flex: 1; }
+.how-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.how-imgs figure { margin: 0; }
+.how-imgs img { width: 100%; height: auto; display: block; border-radius: var(--r-m); background: var(--sage-2); min-height: 80px; }
+.how-imgs figcaption { font-size: .72rem; color: var(--ink-3); margin-top: 4px; text-align: center; text-transform: uppercase; letter-spacing: .04em; }
+.how-steps { padding-left: 22px; margin-top: 8px; }
+.how-steps li { color: var(--ink-2); padding: 5px 0; }
+.credit { font-size: .72rem; color: var(--ink-3); margin-top: 22px; }
+.chip.how { color: var(--green); border-color: var(--green); font-weight: 600; }
+a.btn { text-decoration: none; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 </style>
@@ -582,6 +591,16 @@ const freshUserState = () => ({ profile: null, plan: null, plans: [], logs: {}, 
 const state = { user: null, ...freshUserState() };
 let sessionUid = null;
 
+// One back-button handler for every sheet, so Back closes only the sheet on top (an explainer opened from a session no longer closes the session too)
+const sheetStack = [];
+function registerSheet(onClose) { history.pushState({ sheet: true }, ''); sheetStack.push(onClose); }
+window.addEventListener('popstate', () => {
+  const onClose = sheetStack.pop();
+  if (!onClose) return;
+  onClose();
+  document.body.style.overflow = sheetStack.length ? 'hidden' : '';
+});
+
 // Forget everything that belongs to the previous account. Runs on sign-out and whenever a different person signs in,
 // so one account's plan, logs or history can never be drawn for the next one.
 async function wipeThisDevice() {
@@ -599,6 +618,7 @@ function resetSession() {
   Object.assign(state, freshUserState());
   exHistory = null; nutDay = null; progMonths = 3; ob = { step: 0, data: {} };
   try { stopRest(); } catch (_) { /* timer not started */ }
+  sheetStack.length = 0;
   document.querySelectorAll('.sheet, .dlg, .timer').forEach((el) => el.remove());
   document.body.style.overflow = '';
   const view = document.getElementById('view'); if (view) view.innerHTML = '';
@@ -1070,7 +1090,7 @@ function openReview(r) {
   const close = () => { sheet.remove(); document.body.style.overflow = ''; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   $('#btnGoNext', sheet).onclick = async () => { history.back(); await loadPlan(r.nextWeekId); navigate('plan'); };
-  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  registerSheet(close);
 }
 function sessionKey(wk, day, slot) { return wk + '-' + day + (slot ? '-' + slot : ''); }
 let exHistory = null;
@@ -1357,7 +1377,7 @@ function openRebuild() {
   document.body.append(sheet); document.body.style.overflow = 'hidden';
   const close = () => { sheet.remove(); document.body.style.overflow = ''; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
-  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  registerSheet(close);
 
   const prefsWrap = $('#rbPrefs', sheet);
   const paintPrefs = () => renderDayPrefs(prefsWrap, draft);
@@ -1447,7 +1467,7 @@ function openSession(raw, weekIdOverride, logOverride) {
   const close = () => { stopRest(); sheet.remove(); document.body.style.overflow = ''; if (state.view) navigate(state.view); };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') history.back(); });
-  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  registerSheet(close);
 
   // ---- exercise rows with set inputs (editable: swap, add, remove) ----
   // readiness: adjusts today's session on the spot and goes into the weekly review
@@ -1476,7 +1496,7 @@ function openSession(raw, weekIdOverride, logOverride) {
         <div class="meta">${ex.swapped ? T('your change') : [px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
         ${lastTimeLine(ex.name)}
         ${!ex.swapped && px.cues ? `<div class="cues">${esc(px.cues)}</div>` : ''}
-        <div class="swapbar"><button class="chip" data-swap="${ei}">${T('Swap')}</button><button class="chip" data-addset="${ei}">${T('+ set')}</button>${ex.sets.length > 1 ? `<button class="chip" data-delset="${ei}">${T('− set')}</button>` : ''}<button class="chip" data-delex="${ei}">${T('Remove')}</button></div>
+        <div class="swapbar"><button class="chip how" data-how="${ei}">▶ ${T('How to')}</button><button class="chip" data-swap="${ei}">${T('Swap')}</button><button class="chip" data-addset="${ei}">${T('+ set')}</button>${ex.sets.length > 1 ? `<button class="chip" data-delset="${ei}">${T('− set')}</button>` : ''}<button class="chip" data-delex="${ei}">${T('Remove')}</button></div>
         <div class="setgrid"><span class="h">${T('Set')}</span><span class="h">${T('Reps')}</span><span class="h">${T('Load (kg)')}</span><span></span></div>`;
       const grid = card.querySelector('.setgrid');
       ex.sets.forEach((st, si) => {
@@ -1491,6 +1511,7 @@ function openSession(raw, weekIdOverride, logOverride) {
       for (let i = 6; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'RPE ' + i; b.setAttribute('aria-pressed', ex.rpe === i); b.onclick = () => { ex.rpe = ex.rpe === i ? null : i; $$('button', rpe).forEach((x) => x.setAttribute('aria-pressed', x === b && ex.rpe === i)); }; rpe.append(b); }
       card.append(rpe); exWrap.append(card);
     });
+    $$('[data-how]', exWrap).forEach((b) => { b.onclick = () => { const i = Number(b.dataset.how); openHowTo(draft.exercises[i].name, sess.exercises[i]?.cues); }; });
     $$('[data-swap]', exWrap).forEach((b) => { b.onclick = () => askText(T('What did you do instead?'), draft.exercises[b.dataset.swap].name, (v) => { const ex = draft.exercises[b.dataset.swap]; ex.name = v; ex.swapped = true; renderExercises(); }); });
     $$('[data-addset]', exWrap).forEach((b) => { b.onclick = () => { const ex = draft.exercises[b.dataset.addset]; const last = ex.sets[ex.sets.length - 1] || {}; ex.sets.push({ reps: last.reps ?? null, load: last.load ?? null, done: false }); renderExercises(); }; });
     $$('[data-delset]', exWrap).forEach((b) => { b.onclick = () => { const ex = draft.exercises[b.dataset.delset]; if (ex.sets.length > 1) ex.sets.pop(); renderExercises(); }; });
@@ -1541,6 +1562,45 @@ function openSession(raw, weekIdOverride, logOverride) {
   $('#btnSkip', sheet).onclick = (ev) => { if (existing?.status === 'skipped') return; save(ev.currentTarget, true); };
   if (existing && !isPastWeek) sheet.querySelector('#logEx')?.scrollIntoView({ block: 'start' });
 }
+/* ============================================================
+   Exercise how-to: photos and steps where we have them, a video search always
+   ============================================================ */
+let MEDIA_INDEX = null;
+const normName = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean)
+  .map((w) => (w.length > 2 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)).join(' ');
+async function loadMedia() {
+  if (MEDIA_INDEX) return MEDIA_INDEX;
+  MEDIA_INDEX = new Map();
+  try {
+    const r = await fetch('/exercise-media.json');
+    if (r.ok) { const all = await r.json(); Object.entries(all).forEach(([name, v]) => MEDIA_INDEX.set(normName(name), v)); }
+  } catch (_) { /* offline or blocked: the video link still works */ }
+  return MEDIA_INDEX;
+}
+const MUSCLES = { abdominals: 'Abs', abductors: 'Abductors', adductors: 'Adductors', biceps: 'Biceps', calves: 'Calves', chest: 'Chest', forearms: 'Forearms', glutes: 'Glutes', hamstrings: 'Hamstrings', lats: 'Lats', 'lower back': 'Lower back', 'middle back': 'Upper back', neck: 'Neck', quadriceps: 'Quads', shoulders: 'Shoulders', traps: 'Traps', triceps: 'Triceps' };
+
+async function openHowTo(name, cues) {
+  const index = await loadMedia();
+  const m = index.get(normName(name));
+  const yt = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' exercise proper form');
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', name);
+  const muscleChips = (m ? [...m.primary.map((x) => [x, true]), ...m.secondary.map((x) => [x, false])] : [])
+    .map(([x, main]) => `<span class="badge${main ? '' : ' rest'}">${esc(T(MUSCLES[x] || x))}</span>`).join(' ');
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('How to')}</h2></div>
+    <h1>${esc(name)}</h1>
+    ${m ? `<div class="how-imgs">${Array.from({ length: m.images }, (_, i) => `<figure><img src="/exercises/${encodeURIComponent(m.id)}/${i}.webp" alt="${esc(name)} — ${i ? T('end') : T('start')}" loading="lazy" onerror="this.closest('figure').remove()"><figcaption>${i ? T('End') : T('Start')}</figcaption></figure>`).join('')}</div>
+      ${muscleChips ? `<div class="chips" style="margin-top:12px">${muscleChips}</div>` : ''}` : `<div class="intent">${T('No photos for this movement yet — the video search below will show you how it is done.')}</div>`}
+    ${cues ? `<div class="block"><h3>${T('Coach cue')}</h3><div class="cues" style="margin-top:6px">${esc(cues)}</div></div>` : ''}
+    ${m && m.steps.length ? `<div class="block"><h3>${T('Steps')}</h3><ol class="how-steps">${m.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${LANG !== 'en' ? `<p class="muted small">${T('Instructions are in English.')}</p>` : ''}</div>` : ''}
+    <div class="block"><a class="btn" id="howtoYT" href="${yt}" target="_blank" rel="noopener">▶ ${T('Watch on YouTube')}</a></div>
+    ${m ? `<p class="credit">${T('Photos and steps from the Free Exercise DB (public domain).')}</p>` : ''}
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(() => sheet.remove());
+}
+
 function openRpeInfo() {
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
   const rows = [[10, 'Nothing left, could not do another rep'], [9, 'One rep left in the tank'], [8, 'Two reps left — the sweet spot for most training'], [7, 'Three reps left, solid work'], ['5–6', 'Comfortable, could do several more'], ['1–4', 'Easy, warm-up territory']];
@@ -1554,7 +1614,7 @@ function openRpeInfo() {
   document.body.append(sheet); document.body.style.overflow = 'hidden';
   const close = () => { sheet.remove(); document.body.style.overflow = 'hidden'; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
-  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  registerSheet(close);
 }
 let restTimer = null;
 function startRest(seconds, label) {
@@ -1804,7 +1864,7 @@ function openLog(l) {
   document.body.append(sheet); document.body.style.overflow = 'hidden';
   const close = () => { sheet.remove(); document.body.style.overflow = ''; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
-  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  registerSheet(close);
 }
 let nutDay = null;
 async function viewNutrition(el) {
@@ -2046,7 +2106,7 @@ async function openMember(c, r) {
   document.body.append(sheet); document.body.style.overflow = 'hidden';
   const close = () => { sheet.remove(); document.body.style.overflow = ''; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
-  history.pushState({ sheet: true }, ''); window.addEventListener('popstate', close, { once: true });
+  registerSheet(close);
   $('#btnSaveNote', sheet).onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; try { await db.doc('clubs/' + c.id + '/notes/' + r.m.uid).set({ text: $('#coachNote', sheet).value.trim(), by: state.user.uid, byName: state.profile.name, at: new Date().toISOString() }); toast(T('Note saved')); } catch (e) { toast(T('Could not save.')); } b.disabled = false; };
 }
 
@@ -2186,7 +2246,7 @@ function viewProfile(el) {
 function profileToOb(p) {
   return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), doubles: p.doubles || 'no', dayPrefs: JSON.parse(JSON.stringify(p.dayPrefs || {})), hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
 }
-function greeting() { const h = new Date().getHours(); return h < 12 ? T('Morning') : h < 18 ? T('Afternoon') : T('Evening'); }
+function greeting() { const h = new Date().getHours(); return h < 12 ? T('Good morning') : h < 18 ? T('Good afternoon') : T('Good evening'); }
 
 /* ============================================================
    Push notifications (opt-in; requires VAPID_PUBLIC_KEY)

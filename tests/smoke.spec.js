@@ -30,6 +30,9 @@ test('site and API routes', async ({ request }) => {
   expect((await request.post(URL + '/api/reset-data')).status()).toBe(401);
   expect((await request.get(URL + '/api/cron-status')).status()).toBe(401);
   expect((await request.get(URL + '/privacy.html')).ok()).toBeTruthy();
+  const media = await request.get(URL + '/exercise-media.json'); expect(media.ok()).toBeTruthy();
+  const photo = await request.get(URL + '/exercises/Goblet_Squat/0.webp'); expect(photo.ok()).toBeTruthy();
+  expect(photo.headers()['content-type']).toContain('image/webp');
   expect((await request.get(URL + '/terms.html')).ok()).toBeTruthy();
 });
 
@@ -86,6 +89,24 @@ test('dark theme applies', async ({ page }) => {
   await page.waitForTimeout(300);
   const back = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect(back).toMatch(/rgb\(246, 247, 244\)/);
+});
+
+test('exercise how-to opens, and Back closes only the top sheet', async ({ page }) => {
+  await signIn(page);
+  await page.click('.tab[data-view="plan"]');
+  const openable = page.locator('button.slot:has(.chev)').first();
+  if (!(await openable.count())) return;                       // test account has no plan
+  await openable.click();
+  const how = page.locator('.sheet [data-how]').first();
+  if (!(await how.count())) return;                            // session without exercises
+  await how.click();
+  const yt = page.locator('#howtoYT');
+  await expect(yt).toBeVisible();
+  expect(await yt.getAttribute('href')).toContain('youtube.com/results?search_query=');
+  await expect(page.locator('.sheet')).toHaveCount(2);
+  await page.locator('.sheet').last().locator('#btnCloseSheet').click();
+  await page.waitForTimeout(500);
+  await expect(page.locator('.sheet'), 'the session sheet must stay open under the how-to').toHaveCount(1);
 });
 
 test('plan and session view', async ({ page }) => {

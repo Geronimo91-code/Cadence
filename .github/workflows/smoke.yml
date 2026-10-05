@@ -39,6 +39,7 @@ jobs:
           npm i -D eslint@8.57.0 >/dev/null
           node lint-app.mjs
           npx eslint api/*.js
+          node check-media.mjs
           npx eslint --no-eslintrc --env browser,es2022 --parser-options ecmaVersion:2022 --rule 'no-undef: error' .app-inline.js
       - name: Secrets present
         run: test -n "$CADENCE_URL" && test -n "$CADENCE_TEST_EMAIL" && test -n "$CADENCE_TEST_PASSWORD"
@@ -62,6 +63,9 @@ jobs:
       - name: 'Test: dark theme'
         if: always()
         run: npx playwright test -g "dark theme applies"
+      - name: 'Test: exercise how-to'
+        if: always()
+        run: npx playwright test -g "exercise how-to opens"
       - name: 'Test: plan and session view'
         if: always()
         run: npx playwright test -g "plan and session view"
