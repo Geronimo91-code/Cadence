@@ -16,6 +16,10 @@ on:
         description: 'Also run the plan-generation test (spends model quota)'
         type: boolean
         default: false
+concurrency:
+  group: smoke-live-site
+  cancel-in-progress: false
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -65,61 +69,61 @@ jobs:
         if: always()
         run: npx playwright test -g "nutrition and club render"
       - name: 'Generate: run'
-        if: inputs.generate
+        if: always() && inputs.generate
         env: { RUN_GENERATE: '1' }
         run: npx playwright test -g "generate a plan end to end"
       - name: 'Generate: publish result'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
         run: node publish-result.mjs
       - name: 'Generate: reached the API'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs reached-api
       - name: 'Generate: not a timeout'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs not-timeout
       - name: 'Generate: not 429 quota'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs not-quota
       - name: 'Generate: not 401/403 auth'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs not-auth
       - name: 'Generate: not 400 bad request'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs not-bad-request
       - name: 'Generate: not 500 server error'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs not-server-error
       - name: 'Generate: HTTP 200'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs http-200
       - name: 'Generate: 7 day rows'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs seven-days
       - name: 'Generate: has trainable sessions'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs has-sessions
       - name: 'Generate: session view renders'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs session-view
       - name: 'Generate: all 7 days shown'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs all-days-shown
       - name: 'Generate: nothing wider than the screen'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs layout-fits
       - name: 'Generate: no overlapping labels'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs no-overlap
       - name: 'Generate: no page errors'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         run: node check-gen.mjs no-page-errors
       - name: 'Meal photo: run'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         env: { RUN_MEAL: '1' }
         run: npx playwright test -g "meal photo estimate"
       - name: 'Meal photo: publish result'
-        if: inputs.generate && always()
+        if: always() && inputs.generate
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'meal-result.json' }
         run: node publish-result.mjs
       - name: 'Day prefs: run'
@@ -139,19 +143,19 @@ jobs:
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'photo-result.json' }
         run: node publish-result.mjs
       - name: 'Review: run'
-        if: inputs.review
+        if: always() && inputs.review
         env: { RUN_REVIEW: '1' }
         run: npx playwright test -g "close the week"
       - name: 'Review: publish result'
-        if: inputs.review && always()
+        if: always() && inputs.review
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'review-result.json' }
         run: node publish-result.mjs
       - name: 'Deletion: run'
-        if: inputs.deletion
+        if: always() && inputs.deletion
         env: { RUN_DELETION: '1' }
         run: npx playwright test -g "account deletion leaves nothing behind"
       - name: 'Deletion: publish result'
-        if: inputs.deletion && always()
+        if: always() && inputs.deletion
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'deletion-result.json' }
         run: node publish-result.mjs
       - uses: actions/upload-artifact@v4
