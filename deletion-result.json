@@ -1,0 +1,32 @@
+{
+  "step": "done",
+  "email": "cadence-qa-1791215163645@example.com",
+  "oldUid": "n21V8n1jO6Xv0RXGGoCjRVwp1F13",
+  "newUid": "4fSikNIWcmV6R2XjZSaqu5gexLo1",
+  "sameUid": false,
+  "seededToday": true,
+  "deleteStatus": 200,
+  "deleteBody": "{\"ok\":true}",
+  "reSignup": "onboarding",
+  "reSignupError": null,
+  "stateAfterSignup": {
+    "planTitles": [
+      "LEAK-CHECK day 0",
+      "LEAK-CHECK day 1"
+    ],
+    "plans": 1,
+    "logs": 1,
+    "review": true,
+    "exHistorySize": null,
+    "clubIds": [],
+    "clubName": null
+  },
+  "todayShowsOldData": true,
+  "reviewCardShowsOld": true,
+  "clubStillExists": true,
+  "afterReload": {
+    "hasOldPlan": false,
+    "text": "Afternoon, QA2No plan yetCadence will build your first week from the setup you just completed.Build my first week"
+  },
+  "errors": []
+}
