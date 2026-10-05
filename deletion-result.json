@@ -1,29 +1,26 @@
 {
   "step": "done",
-  "email": "cadence-qa-1791215163645@example.com",
-  "oldUid": "n21V8n1jO6Xv0RXGGoCjRVwp1F13",
-  "newUid": "4fSikNIWcmV6R2XjZSaqu5gexLo1",
+  "email": "cadence-qa-1791216202959@example.com",
+  "oldUid": "dVIAhFc1SaOwpPnilwJUjaQR55E2",
+  "newUid": "peBgRhra0JORJ5UHDI2LF4t5UTO2",
   "sameUid": false,
   "seededToday": true,
   "deleteStatus": 200,
-  "deleteBody": "{\"ok\":true}",
+  "deleteBody": "{\"ok\":true,\"clubsLeft\":1,\"clubsDeleted\":1,\"coachPromoted\":0,\"verified\":{\"nothingLeft\":true,\"authUserGone\":true}}",
   "reSignup": "onboarding",
   "reSignupError": null,
   "stateAfterSignup": {
-    "planTitles": [
-      "LEAK-CHECK day 0",
-      "LEAK-CHECK day 1"
-    ],
-    "plans": 1,
-    "logs": 1,
-    "review": true,
+    "planTitles": null,
+    "plans": 0,
+    "logs": 0,
+    "review": false,
     "exHistorySize": null,
     "clubIds": [],
     "clubName": null
   },
-  "todayShowsOldData": true,
-  "reviewCardShowsOld": true,
-  "clubStillExists": true,
+  "todayShowsOldData": false,
+  "reviewCardShowsOld": false,
+  "clubStillExists": false,
   "afterReload": {
     "hasOldPlan": false,
     "text": "Afternoon, QA2No plan yetCadence will build your first week from the setup you just completed.Build my first week"
