@@ -36,10 +36,10 @@
       "detail": 2
     },
     "unknown exercise: still gets a video link and the no-photo note": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "video": "https://www.youtube.com/results?search_query=Zottman%20curl%20exercise%20proper%20form",
-        "note": "seeded"
+        "note": "No photos for this movement yet — the video search below will show you how it is done."
       }
     },
     "swap: How to follows the new exercise": {
@@ -50,10 +50,10 @@
       }
     },
     "sprint: no photos, shows the note": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "photos": 0,
-        "note": "seeded",
+        "note": "No photos for this movement yet — the video search below will show you how it is done.",
         "href": "https://www.youtube.com/results?search_query=Sprint%2020%20m%20drill%20technique%20how%20to"
       }
     },
