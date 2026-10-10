@@ -189,6 +189,19 @@ textarea.input { min-height: 90px; resize: vertical; }
 .auth-forgot { display: block; margin: -4px 0 14px auto; padding: 6px 0; background: none; border: 0; color: var(--green); font: 600 .88rem var(--font-body); cursor: pointer; }
 .auth-info { margin-top: 10px; padding: 12px 14px; border-radius: var(--r-m); background: var(--sage-2); color: var(--ink); font-size: .9rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.adm-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+@media (min-width: 640px) { .adm-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.adm-tile { background: var(--white); border: 1px solid var(--line); border-radius: var(--r-m); padding: 14px; }
+.adm-num { font-family: var(--font-display); font-weight: 700; font-size: 1.8rem; line-height: 1; color: var(--green); }
+.adm-label { margin-top: 6px; font-weight: 600; font-size: .9rem; }
+.adm-sub { margin-top: 2px; font-size: .78rem; color: var(--ink-2); }
+.adm-bars { display: flex; align-items: flex-end; gap: 4px; height: 90px; margin-top: 10px; }
+.adm-bar { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
+.adm-bar i { display: block; width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--green); }
+.adm-bar span { font-size: .68rem; color: var(--ink-2); min-height: 1em; }
+.adm-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.adm-chip { padding: 3px 9px; border-radius: 999px; background: var(--sage-2); border: 1px solid var(--line); font-size: .75rem; color: var(--ink-2); }
+.adm-chip b { color: var(--ink); }
 .inbox-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
 .inbox-item:last-child { border-bottom: 0; }
 .inbox-item pre { white-space: pre-wrap; word-break: break-word; font: .78rem/1.4 ui-monospace, monospace; color: var(--ink-2); margin-top: 6px; }
@@ -2563,24 +2576,58 @@ function openFeedback() {
 async function showInboxIfAdmin(el) {
   if (state.isAdmin === undefined) { try { state.isAdmin = !!(await api('/api/report', { action: 'whoami' })).admin; } catch (_) { return; } }
   if (!state.isAdmin || state.view !== 'profile' || $('#inboxCard')) return;
-  el.insertAdjacentHTML('afterbegin', `<div class="card" id="inboxCard"><div class="list"><div class="li"><div><div>Tester inbox</div><span class="muted">Feedback and problems from testers.</span></div><button class="btn sm secondary" id="btnInbox">Open</button></div></div></div>`);
+  el.insertAdjacentHTML('afterbegin', `<div class="card" id="inboxCard"><div class="list"><div class="li"><div><div>Admin panel</div><span class="muted">Users, activity, AI use and tester feedback.</span></div><button class="btn sm secondary" id="btnInbox">Open</button></div></div></div>`);
   $('#btnInbox').onclick = openInbox;
 }
 
 async function openInbox() {
-  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
-  sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>Tester inbox</h2></div><div id="inboxBody"><p class="muted">${T('Loading…')}</p></div></div>`;
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Admin panel');
+  sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>Admin panel</h2></div><div id="inboxBody"><p class="muted">${T('Loading…')}</p></div></div>`;
   document.body.append(sheet); document.body.style.overflow = 'hidden';
   const close = () => { sheet.remove(); document.body.style.overflow = ''; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   registerSheet(close);
-  const when = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
-  try {
-    const { feedback, problems } = await api('/api/report', { action: 'inbox' });
-    const fbHtml = feedback.length ? feedback.map((f) => `<div class="inbox-item"><div class="muted small">${esc(when(f.createdAt))} · ${esc(f.email || f.uid)} · ${esc(f.view || '')} · ${esc(f.lang || '')}</div><div style="margin-top:4px;white-space:pre-wrap">${esc(f.text)}</div></div>`).join('') : '<p class="muted">Nothing here yet.</p>';
-    const prHtml = problems.length ? problems.map((p) => `<div class="inbox-item"><div class="muted small">${esc(when(p.createdAt))} · ${esc(p.source === 'server' ? p.route : 'app · ' + (p.view || ''))}${p.fallback ? ' · fell back to template' : ''} · ${esc(p.email || p.uid || '')}</div><div style="margin-top:4px">${esc(p.message)}</div>${p.stack ? `<pre>${esc(p.stack)}</pre>` : ''}</div>`).join('') : '<p class="muted">Nothing here yet.</p>';
-    $('#inboxBody', sheet).innerHTML = `<div class="card"><h3>Feedback (${feedback.length})</h3>${fbHtml}</div><div class="card"><h3>Problems (${problems.length})</h3>${prHtml}</div>`;
-  } catch (e) { $('#inboxBody', sheet).innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+  const body = $('#inboxBody', sheet);
+  const when = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+  const ago = (iso) => { if (!iso) return 'never'; const days = Math.floor((Date.now() - new Date(iso)) / 864e5); return days <= 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago'; };
+  const tile = (label, value, sub) => `<div class="adm-tile"><div class="adm-num">${esc(value)}</div><div class="adm-label">${esc(label)}</div>${sub ? `<div class="adm-sub">${esc(sub)}</div>` : ''}</div>`;
+  const chips = (obj) => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<span class="adm-chip">${esc(T(k))} <b>${v}</b></span>`).join('') || '<span class="muted small">—</span>';
+  async function load() {
+    body.innerHTML = `<p class="muted">${T('Loading…')}</p>`;
+    try {
+      const [s, inbox] = await Promise.all([api('/api/report', { action: 'stats' }, { timeoutMs: 60000 }), api('/api/report', { action: 'inbox' })]);
+      const t = s.totals;
+      const days = Object.entries(s.signups); const max = Math.max(1, ...days.map((d) => d[1]));
+      const bars = days.map(([d, n]) => `<div class="adm-bar" title="${esc(d)}: ${n}"><i style="height:${Math.round((n / max) * 100)}%"></i><span>${n || ''}</span></div>`).join('');
+      const users = s.users.map((u) => `<div class="inbox-item">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>${esc(u.name || u.email || u.uid)}</b><span class="muted small">${esc(ago(u.lastLog || u.lastSignIn))}</span></div>
+          <div class="muted small">${esc(u.email || '')}${u.sport ? ' · ' + esc(T(u.sport)) : ''}${u.lang ? ' · ' + esc(u.lang.toUpperCase()) : ''}</div>
+          <div class="small" style="margin-top:4px">${u.onboarded ? `${u.logs7} sessions this week · ${u.logsAll} total · ${u.plans} plans · ${u.reviews} reviews · AI ${u.aiWeek} this week` : '<span style="color:var(--amber)">Signed up, setup not finished</span>'}</div>
+          <div class="adm-tags">${u.clubs ? '<span class="adm-chip">club</span>' : ''}${u.nutrition ? '<span class="adm-chip">nutrition</span>' : ''}${u.push ? '<span class="adm-chip">reminders on</span>' : ''}<span class="adm-chip">${u.provider === 'google.com' ? 'Google' : 'email'}</span><span class="adm-chip">joined ${esc(new Date(u.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</span></div>
+        </div>`).join('') || '<p class="muted">Nothing here yet.</p>';
+      const fbHtml = inbox.feedback.length ? inbox.feedback.map((f) => `<div class="inbox-item"><div class="muted small">${esc(when(f.createdAt))} · ${esc(f.email || f.uid)} · ${esc(f.view || '')} · ${esc(f.lang || '')}</div><div style="margin-top:4px;white-space:pre-wrap">${esc(f.text)}</div></div>`).join('') : '<p class="muted">Nothing here yet.</p>';
+      const prHtml = inbox.problems.length ? inbox.problems.map((p) => `<div class="inbox-item"><div class="muted small">${esc(when(p.createdAt))} · ${esc(p.source === 'server' ? p.route : 'app · ' + (p.view || ''))}${p.fallback ? ' · fell back to template' : ''} · ${esc(p.email || p.uid || '')}</div><div style="margin-top:4px">${esc(p.message)}</div>${p.stack ? `<pre>${esc(p.stack)}</pre>` : ''}</div>`).join('') : '<p class="muted">Nothing here yet.</p>';
+      body.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="muted small">Updated ${esc(when(s.generatedAt))}</span><button class="btn sm secondary" id="admRefresh">Refresh</button></div>
+        <div class="adm-tiles">
+          ${tile('Accounts', t.accounts, t.onboarded + ' finished setup')}
+          ${tile('Active this week', t.active7, 'logged a session · ' + t.active30 + ' in 30 days')}
+          ${tile('Sessions logged', t.sessions7, 'this week · ' + t.sessionsAll + ' total')}
+          ${tile('Plans built', t.plans, t.reviews + ' weekly reviews')}
+          ${tile('AI calls', t.aiToday, 'today · ' + t.aiWeek + ' this week')}
+          ${tile('Meal days', t.mealDays7, 'logged this week')}
+          ${tile('Problems', t.problems7, 'this week · ' + t.fallbacks7 + ' template fallbacks')}
+          ${tile('Feedback', t.feedback7, 'this week · ' + t.feedbackAll + ' total')}
+        </div>
+        <div class="card"><h3>New accounts, last 14 days</h3><div class="adm-bars">${bars}</div></div>
+        <div class="card"><h3>Languages</h3><div class="adm-tags">${chips(s.languages)}</div><h3 style="margin-top:14px">Main sport</h3><div class="adm-tags">${chips(s.sports)}</div><div class="muted small" style="margin-top:12px">${t.clubs} club${t.clubs === 1 ? '' : 's'} · ${t.signedIn7} people opened the app this week</div></div>
+        <div class="card"><h3>People (${s.users.length})</h3>${users}</div>
+        <div class="card"><h3>Feedback (${inbox.feedback.length})</h3>${fbHtml}</div>
+        <div class="card"><h3>Problems (${inbox.problems.length})</h3>${prHtml}</div>`;
+      $('#admRefresh', sheet).onclick = load;
+    } catch (e) { body.innerHTML = `<p class="error">${esc(e.message)}</p><button class="btn sm secondary" id="admRefresh">Try again</button>`; $('#admRefresh', sheet).onclick = load; }
+  }
+  load();
 }
 
 function viewProfile(el) {
