@@ -175,7 +175,9 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 /* ---------- Auth ---------- */
 #auth { justify-content: center; padding: 40px 0; }
-.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.auth-title { font-size: 1.7rem; margin: 0 0 22px; }
+.auth-note { margin-top: 26px; font-size: .78rem; line-height: 1.5; color: var(--ink-3); }
 .brand svg { width: 44px; height: 44px; }
 .brand h1 { font-size: 2.2rem; }
 .auth-lead { font-family: var(--font-display); font-weight: 500; font-size: 1.7rem; line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 8px; }
@@ -684,15 +686,7 @@ a.btn { text-decoration: none; }
       <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1E6B49"/><g fill="#F6F7F4"><rect x="96" y="256" width="40" height="120" rx="14"/><rect x="164" y="200" width="40" height="176" rx="14"/><rect x="232" y="136" width="40" height="240" rx="14"/><rect x="300" y="200" width="40" height="176" rx="14"/><rect x="368" y="256" width="40" height="120" rx="14"/></g></svg>
       <h1>Cadence</h1>
     </div>
-    <p class="auth-lead" data-i18n="A training week that is built for you and rebuilt every Sunday.">A training week that is built for you and rebuilt every Sunday.</p>
-    <p class="muted" data-i18n="Tell Cadence how you train, what you're aiming for, and when. It plans your week, you log what you did, and it adjusts.">Tell Cadence how you train, what you're aiming for, and when. It plans your week, you log what you did, and it adjusts.</p>
-    <div class="steps3">
-      <div class="s"><b>1</b><span data-i18n="Tell Cadence your sport, your days and your goal — about a minute.">Tell Cadence your sport, your days and your goal — about a minute.</span></div>
-      <div class="s"><b>2</b><span data-i18n="Train and log what you actually did, straight from the session.">Train and log what you actually did, straight from the session.</span></div>
-      <div class="s"><b>3</b><span data-i18n="Every week it reviews your training and writes the next one.">Every week it reviews your training and writes the next one.</span></div>
-    </div>
-
-    <p class="muted small" style="margin:-14px 0 22px" data-i18n="Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.">Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.</p>
+    <h2 class="auth-title" id="authTitle" data-i18n="Welcome back">Welcome back</h2>
     <button class="btn secondary" id="btnGoogle">
       <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.5-5.8c-2.1 1.4-4.8 2.3-8.1 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
       <span data-i18n="Continue with Google">Continue with Google</span>
@@ -702,8 +696,9 @@ a.btn { text-decoration: none; }
     <div class="field"><input class="input" id="authPass" type="password" placeholder="Password (8+ characters)" data-i18n-ph="Password (8+ characters)" autocomplete="current-password"></div>
     <button class="btn" id="btnEmail" data-i18n="Sign in">Sign in</button>
     <div class="error" id="authError"></div>
-    <p class="muted small" style="text-align:center;margin-top:20px"><a href="/privacy.html" style="color:var(--ink-2)" data-i18n="Privacy">Privacy</a> · <a href="/terms.html" style="color:var(--ink-2)" data-i18n="Terms">Terms</a></p>
     <div class="auth-switch" id="authSwitch">New here? <button id="btnToggleMode" data-i18n="Create an account">Create an account</button></div>
+    <p class="muted small auth-note" data-i18n="Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.">Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.</p>
+    <p class="muted small" style="text-align:center;margin-top:12px"><a href="/privacy.html" style="color:var(--ink-2)" data-i18n="Privacy">Privacy</a> · <a href="/terms.html" style="color:var(--ink-2)" data-i18n="Terms">Terms</a></p>
   </div>
 </section>
 
@@ -894,7 +889,10 @@ function weekStrip(activeDays, { small = false, readonly = true, onToggle, slots
 let signUpMode = false;
 function toggleAuthMode() {
   signUpMode = !signUpMode;
-  $('#btnEmail').textContent = signUpMode ? T('Create account') : T('Sign in');
+  const title = signUpMode ? 'Create your account' : 'Welcome back';
+  const btn = signUpMode ? 'Create account' : 'Sign in';
+  $('#authTitle').dataset.i18n = title; $('#authTitle').textContent = T(title);
+  $('#btnEmail').dataset.i18n = btn; $('#btnEmail').textContent = T(btn);
   $('#authSwitch').innerHTML = signUpMode ? T('Already have an account?') + ' <button id="btnToggleMode">' + T('Sign in') + '</button>' : T('New here?') + ' <button id="btnToggleMode">' + T('Create an account') + '</button>';
   $('#btnToggleMode').onclick = toggleAuthMode;
   $('#authPass').autocomplete = signUpMode ? 'new-password' : 'current-password';

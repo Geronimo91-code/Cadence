@@ -271,6 +271,7 @@ es: {
 (function () {
   const add = {
     fr: {
+      "Welcome back": "Bon retour", "Create your account": "Crée ton compte",
       "Your plan, rebuilt": "Ton plan, refait", "every week.": "chaque semaine.",
       "AI training that learns from what you actually did.": "Un entraînement IA qui apprend de ce que tu as vraiment fait.",
       "Any sport, any level": "Tous les sports, tous les niveaux", "Fits your schedule": "S'adapte à ton emploi du temps", "Peaks for your competition": "Au top pour ta compétition",
@@ -291,6 +292,7 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+      "Welcome back": "Welkom terug", "Create your account": "Maak je account aan",
       "Your plan, rebuilt": "Jouw plan, vernieuwd", "every week.": "elke week.",
       "AI training that learns from what you actually did.": "AI-training die leert van wat je echt gedaan hebt.",
       "Any sport, any level": "Elke sport, elk niveau", "Fits your schedule": "Past in je agenda", "Peaks for your competition": "Topvorm voor je wedstrijd",
@@ -311,6 +313,7 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+      "Welcome back": "Tekrar hoş geldin", "Create your account": "Hesabını oluştur",
       "Your plan, rebuilt": "Planın", "every week.": "her hafta yenilenir.",
       "AI training that learns from what you actually did.": "Gerçekte yaptıklarından öğrenen yapay zekâ antrenmanı.",
       "Any sport, any level": "Her spor, her seviye", "Fits your schedule": "Programına uyar", "Peaks for your competition": "Müsabakana tam formda gir",
@@ -331,6 +334,7 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+      "Welcome back": "Bienvenido de nuevo", "Create your account": "Crea tu cuenta",
       "Your plan, rebuilt": "Tu plan, renovado", "every week.": "cada semana.",
       "AI training that learns from what you actually did.": "Entrenamiento con IA que aprende de lo que realmente hiciste.",
       "Any sport, any level": "Cualquier deporte, cualquier nivel", "Fits your schedule": "Se adapta a tu horario", "Peaks for your competition": "En tu mejor forma para competir",
