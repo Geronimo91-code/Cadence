@@ -72,7 +72,7 @@ test('phase 1 checklist: exercise how-to', async ({ page }) => {
     await closeHow();
 
     await openHow(2);                                              // not in the library at all
-    const zott = await page.evaluate(() => ({ video: document.getElementById('howtoYT').href, note: document.querySelector('.sheet .intent')?.textContent || '' }));
+    const zott = await page.evaluate(() => ({ video: document.getElementById('howtoYT').href, note: [...document.querySelectorAll('.sheet')].pop().querySelector('.intent')?.textContent || '' }));
     ok('unknown exercise: still gets a video link and the no-photo note', /youtube\.com\/results/.test(zott.video) && /No photos/.test(zott.note), zott);
     await closeHow();
 
@@ -92,7 +92,7 @@ test('phase 1 checklist: exercise how-to', async ({ page }) => {
     out.step = 'speed';
     await openSession('QA speed');
     await openHow(0);                                              // Sprint 20 m
-    const sprint = await page.evaluate(() => ({ photos: document.querySelectorAll('.how-imgs img').length, note: document.querySelector('.sheet .intent')?.textContent || '', href: document.getElementById('howtoYT').href }));
+    const sprint = await page.evaluate(() => ({ photos: document.querySelectorAll('.how-imgs img').length, note: [...document.querySelectorAll('.sheet')].pop().querySelector('.intent')?.textContent || '', href: document.getElementById('howtoYT').href }));
     ok('sprint: no photos, shows the note', sprint.photos === 0 && /No photos/.test(sprint.note), sprint);
     ok('sprint: video search asks for drill technique', /drill%20technique/.test(sprint.href), sprint.href);
     await closeHow();
