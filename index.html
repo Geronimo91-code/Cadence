@@ -186,6 +186,40 @@ textarea.input { min-height: 90px; resize: vertical; }
 .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .auth-switch { text-align: center; margin-top: 18px; font-size: .95rem; color: var(--ink-2); }
 .auth-switch button { color: var(--green); font-weight: 600; }
+.prof-head { display: flex; flex-direction: column; gap: 12px; }
+.prof-top { display: flex; align-items: center; gap: 14px; }
+.prof-av { width: 56px; height: 56px; border-radius: 50%; background: var(--green); color: var(--on-accent); display: grid; place-items: center; font: 700 1.2rem var(--font-display); flex: 0 0 auto; }
+.prof-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.prof-chips span { padding: 5px 11px; border-radius: 999px; background: var(--sage-2); font-size: .82rem; color: var(--ink-2); }
+.set-title { margin: 22px 4px 8px; font: 700 .74rem var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.card.set-group { padding: 4px 0; }
+.set-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); font: inherit; text-align: left; text-decoration: none; cursor: pointer; box-sizing: border-box; min-height: 56px; }
+.set-group > .set-row:last-child, .set-group > .set-row:last-of-type { border-bottom: 0; }
+.set-row.danger, .set-row.danger .set-ico svg { color: var(--red); stroke: var(--red); }
+.set-ico { width: 34px; height: 34px; border-radius: 10px; background: var(--sage-2); display: grid; place-items: center; flex: 0 0 auto; }
+.set-ico svg { width: 18px; height: 18px; fill: none; stroke: var(--green); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.set-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.set-main > span { font-weight: 600; }
+.set-main small { color: var(--ink-2); font-size: .8rem; line-height: 1.35; }
+.set-row .chev { color: var(--ink-3); font-size: 1.3rem; }
+.set-foot { padding: 12px 16px 10px; }
+.set-more { padding: 0 16px 12px 62px; border-bottom: 1px solid var(--line); }
+.set-more summary { cursor: pointer; color: var(--green); font-size: .85rem; font-weight: 600; padding: 2px 0 8px; }
+.pill-select { width: auto; flex: 0 0 auto; max-width: 60%; padding: 8px 30px 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--sage-2); color: var(--ink); font: 600 .85rem var(--font-body); }
+.nextup { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.nx-day { flex: 0 0 auto; padding: 6px 10px; border-radius: 10px; background: var(--sage-2); color: var(--green); font-weight: 700; font-size: .8rem; }
+.nx-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nextup .chev { color: var(--ink-3); font-size: 1.3rem; }
+.wk-pbar { height: 8px; border-radius: 4px; background: var(--sage-2); overflow: hidden; margin-top: 12px; }
+.wk-pbar i { display: block; height: 100%; border-radius: 4px; background: var(--green); }
+.wk-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); text-align: center; }
+.wk-stats b { display: block; font: 700 1.5rem var(--font-display); color: var(--ink); }
+.wk-stats b small { font-size: .9rem; color: var(--ink-3); font-weight: 600; }
+.wk-stats span { font-size: .78rem; color: var(--ink-2); }
+.quick { display: flex; gap: 8px; margin: 4px 0 12px; }
+.quick .chip { flex: 1 1 0; min-width: 0; width: auto; text-align: center; padding: 10px 8px; }
+.focus { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.focus-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--ink-2); font-size: .9rem; line-height: 1.45; }
 .todayhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .streak { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; border: 0; background: var(--amber-2); color: var(--amber); font: 700 .82rem var(--font-body); cursor: pointer; white-space: nowrap; }
 .streak.cold { background: var(--sage-2); color: var(--ink-2); }
@@ -1656,6 +1690,49 @@ async function viewToday(el) {
     $('#btnOpenToday' + i).onclick = () => openSession(sess);
   });
 
+  // ---- up next: the next session after today that isn't logged yet ----
+  const upcoming = state.plan.sessions.filter((x) => x.type !== 'rest' && x.day > t && !logFor(x)).sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0))[0];
+  if (upcoming) {
+    const c = document.createElement('button'); c.type = 'button'; c.className = 'card todaycard nextup'; c.dataset.opt = '3';
+    c.innerHTML = `<span class="nx-day">${upcoming.day === t + 1 ? T('Tomorrow') : T(DAYS[upcoming.day])}</span><span class="nx-body"><strong>${esc(upcoming.title)}</strong><span class="muted small">${esc(T(upcoming.type))} · ${upcoming.durationMin} ${T('min')}</span></span><span class="chev">›</span>`;
+    c.onclick = () => openSession(upcoming);
+    el.append(c);
+  }
+
+  // ---- this week in numbers ----
+  {
+    const planned = state.plan.sessions.filter((x) => x.type !== 'rest');
+    const done = planned.filter((x) => ['done', 'partial'].includes(logFor(x)?.status)).length;
+    const weekLogs = Object.values(state.logs).filter((l) => l.weekId === state.plan.weekId && l.status && l.status !== 'skipped');
+    const minutes = weekLogs.reduce((a, l) => a + (l.durationMin || 0), 0);
+    const extras = weekLogs.filter((l) => l.extra).length;
+    const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '4';
+    c.innerHTML = `<div class="wk-stats">
+        <div><b>${done}<small>/${planned.length}</small></b><span>${T('sessions')}</span></div>
+        <div><b>${minutes}</b><span>${T('minutes')}</span></div>
+        <div><b>${extras}</b><span>${T('extra')}</span></div>
+      </div>
+      <div class="wk-pbar"><i style="width:${planned.length ? Math.round((done / planned.length) * 100) : 0}%"></i></div>`;
+    el.append(c);
+  }
+
+  // ---- quick actions ----
+  if (planIsCurrent()) {
+    const qa = document.createElement('div'); qa.className = 'quick'; qa.dataset.opt = '2';
+    qa.innerHTML = `<button type="button" class="chip" id="qaExtra">+ ${T('Extra session')}</button><button type="button" class="chip" id="qaRebuild">${T('Rebuild this week')}</button>`;
+    el.append(qa);
+    $('#qaExtra').onclick = () => openExtra();
+    $('#qaRebuild').onclick = () => openRebuild();
+  }
+
+  // ---- the plan's focus for this week ----
+  if (state.plan.rationale && state.plan.source !== 'template') {
+    const c = document.createElement('button'); c.type = 'button'; c.className = 'card todaycard focus'; c.dataset.opt = '1';
+    c.innerHTML = `<span class="muted small" style="font-weight:600">${T("This week's focus")}</span><span class="focus-text">${esc(state.plan.rationale)}</span>`;
+    c.onclick = () => navigate('plan');
+    el.append(c);
+  }
+
   // ---- food, one compact line ----
   if (p.nutrition) {
     const trainingDay = realToday.length > 0;
@@ -1692,6 +1769,16 @@ async function viewToday(el) {
     c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong>${T("Last week's review")}</strong><span class="badge">${state.review.stats?.adherence ?? 0}%</span></div><button class="btn secondary sm" id="btnOpenReview" style="margin-top:10px">${T('Read the review')}</button>`;
     el.append(c); $('#btnOpenReview').onclick = () => openReview(state.review);
   }
+  fitToday(el);
+}
+
+// Today should fit one screen: drop the optional cards (highest data-opt first) until it does.
+function fitToday(el) {
+  requestAnimationFrame(() => {
+    const opts = [...el.querySelectorAll('[data-opt]')].sort((a, b) => Number(b.dataset.opt) - Number(a.dataset.opt));
+    const over = () => document.documentElement.scrollHeight > window.innerHeight + 2;
+    while (over() && opts.length) opts.pop().remove();
+  });
 }
 
 function openExtra() {
@@ -2722,44 +2809,72 @@ async function openInbox() {
 
 function viewProfile(el) {
   const p = state.profile;
+  const ico = (d) => `<span class="set-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="${d}"/></svg></span>`;
+  const I = {
+    goal: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01',
+    days: 'M4 5h16v15H4zM4 10h16M8 3v4M16 3v4',
+    flag: 'M5 21V4M5 4h11l-2 4 2 4H5',
+    food: 'M5 11h14M6 11a6 6 0 0 0 12 0M12 4v4',
+    sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
+    globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18',
+    bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',
+    cal: 'M4 5h16v15H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4',
+    phone: 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2',
+    chat: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z',
+    shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+    down: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+    reset: 'M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6',
+    trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+    out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11',
+  };
+  const goals = (p.goals || [p.goal]).map((g) => T(GOALS.find((x) => x[0] === g)?.[1] || '')).filter(Boolean).join(', ');
+  const level = T(LEVELS.find((l) => l[0] === p.level)?.[1] || '');
   el.insertAdjacentHTML('beforeend', `
-    <div class="card">
-      <h3>${esc(p.name)}</h3>
-      <div class="muted small">${p.age} · ${p.heightCm} cm · ${p.weightKg} kg · ${esc(T(p.sports[0]))}</div>
-      <div class="list" style="margin-top:12px">
-        <div class="li"><span>${T('Goals')}</span><span class="muted">${esc((p.goals || [p.goal]).map((g) => T(GOALS.find((x) => x[0] === g)?.[1] || '')).join(', '))}</span></div>
-        <div class="li"><span>${T('Training days')}</span><span class="muted">${p.days.map((i) => T(DAYS[i])).join(', ')}${p.doubles && p.doubles !== 'no' ? ' · ' + T('doubles') : ''}</span></div>
-        <div class="li"><span>${T('Deadline')}</span><span class="muted">${p.deadline ? esc(p.deadline.name) : T('None')}</span></div>
-        <div class="li"><span>${T('Nutrition')}</span><span class="muted">${p.nutrition ? esc(T(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1] || '')) : T('Off')}</span></div>
+    <div class="card prof-head">
+      <div class="prof-top">
+        <div class="prof-av" aria-hidden="true">${esc(initials(p.name))}</div>
+        <div style="min-width:0"><h3>${esc(p.name)}</h3><div class="muted small">${esc(T(p.sports[0]))}${level ? ' · ' + esc(level) : ''}</div></div>
       </div>
-      <button class="btn secondary" id="btnEdit" style="margin-top:14px">${T('Edit setup')}</button>
+      <div class="prof-chips"><span>${p.age} ${T('yrs')}</span><span>${p.heightCm} cm</span><span>${p.weightKg} kg</span></div>
     </div>
-    <div class="card">
-      <div class="list">
-        <div class="li"><div><div>${T('Appearance')}</div><span class="muted">${T('Dark mode uses a black background with orange highlights.')}</span></div><select class="input" id="selTheme" style="width:auto;padding:8px 10px">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}" ${k === THEME ? 'selected' : ''}>${T(v)}</option>`).join('')}</select></div>
-        <div class="li"><div><div>${T('Language')}</div><span class="muted">${T('Plans, reviews and cues are written in this language too.')}</span></div><select class="input" id="selLang" style="width:auto;padding:8px 10px">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === LANG ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-        <div class="li"><div><div>${T('Daily reminder')}</div><span class="muted">${T('One notification each morning with today\'s session')}</span></div><button class="switch" id="swPush" role="switch" aria-checked="false" aria-label="Daily reminder"></button></div>
-        <div class="li"><div style="flex:1"><div>${T('Reminder status')}</div><span class="muted" id="reminderStatus">${T('Loading…')}</span></div></div>
-        <div class="li"><div><div>${T('Test notification')}</div><span class="muted">${T('Send one to this device right now.')}</span></div><button class="btn sm secondary" id="btnTestPush">${T('Send')}</button></div>
-      </div>
+
+    <h4 class="set-title">${T('Your training')}</h4>
+    <div class="card set-group">
+      <button type="button" class="set-row" data-edit>${ico(I.goal)}<span class="set-main"><span>${T('Goals')}</span><small>${esc(goals || '—')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" data-edit>${ico(I.days)}<span class="set-main"><span>${T('Training days')}</span><small>${p.days.map((i) => T(DAYS[i])).join(', ')}${p.doubles && p.doubles !== 'no' ? ' · ' + T('doubles') : ''}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" data-edit>${ico(I.flag)}<span class="set-main"><span>${T('Deadline')}</span><small>${p.deadline ? esc(p.deadline.name) : T('None')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" data-edit>${ico(I.food)}<span class="set-main"><span>${T('Nutrition')}</span><small>${p.nutrition ? esc(T(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1] || '')) : T('Off')}</small></span><span class="chev">›</span></button>
+      <div class="set-foot"><button class="btn secondary" id="btnEdit">${T('Edit setup')}</button></div>
     </div>
-    <div class="card">
-      <div class="list">
-        <div class="li"><div><div>${T('Calendar feed')}</div><span class="muted">${T('Subscribe in Google or Apple Calendar to get your sessions with a 1-hour reminder.')}</span></div><button class="btn sm secondary" id="btnCal">${T('Get link')}</button></div>
-        <div class="li" id="installRow"><div><div>${T('Install Cadence')}</div><span class="muted" id="installHint">${T('Add it to your home screen for the full app experience.')}</span></div><button class="btn sm secondary hidden" id="btnInstall">${T('Install')}</button></div>
-      </div>
+
+    <h4 class="set-title">${T('App')}</h4>
+    <div class="card set-group">
+      <label class="set-row" for="selTheme">${ico(I.sun)}<span class="set-main"><span>${T('Appearance')}</span></span><select class="pill-select" id="selTheme">${Object.entries(THEMES).map(([k, v]) => `<option value="${k}" ${k === THEME ? 'selected' : ''}>${T(v)}</option>`).join('')}</select></label>
+      <label class="set-row" for="selLang">${ico(I.globe)}<span class="set-main"><span>${T('Language')}</span></span><select class="pill-select" id="selLang">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === LANG ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+      <div class="set-row">${ico(I.bell)}<span class="set-main"><span>${T('Daily reminder')}</span><small>${T('One notification each morning with today\'s session')}</small></span><button class="switch" id="swPush" role="switch" aria-checked="false" aria-label="${T('Daily reminder')}"></button></div>
+      <details class="set-more"><summary>${T('Reminder not arriving?')}</summary>
+        <div class="muted small" id="reminderStatus">${T('Loading…')}</div>
+        <button class="btn sm secondary" id="btnTestPush" style="margin-top:10px">${T('Send a test notification')}</button>
+      </details>
+      <div class="set-row">${ico(I.cal)}<span class="set-main"><span>${T('Calendar feed')}</span><small>${T('Your sessions in Google or Apple Calendar.')}</small></span><button class="btn sm secondary" id="btnCal">${T('Get link')}</button></div>
+      <div class="set-row" id="installRow">${ico(I.phone)}<span class="set-main"><span>${T('Install Cadence')}</span><small id="installHint">${T('Add it to your home screen for the full app experience.')}</small></span><button class="btn sm secondary hidden" id="btnInstall">${T('Install')}</button></div>
     </div>
-    <div class="card">
-      <div class="list">
-        <div class="li"><div><div>${T('Send feedback')}</div><span class="muted">${T('Something broken, confusing or missing? Tell us.')}</span></div><button class="btn sm secondary" id="btnFeedback">${T('Write')}</button></div>
-        <div class="li"><span>${T('Privacy and terms')}</span><span><a href="/privacy.html" class="muted">${T('Privacy')}</a> · <a href="/terms.html" class="muted">${T('Terms')}</a></span></div>
-        <div class="li"><span>${T('Signed in as')}</span><span class="muted">${esc(state.user.email || T('Google account'))}</span></div>
-        <div class="li"><div><div>${T('Export my data')}</div><span class="muted">${T('Everything Cadence stores about you, as a JSON file.')}</span></div><button class="btn sm secondary" id="btnExport">${T('Export')}</button></div>
-        <div class="li"><div><div>${T('Start fresh')}</div><span class="muted">${T('Delete plans, logs and history but keep your account and setup.')}</span></div><button class="btn sm secondary" id="btnReset">${T('Reset')}</button></div>
-        <div class="li"><div><div>${T('Delete my account')}</div><span class="muted">${T('Removes your profile, plans, logs and meals permanently.')}</span></div><button class="btn sm secondary" id="btnDelete" style="color:var(--red)">${T('Delete')}</button></div>
-      </div>
-      <button class="btn ghost" id="btnSignOut" style="margin-top:8px;padding-left:0">${T('Sign out')}</button>
+
+    <h4 class="set-title">${T('Help')}</h4>
+    <div class="card set-group">
+      <button type="button" class="set-row" id="btnFeedback">${ico(I.chat)}<span class="set-main"><span>${T('Send feedback')}</span><small>${T('Something broken, confusing or missing? Tell us.')}</small></span><span class="chev">›</span></button>
+      <a class="set-row" href="/privacy.html">${ico(I.shield)}<span class="set-main"><span>${T('Privacy')}</span></span><span class="chev">›</span></a>
+      <a class="set-row" href="/terms.html">${ico(I.shield)}<span class="set-main"><span>${T('Terms')}</span></span><span class="chev">›</span></a>
+    </div>
+
+    <h4 class="set-title">${T('Account')}</h4>
+    <div class="card set-group">
+      <button type="button" class="set-row" id="btnExport">${ico(I.down)}<span class="set-main"><span>${T('Export my data')}</span><small>${T('Everything Cadence stores about you, as a JSON file.')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnReset">${ico(I.reset)}<span class="set-main"><span>${T('Start fresh')}</span><small>${T('Delete plans, logs and history but keep your account and setup.')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnSignOut">${ico(I.out)}<span class="set-main"><span>${T('Sign out')}</span><small>${esc(state.user.email || T('Google account'))}</small></span></button>
+      <button type="button" class="set-row danger" id="btnDelete">${ico(I.trash)}<span class="set-main"><span>${T('Delete my account')}</span><small>${T('Removes your profile, plans, logs and meals permanently.')}</small></span></button>
     </div>`);
+  $$('[data-edit]', el).forEach((b) => { b.onclick = () => startOnboarding(profileToOb(p)); });
   $('#btnCal').onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true;
     try {
@@ -2779,25 +2894,25 @@ function viewProfile(el) {
   $('#btnFeedback').onclick = openFeedback;
   showInboxIfAdmin(el);
   $('#btnExport').onclick = async (ev) => {
-    const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
+    const b = ev.currentTarget; b.disabled = true;
     try {
       const uid = state.user.uid; const out = { exportedAt: new Date().toISOString(), user: (await db.doc('users/' + uid).get()).data() };
       for (const c of ['plans', 'logs', 'reviews', 'nutrition', 'weights']) { const q = await db.collection('users/' + uid + '/' + c).get(); out[c] = q.docs.map((d) => ({ id: d.id, ...d.data() })); }
       delete out.user?.calToken;
       const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cadence-export-' + dateKey() + '.json'; a.click(); toast(T('Export ready'));
     } catch (e) { toast(T('Export failed.')); }
-    b.disabled = false; b.textContent = T('Export');
+    b.disabled = false;
   };
   $('#btnReset').onclick = () => openReset();
   $('#btnDelete').onclick = async (ev) => {
     if (!confirm(T('Delete your Cadence account and all data? This cannot be undone.'))) return;
     if (prompt(T('Type DELETE to confirm')) !== 'DELETE') return;
-    const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
+    const b = ev.currentTarget; b.disabled = true;
     try {
       await api('/api/delete-account');
       toast(T('Account deleted'));
       await wipeThisDevice();
-    } catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Delete'); }
+    } catch (e) { toast(e.message); b.disabled = false; }
   };
   $('#btnEdit').onclick = () => startOnboarding(profileToOb(p));
   $('#selTheme').onchange = async (ev) => {
@@ -2817,7 +2932,7 @@ function viewProfile(el) {
     lines.push(st.dailyNotify ? `${T('Reminder job last ran')}: ${when(st.dailyNotify.at)}` : T('The reminder job has not run since this update — check again tomorrow morning.'));
     el.innerHTML = lines.map(esc).join('<br>');
   }).catch(() => { const el = $('#reminderStatus'); if (el) el.textContent = T('Could not load'); });
-  $('#btnTestPush').onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = '…'; try { await api('/api/test-notify', {}, { timeoutMs: 25000 }); toast(T('Sent — check your notifications')); } catch (e) { toast(e.message); } b.disabled = false; b.textContent = T('Send'); };
+  $('#btnTestPush').onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = '…'; try { await api('/api/test-notify', {}, { timeoutMs: 25000 }); toast(T('Sent — check your notifications')); } catch (e) { toast(e.message); } b.disabled = false; b.textContent = T('Send a test notification'); };
 }
 function profileToOb(p) {
   return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), doubles: p.doubles || 'no', dayPrefs: JSON.parse(JSON.stringify(p.dayPrefs || {})), hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
