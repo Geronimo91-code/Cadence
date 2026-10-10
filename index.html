@@ -1582,7 +1582,9 @@ const MUSCLES = { abdominals: 'Abs', abductors: 'Abductors', adductors: 'Adducto
 async function openHowTo(name, cues) {
   const index = await loadMedia();
   const m = index.get(normName(name));
-  const yt = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' exercise proper form');
+  // a lifting query ("proper form") finds nothing useful for a sprint or an agility drill, so ask for technique there
+  const drillish = /\b(?:sprint|skip|high knee|drill|shuffle|cut|crossover|backpedal|ladder|shuttle|run|jog|interval|tempo|fartlek|hop|bound|jack|march|stretch|switch|dislocate|circuit)/i.test(name);
+  const yt = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + (drillish ? ' drill technique how to' : ' exercise proper form'));
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', name);
   const muscleChips = (m ? [...m.primary.map((x) => [x, true]), ...m.secondary.map((x) => [x, false])] : [])
     .map(([x, main]) => `<span class="badge${main ? '' : ' rest'}">${esc(T(MUSCLES[x] || x))}</span>`).join(' ');
