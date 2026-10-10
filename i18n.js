@@ -271,6 +271,12 @@ es: {
 (function () {
   const add = {
     fr: {
+      "Muscles worked": "Muscles travaillés",
+      "Front view": "Face",
+      "Back view": "Dos",
+      "Main": "Principal",
+      "Also": "Aussi",
+      "Photos show a close variation": "Les photos montrent une variante proche",
       "yrs": "ans",
       "Your training": "Ton entraînement",
       "App": "Appli",
@@ -337,6 +343,12 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+      "Muscles worked": "Gebruikte spieren",
+      "Front view": "Voorkant",
+      "Back view": "Achterkant",
+      "Main": "Hoofd",
+      "Also": "Ook",
+      "Photos show a close variation": "De foto's tonen een vergelijkbare variant",
       "yrs": "jaar",
       "Your training": "Jouw training",
       "App": "App",
@@ -403,6 +415,12 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+      "Muscles worked": "Çalışan kaslar",
+      "Front view": "Ön",
+      "Back view": "Arka",
+      "Main": "Ana",
+      "Also": "Ayrıca",
+      "Photos show a close variation": "Fotoğraflar benzer bir varyasyonu gösteriyor",
       "yrs": "yaş",
       "Your training": "Antrenmanın",
       "App": "Uygulama",
@@ -469,6 +487,12 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+      "Muscles worked": "Músculos trabajados",
+      "Front view": "Frente",
+      "Back view": "Espalda",
+      "Main": "Principal",
+      "Also": "También",
+      "Photos show a close variation": "Las fotos muestran una variante parecida",
       "yrs": "años",
       "Your training": "Tu entrenamiento",
       "App": "App",
