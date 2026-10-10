@@ -31,6 +31,9 @@ test('site and API routes', async ({ request }) => {
   expect((await request.get(URL + '/api/cron-status')).status()).toBe(401);
   expect((await request.get(URL + '/privacy.html')).ok()).toBeTruthy();
   const media = await request.get(URL + '/exercise-media.json'); expect(media.ok()).toBeTruthy();
+  for (const f of ['/apple-touch-icon.png', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png']) { // iPhone ignores SVG icons, so the home-screen icon must be a real PNG
+    const r = await request.get(URL + f); expect(r.ok(), f).toBeTruthy(); expect(r.headers()['content-type'], f).toContain('image/png');
+  }
   const photo = await request.get(URL + '/exercises/Goblet_Squat/0.webp'); expect(photo.ok()).toBeTruthy();
   expect(photo.headers()['content-type']).toContain('image/webp');
   expect((await request.get(URL + '/terms.html')).ok()).toBeTruthy();
