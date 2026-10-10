@@ -14,7 +14,7 @@ test('meal photo estimate', async ({ page }) => {
   test.setTimeout(180000);
   try {
     page.on('pageerror', (e) => out.errors.push(e.message));
-    await page.goto(URL);
+    await page.goto(URL + '?signin');
     await page.fill('#authEmail', EMAIL);
     await page.fill('#authPass', PASS);
     await page.click('#btnEmail');

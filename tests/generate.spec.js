@@ -12,7 +12,7 @@ test('generate a plan end to end', async ({ page }) => {
   test.setTimeout(300000);
   try {
     page.on('pageerror', (e) => out.pageErrors.push(e.message));
-    await page.goto(URL);
+    await page.goto(URL + '?signin');
     out.step = 'signin';
     await page.fill('#authEmail', EMAIL);
     await page.fill('#authPass', PASS);

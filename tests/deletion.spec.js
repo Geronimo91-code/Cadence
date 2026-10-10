@@ -24,7 +24,7 @@ test('account deletion leaves nothing behind', async ({ page }) => {
 
     // ---- 1. brand-new account ----
     out.step = 'signup';
-    await page.goto(URL);
+    await page.goto(URL + '?signin');
     await expect(page.locator('#auth')).toBeVisible({ timeout: 20000 });
     await page.click('#btnToggleMode');
     await page.fill('#authEmail', email);

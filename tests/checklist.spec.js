@@ -13,7 +13,7 @@ test('phase 1 checklist: exercise how-to', async ({ page }) => {
   const pass = 'QaPass-' + Math.random().toString(36).slice(2, 10) + '!9';
   try {
     page.on('pageerror', (e) => out.errors.push(e.message));
-    await page.goto(URL);
+    await page.goto(URL + '?signin');
     await expect(page.locator('#auth')).toBeVisible({ timeout: 20000 });
     await page.click('#btnToggleMode');
     await page.fill('#authEmail', email);

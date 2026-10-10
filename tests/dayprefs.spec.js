@@ -17,7 +17,7 @@ test('per-day preferences render and save', async ({ page, request }) => {
     out.servedVersion = (sw.match(/cadence-v\d+/) || [])[0] || null;
 
     page.on('pageerror', (e) => out.errors.push(e.message));
-    await page.goto(URL);
+    await page.goto(URL + '?signin');
     await page.fill('#authEmail', EMAIL);
     await page.fill('#authPass', PASS);
     await page.click('#btnEmail');

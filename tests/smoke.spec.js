@@ -6,7 +6,7 @@ const EMAIL = process.env.CADENCE_TEST_EMAIL;
 const PASS = process.env.CADENCE_TEST_PASSWORD;
 
 async function signIn(page) {
-  await page.goto(URL);
+  await page.goto(URL + '?signin');
   await expect(page.locator('#auth')).toBeVisible({ timeout: 20000 });
   await page.fill('#authEmail', EMAIL);
   await page.fill('#authPass', PASS);
@@ -14,6 +14,21 @@ async function signIn(page) {
   await expect(page.locator('#app:not(.hidden), #onboarding:not(.hidden)').first()).toBeVisible({ timeout: 30000 });
   if (await page.locator('#onboarding').isVisible()) throw new Error('Test account has no profile — complete onboarding once with it');
 }
+
+test('landing page for new visitors', async ({ page }) => {
+  await page.goto(URL);
+  await expect(page.locator('#landing')).toBeVisible({ timeout: 20000 });
+  await page.click('.ld-langs button[data-lang="fr"]');
+  await expect(page.locator('#btnLdStart')).toHaveText('Commencer');
+  await page.click('.ld-langs button[data-lang="en"]');
+  await page.click('#btnLdStart');
+  await expect(page.locator('#auth')).toBeVisible();
+  await expect(page.locator('#btnEmail')).toHaveText('Create account');
+  await page.click('#btnAuthBack');
+  await expect(page.locator('#landing')).toBeVisible();
+  await page.click('#btnLdSignIn');
+  await expect(page.locator('#btnEmail')).toHaveText('Sign in');
+});
 
 test('site and API routes', async ({ request }) => {
   expect((await request.get(URL)).ok()).toBeTruthy();

@@ -451,15 +451,234 @@ textarea.input { min-height: 90px; resize: vertical; }
 a.btn { text-decoration: none; }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
+
+/* ============================================================
+   Landing (signed-out visitors). Fixed palette: looks the same in light and dark.
+   ============================================================ */
+.ld { background: #F5F6F0; color: #12211A; }
+.ld svg { flex: 0 0 auto; }
+.ld-wrap { width: 100%; max-width: 960px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; }
+.ld-hero { background: #0F3D2A; color: #F5F6F0; padding-top: 18px; overflow: hidden; }
+.ld-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ld-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 22px; }
+.ld-brand svg { width: 36px; height: 36px; }
+.ld-langs { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #0A2A1D; }
+.ld-langs button { min-width: 40px; height: 36px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: #CFDCD3; font: 700 13px var(--font-body); cursor: pointer; }
+.ld-langs button[aria-pressed="true"] { background: #C8F169; color: #0F3D2A; }
+.ld-herogrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 28px; }
+.ld-copy { display: flex; flex-direction: column; gap: 18px; }
+.ld-copy h1 { margin: 0; font-size: clamp(40px, 10vw, 60px); line-height: 1; letter-spacing: -0.03em; color: #F5F6F0; }
+.ld-acc { color: #C8F169; }
+.ld-sub { margin: 0; font-size: 18px; line-height: 1.5; color: #CFDCD3; max-width: 380px; }
+.ld-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ld-checks li { display: flex; align-items: center; gap: 12px; font-size: 16px; color: #E4EDE7; }
+.ld-tick { width: 28px; height: 28px; border-radius: 50%; background: #1E5640; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.ld-tick svg { width: 15px; height: 15px; fill: none; stroke: #C8F169; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.ld-ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.ld-btn { min-height: 50px; padding: 0 24px; border: 0; border-radius: 14px; background: #C8F169; color: #0F3D2A; font: 700 16px var(--font-body); cursor: pointer; }
+.ld-btn.ghost { background: transparent; color: #F5F6F0; border: 1.5px solid #3E6B55; }
+.ld-btn:active { transform: scale(.98); }
+.ld-phones { position: relative; width: 410px; height: 540px; margin: 0 auto; }
+.ld-phone { position: absolute; box-sizing: border-box; }
+.ld-phone.back { left: 0; top: 70px; width: 220px; height: 460px; border-radius: 34px; background: #0A2A1D; padding: 9px; transform: rotate(-5deg); }
+.ld-phone.front { left: 170px; top: 20px; width: 240px; height: 500px; border-radius: 36px; background: #071F15; padding: 10px; transform: rotate(4deg); }
+.ld-scr { width: 100%; height: 100%; box-sizing: border-box; border-radius: 26px; background: #FFFFFF; color: #12211A; padding: 22px 16px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.ld-phone.back .ld-scr { background: #F5F6F0; gap: 12px; }
+.ld-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #1F7A4D; }
+.ld-ptitle { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; }
+.ld-bars { display: flex; gap: 6px; }
+.ld-bars i { flex: 1; height: 44px; border-radius: 8px; background: #1F7A4D; }
+.ld-bars i.off { background: #DDE3DA; }
+.ld-small { font-size: 12px; color: #4A5A52; }
+.ld-ready { margin-top: auto; padding: 10px 12px; border-radius: 10px; background: #E3F2E8; font-size: 12px; font-weight: 600; color: #0F3D2A; }
+.ld-tags { display: flex; gap: 6px; }
+.ld-tags span { padding: 4px 9px; border-radius: 999px; background: #E3F2E8; font-size: 11px; color: #0F3D2A; }
+.ld-ex { display: flex; align-items: center; gap: 10px; padding: 9px; border-radius: 12px; background: #F5F6F0; }
+.ld-ex.now { background: transparent; border: 1.5px solid #1F7A4D; }
+.ld-ex > i { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 8px; background: #CFE6D7; }
+.ld-ex > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ld-ex b { font-size: 12.5px; line-height: 1.2; }
+.ld-ex small { font-size: 11px; color: #4A5A52; }
+.ld-ex svg { width: 18px; height: 18px; fill: none; stroke: #1F7A4D; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.ld-logbtn { margin-top: auto; padding: 12px; border-radius: 12px; background: #0F3D2A; color: #C8F169; text-align: center; font-size: 14px; font-weight: 700; }
+.ld-sec { padding-top: 48px; }
+.ld-label { margin: 0 0 22px; font-family: var(--font-body); font-size: 13px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #1F7A4D; }
+.ld-steps { list-style: none; margin: 0; padding: 0; position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 12px; }
+.ld-steps li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.ld-steps b { font-size: 17px; }
+.ld-steps small { font-size: 14px; color: #4A5A52; }
+.ld-ring { width: 80px; height: 80px; border-radius: 50%; background: #FFFFFF; border: 2px solid #1F7A4D; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.ld-ring svg { width: 34px; height: 34px; fill: none; stroke: #1F7A4D; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ld-ring.on { background: #1F7A4D; }
+.ld-ring.on svg { stroke: #FFFFFF; }
+.ld-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.ld-card { background: #FFFFFF; border: 1px solid #DDE3DA; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.ld-vis { height: 130px; background: #E3F2E8; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 24px; box-sizing: border-box; }
+.ld-ctext { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 4px; }
+.ld-ctext b { font-size: 17px; }
+.ld-ctext small { font-size: 13.5px; color: #4A5A52; }
+.ld-fig { width: 78px; height: 92px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+.ld-fig svg { fill: none; stroke: #1F7A4D; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.ld-play { width: 46px; height: 46px; border-radius: 50%; background: #0F3D2A; display: flex; align-items: center; justify-content: center; }
+.ld-play svg { width: 18px; height: 18px; fill: #C8F169; }
+.ld-grow { align-items: flex-end; padding-bottom: 18px; gap: 10px; }
+.ld-grow i { flex: 1; max-width: 48px; border-radius: 5px 5px 0 0; background: #9CCBAE; }
+.ld-cam { width: 46px; height: 46px; border-radius: 12px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+.ld-cam svg { width: 24px; height: 24px; fill: none; stroke: #1F7A4D; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ld-notif { width: 100%; max-width: 340px; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 12px; }
+.ld-notif > div { min-width: 0; display: flex; flex-direction: column; }
+.ld-notif b { font-size: 13px; }
+.ld-notif small { font-size: 11.5px; color: #4A5A52; }
+.ld-nicon { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 8px; background: #0F3D2A; display: flex; align-items: center; justify-content: center; }
+.ld-nicon svg { width: 16px; height: 16px; fill: none; stroke: #C8F169; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.ld-board { flex-direction: column; align-items: stretch; gap: 7px; }
+.ld-board > div { width: 100%; max-width: 340px; margin: 0 auto; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; background: #FFFFFF; }
+.ld-board em { font-style: normal; font-size: 12px; font-weight: 700; color: #1F7A4D; width: 12px; }
+.ld-board i { width: 22px; height: 22px; border-radius: 50%; background: #1F7A4D; }
+.ld-board .bar { flex: 1; height: 6px; border-radius: 3px; background: #9CCBAE; }
+.ld-board .me { background: #0F3D2A; }
+.ld-board .me em { color: #C8F169; }
+.ld-board .me i { background: #C8F169; }
+.ld-board .me span { font-size: 12px; font-weight: 700; color: #FFFFFF; }
+.ld-trust { list-style: none; margin: 24px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 28px; }
+.ld-trust li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #2C4A3B; }
+.ld-trust svg { width: 20px; height: 20px; fill: none; stroke: #1F7A4D; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ld-final { padding: 28px 24px; border-radius: 20px; background: #0F3D2A; color: #F5F6F0; display: flex; flex-direction: column; gap: 18px; }
+.ld-final h2 { margin: 0 0 6px; font-size: 26px; color: #F5F6F0; }
+.ld-final p { margin: 0; color: #CFDCD3; font-size: 15px; }
+.ld-foot { text-align: center; margin: 22px 0 32px; font-size: 13px; color: #4A5A52; }
+.ld-foot a { color: #4A5A52; }
+.auth-back { align-self: flex-start; margin: 12px 0 -8px -10px; }
+@media (max-width: 480px) {
+  .ld-phones { transform: scale(.76); transform-origin: top center; margin-left: calc(50% - 205px); margin-bottom: -130px; }
+}
+@media (min-width: 600px) {
+  .ld-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ld-final { flex-direction: row; align-items: center; justify-content: space-between; padding: 32px 36px; }
+}
+@media (min-width: 760px) {
+  .ld-herogrid { grid-template-columns: minmax(0, 1fr) 420px; align-items: start; padding-top: 36px; }
+  .ld-copy { padding-top: 24px; }
+  .ld-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ld-steps::before { content: ''; position: absolute; left: 12%; right: 12%; top: 40px; height: 2px; background: #BFD3C6; }
+  .ld-sec { padding-top: 60px; }
+}
+@media (min-width: 900px) {
+  .ld-cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .ld-card { grid-column: span 2; }
+  .ld-card.wide { grid-column: span 3; }
+}
 </style>
 </head>
 <body>
 
 <div id="loading"><div class="spinner"></div></div>
 
+<!-- ================= LANDING (signed-out visitors) ================= -->
+<section id="landing" class="screen hidden ld">
+  <header class="ld-hero">
+    <div class="ld-wrap">
+      <div class="ld-top">
+        <div class="ld-brand">
+          <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#C8F169"/><g fill="#0F3D2A"><rect x="96" y="256" width="40" height="120" rx="14"/><rect x="164" y="200" width="40" height="176" rx="14"/><rect x="232" y="136" width="40" height="240" rx="14"/><rect x="300" y="200" width="40" height="176" rx="14"/><rect x="368" y="256" width="40" height="120" rx="14"/></g></svg>
+          <span>Cadence</span>
+        </div>
+        <div class="ld-langs" role="group" aria-label="Language">
+          <button type="button" data-lang="en">EN</button><button type="button" data-lang="fr">FR</button><button type="button" data-lang="nl">NL</button><button type="button" data-lang="tr">TR</button><button type="button" data-lang="es">ES</button>
+        </div>
+      </div>
+      <div class="ld-herogrid">
+        <div class="ld-copy">
+          <h1><span data-i18n="Your plan, rebuilt">Your plan, rebuilt</span> <span class="ld-acc" data-i18n="every week.">every week.</span></h1>
+          <p class="ld-sub" data-i18n="AI training that learns from what you actually did.">AI training that learns from what you actually did.</p>
+          <ul class="ld-checks">
+            <li><span class="ld-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span data-i18n="Any sport, any level">Any sport, any level</span></li>
+            <li><span class="ld-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span data-i18n="Fits your schedule">Fits your schedule</span></li>
+            <li><span class="ld-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span data-i18n="Peaks for your competition">Peaks for your competition</span></li>
+          </ul>
+          <div class="ld-ctas">
+            <button type="button" class="ld-btn" id="btnLdStart" data-i18n="Get started">Get started</button>
+            <button type="button" class="ld-btn ghost" id="btnLdSignIn" data-i18n="I already have an account">I already have an account</button>
+          </div>
+        </div>
+        <div class="ld-phones" aria-hidden="true">
+          <div class="ld-phone back"><div class="ld-scr">
+            <div class="ld-eyebrow" data-i18n="Weekly review">Weekly review</div>
+            <div class="ld-ptitle" data-i18n="Strong week">Strong week</div>
+            <div class="ld-bars"><i></i><i></i><i></i><i class="off"></i></div>
+            <div class="ld-small" data-i18n="3 of 4 sessions done">3 of 4 sessions done</div>
+            <svg width="100%" height="70" viewBox="0 0 186 70" preserveAspectRatio="none"><path d="M4 60 L40 50 L76 54 L112 34 L148 26 L182 10" fill="none" stroke="#1F7A4D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="182" cy="10" r="5" fill="#1F7A4D"/></svg>
+            <div class="ld-ready" data-i18n="Next week is ready">Next week is ready</div>
+          </div></div>
+          <div class="ld-phone front"><div class="ld-scr">
+            <div class="ld-eyebrow" data-i18n="Today">Today</div>
+            <div class="ld-ptitle" data-i18n="Lower body strength">Lower body strength</div>
+            <div class="ld-tags"><span data-i18n="50 min">50 min</span><span data-i18n="4 exercises">4 exercises</span></div>
+            <div class="ld-ex done"><i></i><div><b data-i18n="Back squat">Back squat</b><small>4 × 6</small></div><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></div>
+            <div class="ld-ex done"><i></i><div><b data-i18n="Romanian deadlift">Romanian deadlift</b><small>3 × 8</small></div><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></div>
+            <div class="ld-ex now"><i></i><div><b data-i18n="Walking lunge">Walking lunge</b><small>3 × 10</small></div></div>
+            <div class="ld-ex"><i></i><div><b data-i18n="Calf raise">Calf raise</b><small>3 × 15</small></div></div>
+            <div class="ld-logbtn" data-i18n="Log set">Log set</div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="ld-wrap ld-sec">
+    <h2 class="ld-label" data-i18n="How it works">How it works</h2>
+    <ol class="ld-steps">
+      <li><span class="ld-ring"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><b data-i18n="Tell it about you">Tell it about you</b><small data-i18n="Sport · goals · free days">Sport · goals · free days</small></li>
+      <li><span class="ld-ring"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><b data-i18n="Get your week">Get your week</b><small data-i18n="Built by AI for you">Built by AI for you</small></li>
+      <li><span class="ld-ring"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6v12M18 6v12M3 9v6M21 9v6M6 12h12"/></svg></span><b data-i18n="Train &amp; log">Train &amp; log</b><small data-i18n="Sets · weights · effort">Sets · weights · effort</small></li>
+      <li><span class="ld-ring on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></span><b data-i18n="It adapts">It adapts</b><small data-i18n="New plan every week">New plan every week</small></li>
+    </ol>
+  </section>
+
+  <section class="ld-wrap ld-sec">
+    <h2 class="ld-label" data-i18n="Inside the app">Inside the app</h2>
+    <div class="ld-cards">
+      <div class="ld-card">
+        <div class="ld-vis"><div class="ld-fig"><svg width="44" height="60" viewBox="0 0 44 60" aria-hidden="true"><circle cx="22" cy="8" r="5"/><path d="M22 14v18M10 22h24M22 32l-9 12v12M22 32l9 12v12"/></svg></div><div class="ld-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></div></div>
+        <div class="ld-ctext"><b data-i18n="See every move">See every move</b><small data-i18n="Photos, form tips, videos">Photos, form tips, videos</small></div>
+      </div>
+      <div class="ld-card">
+        <div class="ld-vis ld-grow"><i style="height:30px"></i><i style="height:44px"></i><i style="height:52px;background:#6FB28A"></i><i style="height:70px;background:#3F9367"></i><i style="height:92px;background:#1F7A4D"></i></div>
+        <div class="ld-ctext"><b data-i18n="Watch yourself grow">Watch yourself grow</b><small data-i18n="Progress charts over months">Progress charts over months</small></div>
+      </div>
+      <div class="ld-card">
+        <div class="ld-vis"><svg width="92" height="92" viewBox="0 0 92 92" aria-hidden="true"><circle cx="46" cy="46" r="36" fill="none" stroke="#FFFFFF" stroke-width="12"/><circle cx="46" cy="46" r="36" fill="none" stroke="#1F7A4D" stroke-width="12" stroke-dasharray="160 226" stroke-linecap="round" transform="rotate(-90 46 46)"/><circle cx="46" cy="46" r="36" fill="none" stroke="#E9A23B" stroke-width="12" stroke-dasharray="36 226" stroke-dashoffset="-166" stroke-linecap="round" transform="rotate(-90 46 46)"/></svg><div class="ld-cam"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div></div>
+        <div class="ld-ctext"><b data-i18n="Eat for your goals">Eat for your goals</b><small data-i18n="Snap a meal, get the macros">Snap a meal, get the macros</small></div>
+      </div>
+      <div class="ld-card wide">
+        <div class="ld-vis"><div class="ld-notif"><span class="ld-nicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></span><div><b data-i18n="Today: Speed &amp; agility">Today: Speed &amp; agility</b><small data-i18n="40 min · tap to start">40 min · tap to start</small></div></div></div>
+        <div class="ld-ctext"><b data-i18n="Never miss a day">Never miss a day</b><small data-i18n="Daily reminder + your calendar">Daily reminder + your calendar</small></div>
+      </div>
+      <div class="ld-card wide">
+        <div class="ld-vis ld-board"><div><em>1</em><i></i><span class="bar"></span></div><div class="me"><em>2</em><i></i><span data-i18n="You">You</span></div><div><em>3</em><i style="background:#6FB28A"></i><span class="bar" style="background:#CFE6D7"></span></div></div>
+        <div class="ld-ctext"><b data-i18n="Train with your club">Train with your club</b><small data-i18n="Coach notes + leaderboard">Coach notes + leaderboard</small></div>
+      </div>
+    </div>
+    <ul class="ld-trust">
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span data-i18n="Food and weight stay private">Food and weight stay private</span></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span data-i18n="Export or delete anytime">Export or delete anytime</span></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg><span data-i18n="Powered by AI">Powered by AI</span></li>
+    </ul>
+  </section>
+
+  <section class="ld-wrap ld-sec">
+    <div class="ld-final">
+      <div><h2 data-i18n="Ready for your first week?">Ready for your first week?</h2><p data-i18n="It takes about a minute to set up.">It takes about a minute to set up.</p></div>
+      <button type="button" class="ld-btn" id="btnLdStart2" data-i18n="Get started">Get started</button>
+    </div>
+    <p class="ld-foot"><a href="/privacy.html" data-i18n="Privacy">Privacy</a> · <a href="/terms.html" data-i18n="Terms">Terms</a></p>
+  </section>
+</section>
+
 <!-- ================= AUTH ================= -->
 <section id="auth" class="screen hidden">
   <div class="container">
+    <button type="button" class="btn ghost sm auth-back" id="btnAuthBack" data-i18n="Back">Back</button>
     <div class="brand">
       <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1E6B49"/><g fill="#F6F7F4"><rect x="96" y="256" width="40" height="120" rx="14"/><rect x="164" y="200" width="40" height="176" rx="14"/><rect x="232" y="136" width="40" height="240" rx="14"/><rect x="300" y="200" width="40" height="176" rx="14"/><rect x="368" y="256" width="40" height="120" rx="14"/></g></svg>
       <h1>Cadence</h1>
@@ -624,7 +843,7 @@ function resetSession() {
   const view = document.getElementById('view'); if (view) view.innerHTML = '';
 }
 
-function show(id) { translateStatic(); ['auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
+function show(id) { translateStatic(); ['landing', 'auth', 'onboarding', 'app'].forEach((s) => $('#' + s).classList.toggle('hidden', s !== id)); $('#loading').classList.add('hidden'); }
 let toastTimer;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600); }
 function todayIndex() { return (new Date().getDay() + 6) % 7; }
@@ -680,6 +899,30 @@ function toggleAuthMode() {
   $('#authPass').autocomplete = signUpMode ? 'new-password' : 'current-password';
 }
 $('#btnToggleMode').onclick = toggleAuthMode;
+
+// Landing page for signed-out visitors. People who signed in on this device before, the installed app and ?signin go straight to sign-in.
+function signedOutScreen() {
+  let seen = false;
+  try { seen = !!localStorage.getItem('cadence-seen'); } catch (_) { /* storage blocked */ }
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  return (seen || standalone || new URLSearchParams(location.search).has('signin')) ? 'auth' : 'landing';
+}
+let authFromLanding = false;
+function openAuth(wantSignUp) {
+  show('auth');
+  signUpMode = !wantSignUp; toggleAuthMode();
+  if (!authFromLanding) { authFromLanding = true; history.pushState({ cadence: 'auth' }, ''); }
+  window.scrollTo(0, 0);
+}
+function backToLanding() { authFromLanding = false; show('landing'); window.scrollTo(0, 0); }
+function syncLandingLang() { $$('.ld-langs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG))); }
+$$('.ld-langs button').forEach((b) => { b.onclick = () => { setLang(b.dataset.lang); syncLandingLang(); }; });
+$('#btnLdStart').onclick = () => openAuth(true);
+$('#btnLdStart2').onclick = () => openAuth(true);
+$('#btnLdSignIn').onclick = () => openAuth(false);
+$('#btnAuthBack').onclick = () => { if (authFromLanding) history.back(); else backToLanding(); };
+window.addEventListener('popstate', () => { if (!state.user && authFromLanding) backToLanding(); });
+syncLandingLang();
 $('#btnGoogle').onclick = async () => {
   $('#authError').textContent = '';
   try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
@@ -712,7 +955,8 @@ auth.onAuthStateChanged(async (user) => {
   if (!user || sessionUid !== user.uid) resetSession();
   sessionUid = user ? user.uid : null;
   state.user = user;
-  if (!user) { show('auth'); return; }
+  if (!user) { show(signedOutScreen()); return; }
+  try { localStorage.setItem('cadence-seen', '1'); } catch (_) { /* storage blocked */ }
   try {
     const snap = await db.doc('users/' + user.uid).get();
     state.profile = snap.exists ? snap.data().profile : null;
