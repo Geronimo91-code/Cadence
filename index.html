@@ -186,6 +186,12 @@ textarea.input { min-height: 90px; resize: vertical; }
 .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .auth-switch { text-align: center; margin-top: 18px; font-size: .95rem; color: var(--ink-2); }
 .auth-switch button { color: var(--green); font-weight: 600; }
+.auth-forgot { display: block; margin: -4px 0 14px auto; padding: 6px 0; background: none; border: 0; color: var(--green); font: 600 .88rem var(--font-body); cursor: pointer; }
+.auth-info { margin-top: 10px; padding: 12px 14px; border-radius: var(--r-m); background: var(--sage-2); color: var(--ink); font-size: .9rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.inbox-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.inbox-item:last-child { border-bottom: 0; }
+.inbox-item pre { white-space: pre-wrap; word-break: break-word; font: .78rem/1.4 ui-monospace, monospace; color: var(--ink-2); margin-top: 6px; }
 .error { color: var(--red); font-size: .9rem; margin-top: 10px; min-height: 1.3em; }
 
 /* ---------- Onboarding ---------- */
@@ -807,8 +813,10 @@ a.btn { text-decoration: none; }
     <div class="divider" data-i18n="or with email">or with email</div>
     <div class="field"><input class="input" id="authEmail" type="email" placeholder="Email" data-i18n-ph="Email" autocomplete="email"></div>
     <div class="field"><input class="input" id="authPass" type="password" placeholder="Password (8+ characters)" data-i18n-ph="Password (8+ characters)" autocomplete="current-password"></div>
+    <button type="button" class="auth-forgot" id="btnForgot" data-i18n="Forgot password?">Forgot password?</button>
     <button class="btn" id="btnEmail" data-i18n="Sign in">Sign in</button>
     <div class="error" id="authError"></div>
+    <div class="auth-info hidden" id="authInfo"></div>
     <div class="auth-switch" id="authSwitch">New here? <button id="btnToggleMode" data-i18n="Create an account">Create an account</button></div>
     <p class="muted small auth-note" data-i18n="Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.">Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.</p>
     <p class="muted small" style="text-align:center;margin-top:12px"><a href="/privacy.html" style="color:var(--ink-2)" data-i18n="Privacy">Privacy</a> · <a href="/terms.html" style="color:var(--ink-2)" data-i18n="Terms">Terms</a></p>
@@ -915,7 +923,7 @@ function translateStatic() {
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const freshUserState = () => ({ profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null, clubIds: [], clubId: null, club: null, me: null, clubNames: {} });
+const freshUserState = () => ({ profile: null, plan: null, plans: [], logs: {}, review: null, view: 'today', planWeek: null, clubIds: [], clubId: null, club: null, me: null, clubNames: {}, isAdmin: undefined });
 const state = { user: null, ...freshUserState() };
 let sessionUid = null;
 
@@ -1009,6 +1017,8 @@ function toggleAuthMode() {
   $('#authSwitch').innerHTML = signUpMode ? T('Already have an account?') + ' <button id="btnToggleMode">' + T('Sign in') + '</button>' : T('New here?') + ' <button id="btnToggleMode">' + T('Create an account') + '</button>';
   $('#btnToggleMode').onclick = toggleAuthMode;
   $('#authPass').autocomplete = signUpMode ? 'new-password' : 'current-password';
+  $('#btnForgot').classList.toggle('hidden', signUpMode);
+  $('#authInfo').classList.add('hidden'); $('#authError').textContent = '';
 }
 $('#btnToggleMode').onclick = toggleAuthMode;
 
@@ -1030,6 +1040,29 @@ $('#btnLdSignIn').onclick = () => openAuth(false);
 $('#btnAuthBack').onclick = () => { if (authFromLanding) history.back(); else backToLanding(); };
 window.addEventListener('popstate', () => { if (!state.user && authFromLanding) backToLanding(); });
 syncLandingLang();
+
+$('#btnForgot').onclick = async () => {
+  const email = $('#authEmail').value.trim();
+  $('#authError').textContent = ''; $('#authInfo').classList.add('hidden');
+  if (!email) { $('#authError').textContent = T('Enter your email above first.'); $('#authEmail').focus(); return; }
+  try { auth.languageCode = LANG; await auth.sendPasswordResetEmail(email); }
+  catch (e) { if (e.code === 'auth/invalid-email') { $('#authError').textContent = friendlyAuthError(e); return; } if (e.code === 'auth/too-many-requests') { $('#authError').textContent = friendlyAuthError(e); return; } }
+  $('#authInfo').textContent = T('If an account exists for that email, a reset link is on its way. Check your spam folder too.');
+  $('#authInfo').classList.remove('hidden');
+};
+
+// Send uncaught errors to the tester inbox (signed-in users only, a few per page load).
+let errReports = 0;
+function reportClientError(message, stack) {
+  if (!auth.currentUser || errReports >= 5) return;
+  errReports++;
+  auth.currentUser.getIdToken().then((tk) => fetch('/api/report', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk },
+    body: JSON.stringify({ type: 'error', message: String(message || 'unknown').slice(0, 500), stack: String(stack || '').slice(0, 1500), view: state.view || '', lang: LANG, path: location.pathname }),
+  })).catch(() => {});
+}
+window.addEventListener('error', (e) => reportClientError(e.message, e.error && e.error.stack));
+window.addEventListener('unhandledrejection', (e) => reportClientError((e.reason && e.reason.message) || e.reason, e.reason && e.reason.stack));
 $('#btnGoogle').onclick = async () => {
   $('#authError').textContent = '';
   try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
@@ -2499,6 +2532,57 @@ function renderClubJoin(el, adding) {
   };
 }
 
+function openFeedback() {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Send feedback')}</h2></div>
+    <h1>${T('What happened?')}</h1>
+    <p class="muted" style="margin-bottom:12px">${T('What were you doing, what did you expect, and what happened instead?')}</p>
+    <label class="sr-only" for="fbText">${T('Send feedback')}</label>
+    <textarea class="input" id="fbText" rows="7" maxlength="4000"></textarea>
+    <div class="error" id="fbErr"></div>
+    <button class="btn" id="fbSend" style="margin-top:6px">${T('Send')}</button>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  $('#fbText', sheet).oninput = () => { $('#fbErr', sheet).textContent = ''; };
+  $('#fbSend', sheet).onclick = async (ev) => {
+    const text = $('#fbText', sheet).value.trim();
+    if (!text) { $('#fbErr', sheet).textContent = T('Write a few words first.'); return; }
+    const b = ev.currentTarget; b.disabled = true;
+    try {
+      await api('/api/report', { type: 'feedback', text, view: state.view || '', lang: LANG });
+      history.back(); toast(T('Thanks! Your feedback was sent.'));
+    } catch (e) { $('#fbErr', sheet).textContent = T('Could not send. Check your connection and try again.'); b.disabled = false; }
+  };
+}
+
+// Only the accounts listed as admins on the server see the tester inbox.
+async function showInboxIfAdmin(el) {
+  if (state.isAdmin === undefined) { try { state.isAdmin = !!(await api('/api/report', { action: 'whoami' })).admin; } catch (_) { return; } }
+  if (!state.isAdmin || state.view !== 'profile' || $('#inboxCard')) return;
+  el.insertAdjacentHTML('afterbegin', `<div class="card" id="inboxCard"><div class="list"><div class="li"><div><div>Tester inbox</div><span class="muted">Feedback and problems from testers.</span></div><button class="btn sm secondary" id="btnInbox">Open</button></div></div></div>`);
+  $('#btnInbox').onclick = openInbox;
+}
+
+async function openInbox() {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
+  sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>Tester inbox</h2></div><div id="inboxBody"><p class="muted">${T('Loading…')}</p></div></div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  const when = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+  try {
+    const { feedback, problems } = await api('/api/report', { action: 'inbox' });
+    const fbHtml = feedback.length ? feedback.map((f) => `<div class="inbox-item"><div class="muted small">${esc(when(f.createdAt))} · ${esc(f.email || f.uid)} · ${esc(f.view || '')} · ${esc(f.lang || '')}</div><div style="margin-top:4px;white-space:pre-wrap">${esc(f.text)}</div></div>`).join('') : '<p class="muted">Nothing here yet.</p>';
+    const prHtml = problems.length ? problems.map((p) => `<div class="inbox-item"><div class="muted small">${esc(when(p.createdAt))} · ${esc(p.source === 'server' ? p.route : 'app · ' + (p.view || ''))}${p.fallback ? ' · fell back to template' : ''} · ${esc(p.email || p.uid || '')}</div><div style="margin-top:4px">${esc(p.message)}</div>${p.stack ? `<pre>${esc(p.stack)}</pre>` : ''}</div>`).join('') : '<p class="muted">Nothing here yet.</p>';
+    $('#inboxBody', sheet).innerHTML = `<div class="card"><h3>Feedback (${feedback.length})</h3>${fbHtml}</div><div class="card"><h3>Problems (${problems.length})</h3>${prHtml}</div>`;
+  } catch (e) { $('#inboxBody', sheet).innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+}
+
 function viewProfile(el) {
   const p = state.profile;
   el.insertAdjacentHTML('beforeend', `
@@ -2530,6 +2614,7 @@ function viewProfile(el) {
     </div>
     <div class="card">
       <div class="list">
+        <div class="li"><div><div>${T('Send feedback')}</div><span class="muted">${T('Something broken, confusing or missing? Tell us.')}</span></div><button class="btn sm secondary" id="btnFeedback">${T('Write')}</button></div>
         <div class="li"><span>${T('Privacy and terms')}</span><span><a href="/privacy.html" class="muted">${T('Privacy')}</a> · <a href="/terms.html" class="muted">${T('Terms')}</a></span></div>
         <div class="li"><span>${T('Signed in as')}</span><span class="muted">${esc(state.user.email || T('Google account'))}</span></div>
         <div class="li"><div><div>${T('Export my data')}</div><span class="muted">${T('Everything Cadence stores about you, as a JSON file.')}</span></div><button class="btn sm secondary" id="btnExport">${T('Export')}</button></div>
@@ -2554,6 +2639,8 @@ function viewProfile(el) {
     } catch (e) { toast(T('Could not create the link.')); b.disabled = false; }
   };
   setupInstall();
+  $('#btnFeedback').onclick = openFeedback;
+  showInboxIfAdmin(el);
   $('#btnExport').onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
     try {

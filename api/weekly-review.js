@@ -1,5 +1,5 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, logProblem } from './_lib.js';
 
 export { reviewWeek };
 
@@ -22,6 +22,7 @@ export default async function handler(req, res) {
     return res.status(200).json(out);
   } catch (e) {
     console.error(e);
+    await logProblem(uid, 'weekly-review', e);
     const busy = /429|rate|no free|unavailable|did not return JSON|missing sessions|timed out|Out of time/i.test(e.message);
     return res.status(busy ? 503 : 500).json({ error: busy ? 'The free model is busy or slow right now. Try again in a minute.' : 'Could not build the review right now', detail: String(e && e.message || e).slice(0, 300) });
   }
@@ -164,6 +165,7 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
       // The providers are down or slow: still close the week with the real numbers and a template next week
       modelFailed = String(e && e.message || e).slice(0, 200);
       console.warn('review model failed, using fallback:', modelFailed);
+      await logProblem(uid, 'weekly-review', modelFailed, { fallback: 'template' });
       next = templatePlan(profile, nextId);
       out = {};
     }

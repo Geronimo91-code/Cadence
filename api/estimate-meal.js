@@ -1,5 +1,5 @@
 // POST /api/estimate-meal { description?, image? (data URL, jpeg ≤ ~1 MB) } → { name, kcal, protein, carbs, fat }
-import { requireUser, callModel, checkLimit, db, LANG_NAMES } from './_lib.js';
+import { requireUser, callModel, checkLimit, db, LANG_NAMES, logProblem } from './_lib.js';
 
 // Photos arrive as base64 data URLs, which are far larger than the default body limit
 export const config = { api: { bodyParser: { sizeLimit: '6mb' } } };
@@ -29,6 +29,7 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (e) {
     console.error(e);
+    await logProblem(user.uid, 'estimate-meal', e);
     const msg = String(e && e.message || e);
     const busy = /429|quota|rate|timed out|unavailable/i.test(msg);
     return res.status(busy ? 429 : 503).json({ error: busy ? 'The model is busy right now. Try again in a minute, or enter the numbers manually.' : 'Could not estimate right now. Enter the numbers manually.', detail: msg.slice(0, 300) });

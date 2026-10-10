@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, trainingHistoryBlock } from './_lib.js';
+import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, trainingHistoryBlock, logProblem } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -55,6 +55,7 @@ ${planShape(id)}`;
     return res.status(200).json(plan);
   } catch (e) {
     console.error(e);
+    await logProblem(user.uid, 'generate-plan', e, { fallback: 'template' });
     // Rather than leave the athlete with nothing, fall back to a template week built from their settings
     try {
       const plan = templatePlan(profile, id);

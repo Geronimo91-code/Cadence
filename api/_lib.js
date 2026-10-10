@@ -39,6 +39,13 @@ export async function requireUser(req, res) {
   }
 }
 
+// Records a server-side failure (model errors, fallbacks) in problems/{id} so they show up in the tester inbox.
+export async function logProblem(uid, route, err, extra = {}) {
+  try {
+    await db().collection('problems').add({ source: 'server', route, uid: uid || null, message: String((err && err.message) || err).slice(0, 500), ...extra, createdAt: new Date().toISOString() });
+  } catch (_) { /* logging must never break the request */ }
+}
+
 export function requireCron(req, res) {
   const ok = req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
   if (!ok) res.status(401).json({ error: 'Unauthorized' });
