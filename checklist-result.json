@@ -1,0 +1,83 @@
+{
+  "step": "done",
+  "checks": {
+    "every exercise has a How to button": {
+      "pass": true,
+      "detail": 3
+    },
+    "back squat: 2 photos load": {
+      "pass": true,
+      "detail": {
+        "photos": 2,
+        "steps": 6,
+        "muscles": 6,
+        "href": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
+      }
+    },
+    "back squat: steps and muscles shown": {
+      "pass": true,
+      "detail": {
+        "photos": 2,
+        "steps": 6,
+        "muscles": 6,
+        "href": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
+      }
+    },
+    "back squat: lift video search": {
+      "pass": true,
+      "detail": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
+    },
+    "Back (phone back button) closes only the how-to sheet": {
+      "pass": true,
+      "detail": 1
+    },
+    "push jerk: 2 photos load": {
+      "pass": true,
+      "detail": 2
+    },
+    "unknown exercise: still gets a video link and the no-photo note": {
+      "pass": false,
+      "detail": {
+        "video": "https://www.youtube.com/results?search_query=Zottman%20curl%20exercise%20proper%20form",
+        "note": "seeded"
+      }
+    },
+    "swap: How to follows the new exercise": {
+      "pass": true,
+      "detail": {
+        "title": "Goblet squat",
+        "photos": 2
+      }
+    },
+    "sprint: no photos, shows the note": {
+      "pass": false,
+      "detail": {
+        "photos": 0,
+        "note": "seeded",
+        "href": "https://www.youtube.com/results?search_query=Sprint%2020%20m%20drill%20technique%20how%20to"
+      }
+    },
+    "sprint: video search asks for drill technique": {
+      "pass": true,
+      "detail": "https://www.youtube.com/results?search_query=Sprint%2020%20m%20drill%20technique%20how%20to"
+    },
+    "Turkish: how-to labels are translated": {
+      "pass": true,
+      "detail": {
+        "tr": {
+          "how": "Nasıl yapılır",
+          "yt": "YouTube'da izle"
+        },
+        "trText": {
+          "h2": "Nasıl yapılır",
+          "yt": "▶ YouTube'da izle"
+        }
+      }
+    },
+    "French: labels are translated": {
+      "pass": true,
+      "detail": "Comment faire"
+    }
+  },
+  "errors": []
+}
