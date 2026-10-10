@@ -8,6 +8,10 @@ on:
         description: 'Run the account deletion test (creates and deletes a throwaway account)'
         type: boolean
         default: false
+      checklist:
+        description: 'Run the phase 1 checklist (throwaway account, seeded plan, no model quota)'
+        type: boolean
+        default: false
       review:
         description: 'Run the close-the-week test (spends model quota)'
         type: boolean
@@ -161,6 +165,14 @@ jobs:
       - name: 'Deletion: publish result'
         if: always() && inputs.deletion
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'deletion-result.json' }
+        run: node publish-result.mjs
+      - name: 'Checklist: run'
+        if: always() && inputs.checklist
+        env: { RUN_CHECKLIST: '1' }
+        run: npx playwright test -g "phase 1 checklist"
+      - name: 'Checklist: publish result'
+        if: always() && inputs.checklist
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}', RESULT_FILE: 'checklist-result.json' }
         run: node publish-result.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
