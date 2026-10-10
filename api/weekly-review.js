@@ -43,7 +43,10 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
   // Training load: session RPE × minutes, this week vs the previous four (acute:chronic)
   const loadWeeks = [reviewWeek, ...[1, 2, 3, 4].map((n) => weekIdOffset(reviewWeek, -n))];
   const loadSnaps = await Promise.all(loadWeeks.map((w) => db().collection(`users/${uid}/logs`).where('weekId', '==', w).get()));
-  const weekLoads = loadSnaps.map((snap) => snap.docs.reduce((a, d) => { const l = d.data(); return a + ((l.sessionRpe || 0) * (l.durationMin || 0)); }, 0));
+  // A session logged without an RPE still counts: estimate it from the session type (games and tournaments are hard)
+  const DEFAULT_RPE = { match: 8, skills: 6, conditioning: 7, speed: 7, strength: 6, mobility: 3 };
+  const loadOf = (l) => (l.status === 'skipped' || !l.status ? 0 : (l.sessionRpe || DEFAULT_RPE[l.type] || 6) * (l.durationMin || 0));
+  const weekLoads = loadSnaps.map((snap) => snap.docs.reduce((a, d) => a + loadOf(d.data()), 0));
   const acute = weekLoads[0];
   const priors = weekLoads.slice(1).filter((v) => v > 0);
   const chronic = priors.length ? priors.reduce((a, b) => a + b, 0) / priors.length : 0;
@@ -88,6 +91,13 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
     }
     return line;
   });
+  // Sessions the athlete added that were not in the plan (games, tournaments, pick-up, runs): real load, not part of adherence
+  const extras = [...logs.values()].filter((l) => l.extra && l.status !== 'skipped').sort((a, b) => (a.day || 0) - (b.day || 0));
+  stats.extra = extras.length;
+  extras.forEach((l) => {
+    if (l.sessionRpe) rpes.push(l.sessionRpe);
+    sessionLines.push(`- ${DAY_NAMES[l.day] || ''} · EXTRA, not in the plan: ${l.title} (${l.type})${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`);
+  });
   stats.avgRpe = rpes.length ? Math.round((rpes.reduce((a, b) => a + b, 0) / rpes.length) * 10) / 10 : null;
   stats.adherence = stats.planned ? Math.round(((stats.done + stats.partial * 0.5) / stats.planned) * 100) : 0;
 
@@ -120,6 +130,7 @@ Review principles:
 - Injury or pain mentioned in a note overrides progression for that movement.
 - Readiness: repeated "tired" or "sore" entries before sessions mean the athlete is under-recovered — reduce volume before adding intensity.
 - Training load: an acute:chronic ratio above 1.3 means the jump in load was large — hold or reduce volume next week and say so plainly. Below 0.8 means detraining — it is safe to add. Between 0.8 and 1.3 is the comfortable zone. Ignore the ratio when there is no four-week history.
+- Extra sessions marked EXTRA (games, tournaments, pick-up, runs) are real training load. Count them, and after a heavy games or tournament weekend keep the first days of next week light (mobility, easy technique, no max-effort work).
 - When the athlete swapped, added or replaced exercises or whole sessions, take that as a signal about what actually fits their week and equipment: keep what they chose if it serves the goal, and say so in the adjustments.
 - If a coach's note is given, treat it as an instruction from the athlete's coach and follow it, mentioning it in the adjustments.
 - Stay in the periodisation phase given for next week.

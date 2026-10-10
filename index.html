@@ -186,6 +186,11 @@ textarea.input { min-height: 90px; resize: vertical; }
 .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .auth-switch { text-align: center; margin-top: 18px; font-size: .95rem; color: var(--ink-2); }
 .auth-switch button { color: var(--green); font-weight: 600; }
+.todayhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.streak { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; border: 0; background: var(--amber-2); color: var(--amber); font: 700 .82rem var(--font-body); cursor: pointer; white-space: nowrap; }
+.streak.cold { background: var(--sage-2); color: var(--ink-2); }
+.extra-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.extra-row:last-of-type { border-bottom: 0; }
 .auth-forgot { display: block; margin: -4px 0 14px auto; padding: 6px 0; background: none; border: 0; color: var(--green); font: 600 .88rem var(--font-body); cursor: pointer; }
 .auth-info { margin-top: 10px; padding: 12px 14px; border-radius: var(--r-m); background: var(--sage-2); color: var(--ink); font-size: .9rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -965,7 +970,7 @@ async function wipeThisDevice() {
 
 function resetSession() {
   Object.assign(state, freshUserState());
-  exHistory = null; nutDay = null; progMonths = 3; ob = { step: 0, data: {} };
+  exHistory = null; streakCache = null; nutDay = null; progMonths = 3; ob = { step: 0, data: {} };
   try { stopRest(); } catch (_) { /* timer not started */ }
   sheetStack.length = 0;
   document.querySelectorAll('.sheet, .dlg, .timer').forEach((el) => el.remove());
@@ -1490,6 +1495,33 @@ function openReview(r) {
 }
 function sessionKey(wk, day, slot) { return wk + '-' + day + (slot ? '-' + slot : ''); }
 let exHistory = null;
+// ---- weekly streak: weeks in a row with at least 2 sessions logged (1 if the athlete trains once a week) ----
+let streakCache = null;
+async function getStreak() {
+  if (streakCache) return streakCache;
+  const need = Math.min(2, Math.max(1, (state.profile?.days || []).length));
+  const perWeek = new Map();
+  try {
+    const q = await db.collection('users/' + state.user.uid + '/logs').orderBy('loggedAt', 'desc').limit(250).get();
+    q.forEach((d) => { const l = d.data(); if (!l.weekId || !l.status || l.status === 'skipped') return; perWeek.set(l.weekId, (perWeek.get(l.weekId) || 0) + (l.status === 'partial' ? 0.5 : 1)); });
+  } catch (e) { console.error(e); return null; }
+  const thisCount = perWeek.get(isoWeekId()) || 0;
+  let streak = thisCount >= need ? 1 : 0;
+  for (let i = 1; i < 104; i++) { if ((perWeek.get(isoWeekId(new Date(Date.now() - i * 7 * 864e5))) || 0) >= need) streak++; else break; }
+  streakCache = { streak, thisCount, need };
+  return streakCache;
+}
+const FLAME = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 0-8z"/></svg>';
+async function paintStreak() {
+  const pill = $('#streakPill'); if (!pill) return;
+  const s = await getStreak(); if (!s || !$('#streakPill')) return;
+  const x = Math.floor(s.thisCount);
+  if (!s.streak && !x) return;
+  pill.classList.toggle('cold', !s.streak);
+  pill.innerHTML = FLAME + '<span>' + esc(s.streak ? T('{n}-week streak').replace('{n}', s.streak) : T('This week: {x} of {n}').replace('{x}', x).replace('{n}', s.need)) + '</span>';
+  pill.classList.remove('hidden');
+  pill.onclick = () => toast(T('Weeks in a row with at least {n} sessions logged. This week: {x} of {n}.').replace(/\{n\}/g, s.need).replace('{x}', x));
+}
 async function loadExerciseHistory() {
   if (exHistory) return exHistory;
   exHistory = new Map();
@@ -1548,9 +1580,10 @@ async function viewToday(el) {
 
   // header: greeting and, if set, the countdown — one line each, no card
   const head = document.createElement('div');
-  head.innerHTML = `<h1 style="font-size:1.6rem">${greeting()}, ${esc(p.name)}</h1>` +
+  head.innerHTML = `<div class="todayhead"><h1 style="font-size:1.6rem">${greeting()}, ${esc(p.name)}</h1><button type="button" class="streak hidden" id="streakPill"></button></div>` +
     (p.deadline ? `<p class="muted small" style="margin-top:2px">${esc(p.deadline.name)} · ${Math.max(0, Math.ceil((new Date(p.deadline.date) - Date.now()) / 864e5))} ${T('days to go')}</p>` : '');
   el.append(head);
+  paintStreak();
 
   if (!state.plan) {
     const c = document.createElement('div'); c.className = 'card';
@@ -1661,6 +1694,49 @@ async function viewToday(el) {
   }
 }
 
+function openExtra() {
+  const kinds = [['match', 'Game or tournament', 90], ['skills', 'Team practice', 90], ['conditioning', 'Run or cardio', 40], ['strength', 'Gym', 60], ['mobility', 'Mobility or yoga', 30]];
+  const draft = { kind: 0, day: planIsCurrent() ? todayIndex() : 6, rpe: null };
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Log something extra'));
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Log something extra')}</h2></div>
+    <div class="block"><h3>${T('What did you do?')}</h3><div id="exKinds" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div></div>
+    <div class="field" style="margin-top:18px"><label for="exTitle">${T('Name (optional)')}</label><input class="input" id="exTitle" maxlength="60"></div>
+    <div class="block" style="margin-top:18px"><h3>${T('Which day?')}</h3><div id="exDays" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div></div>
+    <div class="field" style="margin-top:18px"><label for="exDur">${T('How long?')}</label><div class="unit-input"><input class="input" id="exDur" type="number" inputmode="numeric" min="1" max="600"><span>min</span></div></div>
+    <div class="block" style="margin-top:18px"><h3>${T('How hard was it?')}</h3><div class="rpe" id="exRpe"></div></div>
+    <div class="field" style="margin-top:18px"><label for="exNote">${T('Note (optional)')}</label><textarea class="input" id="exNote" rows="2" maxlength="300"></textarea></div>
+    <div class="error" id="exErr"></div>
+    <button class="btn" id="exSave">${T('Save')}</button>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  const paintKinds = () => { const w = $('#exKinds', sheet); w.innerHTML = ''; kinds.forEach((k, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = T(k[1]); b.setAttribute('aria-pressed', String(i === draft.kind)); b.onclick = () => { draft.kind = i; $('#exDur', sheet).value = k[2]; paintKinds(); }; w.append(b); }); };
+  const paintDays = () => { const w = $('#exDays', sheet); w.innerHTML = ''; DAYS.forEach((d, i) => { if (planIsCurrent() && i > todayIndex()) return; const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = T(d); b.setAttribute('aria-pressed', String(i === draft.day)); b.onclick = () => { draft.day = i; paintDays(); }; w.append(b); }); };
+  paintKinds(); paintDays(); $('#exDur', sheet).value = kinds[0][2];
+  const sr = $('#exRpe', sheet);
+  for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', 'false'); b.onclick = () => { draft.rpe = draft.rpe === i ? null : i; $$('button', sr).forEach((x) => x.setAttribute('aria-pressed', String(x === b && draft.rpe === i))); }; sr.append(b); }
+  $('#exDur', sheet).oninput = () => { $('#exErr', sheet).textContent = ''; };
+  $('#exSave', sheet).onclick = async (ev) => {
+    const dur = Number($('#exDur', sheet).value);
+    if (!(dur > 0 && dur <= 600)) { $('#exErr', sheet).textContent = T('Add the duration in minutes.'); $('#exDur', sheet).focus(); return; }
+    const k = kinds[draft.kind]; const wk = state.plan.weekId; const stamp = Date.now().toString(36);
+    const now = new Date().toISOString();
+    const rec = { weekId: wk, day: draft.day, slot: 'x' + stamp, extra: true, title: $('#exTitle', sheet).value.trim() || T(k[1]), type: k[0], status: 'done', durationMin: dur, sessionRpe: draft.rpe, note: $('#exNote', sheet).value.trim(), exercises: null, setsDone: 0, setsTotal: 0, loggedAt: now, updatedAt: now };
+    const key = wk + '-' + draft.day + '-x' + stamp;
+    const b = ev.currentTarget; b.disabled = true;
+    try {
+      const write = db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
+      if (navigator.onLine) await write;
+      state.logs[key] = rec; streakCache = null;
+      postActivity(rec).catch(() => {});
+      history.back(); toast(T('Extra session saved')); navigate('plan');
+    } catch (e) { $('#exErr', sheet).textContent = T('Could not send. Check your connection and try again.'); b.disabled = false; }
+  };
+}
+
 function viewPlan(el) {
   if (!state.plan) { el.innerHTML = `<div class="card"><div class="empty"><h3>${T('No plan yet')}</h3><p>${T('Build your first week from Today.')}</p></div></div>`; return; }
   const p = state.plan;
@@ -1702,6 +1778,20 @@ function viewPlan(el) {
     group.append(dcol, slots); card.append(group);
   }
   el.append(card);
+  if (!planIsFuture()) {
+    const extras = Object.entries(state.logs).filter(([, l]) => l.extra && l.weekId === p.weekId).sort((a, b) => (a[1].day || 0) - (b[1].day || 0));
+    const box = document.createElement('div'); box.className = 'card';
+    box.innerHTML = `<h3 style="margin-bottom:4px">${T('Extra this week')}</h3>` + (extras.length
+      ? extras.map(([k, l]) => `<div class="extra-row"><div><strong>${esc(l.title)}</strong><div class="muted small">${T(DAYS[l.day])} · ${l.durationMin} ${T('min')}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}</div></div><button type="button" class="btn ghost sm" data-del="${esc(k)}">${T('Remove')}</button></div>`).join('')
+      : `<p class="muted small">${T("Games, tournaments, pick-up or a run that wasn't in the plan. Logging them keeps next week's plan honest.")}</p>`) +
+      `<button class="btn secondary" id="btnExtra" style="margin-top:10px">+ ${T('Log something extra')}</button>`;
+    el.append(box);
+    $('#btnExtra').onclick = () => openExtra();
+    $$('[data-del]', box).forEach((b) => { b.onclick = async () => {
+      if (!confirm(T('Remove') + '?')) return;
+      try { await db.doc('users/' + state.user.uid + '/logs/' + b.dataset.del).delete(); delete state.logs[b.dataset.del]; streakCache = null; toast(T('Removed')); navigate('plan'); } catch (e) { toast(T('Could not send. Check your connection and try again.')); }
+    }; });
+  }
   if (p.rationale) el.insertAdjacentHTML('beforeend', `<div class="card sage"><h3 style="margin-bottom:6px">${T('Why this week')}</h3><p class="muted">${esc(p.rationale)}</p></div>`);
   const reviewed = state.review && state.review.weekId === p.weekId;
   if (!planIsFuture() && !reviewed) {
@@ -1738,7 +1828,7 @@ function openReset() {
     try {
       const r = await api('/api/reset-data', { scope });
       close();
-      state.plan = null; state.plans = []; state.logs = {}; state.review = null; exHistory = null;
+      state.plan = null; state.plans = []; state.logs = {}; state.review = null; exHistory = null; streakCache = null;
       await loadPlan();
       const n = Object.values(r.deleted || {}).reduce((a, x) => a + x, 0);
       toast(`${T('Deleted')} ${n} ${T('records')}`);
@@ -1940,14 +2030,14 @@ function openSession(raw, weekIdOverride, logOverride) {
       const write = db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
       if (!navigator.onLine) {
         // Firestore keeps the write queued locally and sends it on reconnect
-        state.logs[key] = rec; exHistory = null;
+        state.logs[key] = rec; exHistory = null; streakCache = null;
         toast(T('Saved on this device — it will sync when you are back online'));
         history.back();
         return;
       }
       await write;
       if (wk === state.plan?.weekId) state.logs[key] = rec;
-      exHistory = null;
+      exHistory = null; streakCache = null;
       postActivity(rec).catch(() => {});
       toast(rec.status === 'skipped' ? T('Saved as skipped') : T('Session saved'));
       history.back();
