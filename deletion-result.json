@@ -1,8 +1,8 @@
 {
   "step": "done",
-  "email": "cadence-qa-1791216202959@example.com",
-  "oldUid": "dVIAhFc1SaOwpPnilwJUjaQR55E2",
-  "newUid": "peBgRhra0JORJ5UHDI2LF4t5UTO2",
+  "email": "cadence-qa-1791623567734@example.com",
+  "oldUid": "qLMOs7rZ4YYr3TMuBh0zBOKV6ap2",
+  "newUid": "6a68YDy07rO8WOdGhndtkglOOCm2",
   "sameUid": false,
   "seededToday": true,
   "deleteStatus": 200,
@@ -23,7 +23,7 @@
   "clubStillExists": false,
   "afterReload": {
     "hasOldPlan": false,
-    "text": "Afternoon, QA2No plan yetCadence will build your first week from the setup you just completed.Build my first week"
+    "text": "Good morning, QA2No plan yetCadence will build your first week from the setup you just completed.Build my first week"
   },
   "errors": []
 }
