@@ -548,7 +548,8 @@ a.btn { text-decoration: none; }
 .ld-final p { margin: 0; color: #CFDCD3; font-size: 15px; }
 .ld-foot { text-align: center; margin: 22px 0 32px; font-size: 13px; color: #4A5A52; }
 .ld-foot a { color: #4A5A52; }
-.auth-back { align-self: flex-start; margin: 12px 0 -8px -10px; }
+.auth-back { display: inline-flex; align-items: center; gap: 4px; margin: 14px 0 10px -10px; }
+.auth-back::before { content: '\2190'; font-size: 18px; line-height: 1; }
 @media (max-width: 480px) {
   .ld-phones { transform: scale(.76); transform-origin: top center; margin-left: calc(50% - 205px); margin-bottom: -130px; }
 }
@@ -900,13 +901,8 @@ function toggleAuthMode() {
 }
 $('#btnToggleMode').onclick = toggleAuthMode;
 
-// Landing page for signed-out visitors. People who signed in on this device before, the installed app and ?signin go straight to sign-in.
-function signedOutScreen() {
-  let seen = false;
-  try { seen = !!localStorage.getItem('cadence-seen'); } catch (_) { /* storage blocked */ }
-  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  return (seen || standalone || new URLSearchParams(location.search).has('signin')) ? 'auth' : 'landing';
-}
+// Everyone who is signed out sees the landing page first; a link with ?signin goes straight to the sign-in form.
+function signedOutScreen() { return new URLSearchParams(location.search).has('signin') ? 'auth' : 'landing'; }
 let authFromLanding = false;
 function openAuth(wantSignUp) {
   show('auth');
@@ -956,7 +952,6 @@ auth.onAuthStateChanged(async (user) => {
   sessionUid = user ? user.uid : null;
   state.user = user;
   if (!user) { show(signedOutScreen()); return; }
-  try { localStorage.setItem('cadence-seen', '1'); } catch (_) { /* storage blocked */ }
   try {
     const snap = await db.doc('users/' + user.uid).get();
     state.profile = snap.exists ? snap.data().profile : null;

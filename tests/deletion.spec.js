@@ -70,7 +70,9 @@ test('account deletion leaves nothing behind', async ({ page }) => {
     ]);
     out.deleteStatus = res.status();
     out.deleteBody = (await res.text().catch(() => '')).slice(0, 600);
-    await expect(page.locator('#auth')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('#landing')).toBeVisible({ timeout: 30000 });
+    await page.click('#btnLdStart');
+    await expect(page.locator('#auth')).toBeVisible();
 
     // ---- 4. register again with the same email, in the same browser session ----
     out.step = 'resignup';
