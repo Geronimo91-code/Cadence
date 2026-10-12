@@ -28,9 +28,22 @@ service cloud.firestore {
       match /{document=**} { allow read, write: if isOwner(uid); }
     }
 
+    // Invite code → club id. Anyone signed in can look up one code they typed; nobody can list codes.
+    match /clubCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['clubId', 'createdBy'])
+        && isCoach(request.resource.data.clubId)
+        && get(/databases/$(database)/documents/clubs/$(request.resource.data.clubId)).data.inviteCode == code;
+      allow update: if false;
+      allow delete: if signedIn() && isCoach(resource.data.clubId);
+    }
+
     match /clubs/{clubId} {
-      // Club docs hold only name, sport, invite code and creator; readable by any signed-in user so people can join by code
-      allow read: if signedIn();
+      // Only members (and the creator, in the moment before their member doc exists) can open a club; nobody can list clubs.
+      // Joining goes through clubCodes/{code}, which can be fetched by its exact code but never listed.
+      allow get: if isMember(clubId) || (signedIn() && resource.data.createdBy == request.auth.uid);
+      allow list: if false;
       allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
       allow update: if isCoach(clubId);
       allow delete: if false;

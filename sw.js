@@ -1,6 +1,6 @@
 // Cadence service worker — app shell cache + push handling
-const CACHE_NAME = 'cadence-v42';
-const SHELL = ['/', '/index.html', '/i18n.js', '/manifest.json', '/icon.svg', '/apple-touch-icon.png', '/icon-192.png', '/privacy.html', '/terms.html'];
+const CACHE_NAME = 'cadence-v43';
+const SHELL = ['/', '/index.html', '/i18n.js', '/exercise-steps-i18n.json', '/manifest.json', '/icon.svg', '/apple-touch-icon.png', '/icon-192.png', '/privacy.html', '/terms.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

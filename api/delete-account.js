@@ -16,7 +16,11 @@ async function leaveClub(clubId, uid, report) {
   await Promise.all([...acts.docs, ...authored.docs].map((d) => d.ref.delete()));
 
   const rest = await db().collection(`clubs/${clubId}/members`).get();
-  if (rest.empty) { await wipe(clubRef); report.clubsDeleted++; return; }
+  if (rest.empty) {
+    const codes = await db().collection('clubCodes').where('clubId', '==', clubId).get();
+    await Promise.all(codes.docs.map((d) => d.ref.delete()));
+    await wipe(clubRef); report.clubsDeleted++; return;
+  }
   const members = rest.docs.map((d) => d.data());
   if (!members.some((m) => m.role === 'coach')) {
     const next = [...members].sort((a, b) => String(a.joinedAt || '').localeCompare(String(b.joinedAt || '')))[0];

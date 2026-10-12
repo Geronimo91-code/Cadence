@@ -428,8 +428,27 @@ const TEMPLATES = {
 };
 const GOAL_TO_TYPE = { speed: 'speed', strength: 'strength', endurance: 'conditioning', lean: 'strength', fat: 'conditioning', general: 'conditioning' };
 
+// Fixed text of the fallback week, in each app language (exercise names stay as in the library, like AI plans)
+const TEMPLATE_TEXT = {
+  en: { rest: 'Rest', restIntent: 'Recovery day — walk, stretch, sleep well.', intent: 'Template session — rebuild the week when the plan service is back for something tailored.', focus: 'A solid default week built from your own settings.', rationale: 'The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.',
+    titles: { strength: 'Full-body strength', speed: 'Speed and acceleration', conditioning: 'Conditioning', skills: 'Skills and agility', mobility: 'Mobility and recovery', match: 'Match' },
+    loads: { 'full effort, full recovery': 'full effort, full recovery', 'sharp, not exhausting': 'sharp, not exhausting', easy: 'easy' }, reps: { '4-6 reps': '4-6 reps' } },
+  fr: { rest: 'Repos', restIntent: 'Journée de récupération — marche, étirements, bon sommeil.', intent: 'Séance modèle — refais la semaine quand le service de plans revient, pour un plan sur mesure.', focus: 'Une semaine de base solide, construite à partir de tes réglages.', rationale: "Le service de plans n'était pas disponible : cette semaine suit un modèle standard basé sur tes jours d'entraînement, tes objectifs et la durée de tes séances. Refais-la plus tard pour une semaine sur mesure.",
+    titles: { strength: 'Force corps entier', speed: 'Vitesse et accélération', conditioning: 'Condition physique', skills: 'Technique et agilité', mobility: 'Mobilité et récupération', match: 'Match' },
+    loads: { 'full effort, full recovery': 'effort maximal, récupération complète', 'sharp, not exhausting': 'vif, sans s’épuiser', easy: 'facile' }, reps: { '4-6 reps': '4-6 répétitions' } },
+  nl: { rest: 'Rust', restIntent: 'Hersteldag — wandelen, stretchen, goed slapen.', intent: 'Standaardtraining — bouw de week opnieuw zodra de planservice terug is, voor een plan op maat.', focus: 'Een degelijke standaardweek, gebouwd op je eigen instellingen.', rationale: 'De planservice was niet beschikbaar, dus deze week volgt een standaardsjabloon op basis van je trainingsdagen, doelen en trainingsduur. Bouw hem later opnieuw voor een week op maat.',
+    titles: { strength: 'Kracht hele lichaam', speed: 'Snelheid en acceleratie', conditioning: 'Conditie', skills: 'Techniek en wendbaarheid', mobility: 'Mobiliteit en herstel', match: 'Wedstrijd' },
+    loads: { 'full effort, full recovery': 'volle inzet, volledig herstel', 'sharp, not exhausting': 'scherp, niet uitputtend', easy: 'rustig' }, reps: { '4-6 reps': '4-6 herhalingen' } },
+  tr: { rest: 'Dinlenme', restIntent: 'Toparlanma günü — yürü, esne, iyi uyu.', intent: 'Şablon antrenman — plan servisi geri gelince sana özel bir hafta için haftayı yeniden oluştur.', focus: 'Kendi ayarlarından oluşturulmuş sağlam bir standart hafta.', rationale: 'Plan servisi kullanılamıyordu; bu yüzden bu hafta antrenman günlerine, hedeflerine ve antrenman süresine göre hazırlanmış standart bir şablonu izliyor. Sana özel bir hafta için daha sonra yeniden oluştur.',
+    titles: { strength: 'Tüm vücut kuvveti', speed: 'Hız ve ivmelenme', conditioning: 'Kondisyon', skills: 'Teknik ve çeviklik', mobility: 'Mobilite ve toparlanma', match: 'Maç' },
+    loads: { 'full effort, full recovery': 'tam efor, tam dinlenme', 'sharp, not exhausting': 'keskin, yormadan', easy: 'hafif' }, reps: { '4-6 reps': '4-6 tekrar' } },
+  es: { rest: 'Descanso', restIntent: 'Día de recuperación — camina, estira, duerme bien.', intent: 'Sesión de plantilla — rehaz la semana cuando vuelva el servicio de planes para tener algo a medida.', focus: 'Una semana base sólida, creada a partir de tus ajustes.', rationale: 'El servicio de planes no estaba disponible, así que esta semana sigue una plantilla estándar basada en tus días de entrenamiento, objetivos y duración de las sesiones. Rehazla más tarde para tener una semana a medida.',
+    titles: { strength: 'Fuerza de cuerpo completo', speed: 'Velocidad y aceleración', conditioning: 'Acondicionamiento', skills: 'Técnica y agilidad', mobility: 'Movilidad y recuperación', match: 'Partido' },
+    loads: { 'full effort, full recovery': 'esfuerzo máximo, recuperación completa', 'sharp, not exhausting': 'rápido, sin agotarse', easy: 'suave' }, reps: { '4-6 reps': '4-6 repeticiones' } },
+};
 // A sensible week built from the athlete's own settings, so a model outage is not a dead end
 export function templatePlan(profile, id) {
+  const tx = TEMPLATE_TEXT[profile.lang] || TEMPLATE_TEXT.en;
   const days = (profile.days && profile.days.length ? profile.days : [1, 3, 5]).slice(0, 7);
   const goals = (profile.goals || [profile.goal] || []).filter(Boolean);
   const rotation = [...new Set([GOAL_TO_TYPE[goals[0]] || 'strength', 'strength', GOAL_TO_TYPE[goals[1]] || 'speed', 'conditioning'])];
@@ -438,7 +457,7 @@ export function templatePlan(profile, id) {
   let r = 0;
   for (let d = 0; d < 7; d++) {
     if (!days.includes(d)) {
-      sessions.push({ day: d, slot: 0, timeOfDay: null, title: 'Rest', type: 'rest', fixed: false, durationMin: 0, intent: 'Recovery day — walk, stretch, sleep well.', warmup: [], exercises: [], cooldown: [] });
+      sessions.push({ day: d, slot: 0, timeOfDay: null, title: tx.rest, type: 'rest', fixed: false, durationMin: 0, intent: tx.restIntent, warmup: [], exercises: [], cooldown: [] });
       continue;
     }
     const slots = (prefs[d] && prefs[d].length ? prefs[d] : [{ time: '', focus: '' }]).slice(0, 2);
@@ -446,21 +465,21 @@ export function templatePlan(profile, id) {
       const key = slot.focus || rotation[r++ % rotation.length];
       const tpl = TEMPLATES[key] || TEMPLATES.strength;
       const exercises = tpl.pick.flatMap(([group, n]) => (EXERCISE_LIBRARY[group] || []).slice(0, n).map((name) => ({
-        name, sets: tpl.sets, reps: tpl.reps, load: tpl.load, restSec: tpl.type === 'speed' ? 180 : 90, cues: '',
+        name, sets: tpl.sets, reps: tx.reps[tpl.reps] || tpl.reps, load: tx.loads[tpl.load] || tpl.load, restSec: tpl.type === 'speed' ? 180 : 90, cues: '',
       })));
       sessions.push({
         day: d, slot: i, timeOfDay: slot.time || (i ? 'evening' : null),
-        title: tpl.title, type: tpl.type, fixed: false,
+        title: tx.titles[key] || tpl.title, type: tpl.type, fixed: false,
         durationMin: profile.sessionMin || 60,
-        intent: 'Template session — rebuild the week when the plan service is back for something tailored.',
+        intent: tx.intent,
         warmup: EXERCISE_LIBRARY.warmup.slice(0, 4).map((x) => `${x}, 30 s`),
         exercises, cooldown: EXERCISE_LIBRARY.mobility.slice(0, 3).map((x) => `${x}, 45 s`),
       });
     });
   }
   return {
-    weekId: id, phase: 'base', focus: 'A solid default week built from your own settings.',
-    sessions, rationale: 'The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.',
+    weekId: id, phase: 'base', focus: tx.focus,
+    sessions, rationale: tx.rationale,
     nextWeekHint: '', source: 'template', createdAt: new Date().toISOString(),
   };
 }

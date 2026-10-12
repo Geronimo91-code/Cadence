@@ -271,6 +271,12 @@ es: {
 (function () {
   const add = {
     fr: {
+      "base phase": "phase de base",
+      "build phase": "phase de développement",
+      "peak phase": "phase de pic",
+      "taper phase": "phase d'affûtage",
+      "starts Monday": "commence lundi",
+      "the club": "le club",
       "e.g. Belgian Championship, Spring Half Marathon": "ex. Championnat de Belgique, semi-marathon de printemps",
       "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "ex. Entraînement club mar. et jeu. 19h30, matchs la plupart des dimanches",
       "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "ex. Genou OK, la dernière série de squats était dure, sprints réduits à 6",
@@ -350,6 +356,12 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+      "base phase": "basisfase",
+      "build phase": "opbouwfase",
+      "peak phase": "piekfase",
+      "taper phase": "taperfase",
+      "starts Monday": "begint maandag",
+      "the club": "de club",
       "e.g. Belgian Championship, Spring Half Marathon": "bv. Belgisch kampioenschap, halve marathon in het voorjaar",
       "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "bv. Clubtraining di & do 19:30, meestal wedstrijden op zondag",
       "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "bv. Knie voelde goed, laatste squatset was zwaar, sprints ingekort tot 6",
@@ -429,6 +441,12 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+      "base phase": "temel evre",
+      "build phase": "gelişim evresi",
+      "peak phase": "zirve evresi",
+      "taper phase": "yükü azaltma evresi",
+      "starts Monday": "pazartesi başlıyor",
+      "the club": "kulübe",
       "e.g. Belgian Championship, Spring Half Marathon": "ör. Belçika Şampiyonası, bahar yarı maratonu",
       "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "ör. Kulüp antrenmanı Salı ve Perşembe 19:30, çoğu pazar maç",
       "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "ör. Diz iyiydi, son squat seti zorladı, sprintleri 6'ya indirdim",
@@ -508,6 +526,12 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+      "base phase": "fase base",
+      "build phase": "fase de desarrollo",
+      "peak phase": "fase de pico",
+      "taper phase": "fase de puesta a punto",
+      "starts Monday": "empieza el lunes",
+      "the club": "el club",
       "e.g. Belgian Championship, Spring Half Marathon": "p. ej. Campeonato de Bélgica, media maratón de primavera",
       "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "p. ej. Entreno del club mar y jue 19:30, partidos casi todos los domingos",
       "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "p. ej. La rodilla bien, la última serie de sentadillas costó, sprints recortados a 6",

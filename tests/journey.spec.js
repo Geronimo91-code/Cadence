@@ -182,6 +182,39 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
       const txt = await page.textContent('#view');
       ok('club created', /QA Journey Club/.test(txt), txt.slice(0, 120));
     });
+    await step('club privacy and join by code', async () => {
+      const code = (await page.textContent('.code')).trim();
+      const r = await page.evaluate(async (code) => ({
+        codeDoc: await db.doc('clubCodes/' + code).get().then((d) => d.exists).catch((e) => e.code),
+        listClubs: await db.collection('clubs').limit(1).get().then(() => 'allowed').catch((e) => e.code),
+      }), code);
+      // a second, unrelated person joins with the code
+      const ctx2 = await page.context().browser().newContext();
+      const p2 = await ctx2.newPage();
+      const email2 = `cadence-joiner-${Date.now()}@example.com`;
+      let joined = false;
+      try {
+        await p2.goto(URL + '?signin'); await expect(p2.locator('#auth')).toBeVisible({ timeout: 20000 });
+        await p2.click('#btnToggleMode'); await p2.fill('#authEmail', email2); await p2.fill('#authPass', pass); await p2.click('#btnEmail');
+        await expect(p2.locator('#onboarding:not(.hidden)')).toBeVisible({ timeout: 30000 });
+        r.outsiderList = await p2.evaluate(() => db.collection('clubs').limit(1).get().then(() => 'allowed').catch((e) => e.code));
+        await p2.evaluate(async () => { await db.doc('users/' + auth.currentUser.uid).set({ profile: { name: 'Joiner', age: 30, sex: 'Male', heightCm: 180, weightKg: 75, sports: ['Ultimate Frisbee'], level: 'intermediate', goals: ['speed'], goal: 'speed', days: [1, 3], sessionMin: 60, doubles: 'no', equipment: ['Full gym'], lang: 'en' } }, { merge: true }); });
+        await p2.reload(); await expect(p2.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
+        await p2.click('.tab[data-view="club"]'); await p2.waitForTimeout(800);
+        await p2.fill('#joinCode', code); await p2.click('#btnJoin'); await p2.waitForTimeout(3000);
+        joined = /QA Journey Club/.test(await p2.textContent('#view'));
+        r.wrongCode = await p2.evaluate(() => findClubByCode('ZZZZZZ'));
+      } finally {
+        await p2.evaluate(() => (auth.currentUser ? api('/api/delete-account') : null)).catch(() => {});
+        await ctx2.close();
+      }
+      r.joined = joined;
+      out.club = r;
+      ok('invite code registered for joining', r.codeDoc === true, r.codeDoc);
+      ok('second person joins with the code', joined, r);
+      ok('wrong code finds no club', r.wrongCode === null, r.wrongCode);
+      ok('outsiders cannot list clubs', r.outsiderList === 'permission-denied', r.outsiderList);
+    });
 
     // ---- profile ----
     await step('profile groups render', async () => {

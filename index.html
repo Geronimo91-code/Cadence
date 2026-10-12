@@ -1845,7 +1845,7 @@ function viewPlan(el) {
     state.plans.slice(0, 3).reverse().forEach((pl) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = pl.weekId === isoWeekId() ? T('This week') : pl.weekId > isoWeekId() ? T('Next week') : weekLabel(pl.weekId); b.setAttribute('aria-pressed', pl.weekId === p.weekId); b.onclick = async () => { await loadPlan(pl.weekId); navigate('plan'); }; seg.append(b); });
     el.append(seg);
   }
-  el.insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:10px"><span class="badge">${esc(p.phase)} phase</span> &nbsp;${esc(weekLabel(p.weekId))}${planIsFuture() ? ' · starts Monday' : ''}</p><p class="muted">${esc(p.focus)}</p>`);
+  el.insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:10px"><span class="badge">${esc(T(p.phase + ' phase'))}</span> &nbsp;${esc(weekLabel(p.weekId))}${planIsFuture() ? ' · ' + T('starts Monday') : ''}</p><p class="muted">${esc(p.focus)}</p>`);
   if (p.weekNote) {
     el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('Your note for this week')}</strong><div class="muted small" style="margin-top:4px;white-space:pre-wrap">${esc(p.weekNote)}</div>${planIsCurrent() ? `<button class="btn ghost sm" id="btnEditNote" style="padding-left:0;margin-top:4px">${T('Edit')}</button>` : ''}</div>`);
     if ($('#btnEditNote')) $('#btnEditNote').onclick = () => openRebuild();
@@ -2178,11 +2178,25 @@ function bodyMap(primary, secondary) {
     <g class="bm-base">${base}</g>${draw(front)}<text x="50" y="196" text-anchor="middle">${esc(T('Front view'))}</text>
     <g transform="translate(130 0)"><g class="bm-base">${base}</g>${draw(back)}<text x="50" y="196" text-anchor="middle">${esc(T('Back view'))}</text></g></svg>`;
 }
+// Short how-to steps in each app language (and corrected English for a few moves the photo library describes differently)
+let STEPS_INDEX = null;
+async function loadSteps() {
+  if (STEPS_INDEX) return STEPS_INDEX;
+  STEPS_INDEX = new Map();
+  try {
+    const r = await fetch('/exercise-steps-i18n.json');
+    if (r.ok) Object.entries(await r.json()).forEach(([name, v]) => STEPS_INDEX.set(normName(name), v));
+  } catch (_) { /* offline: fall back to the English steps */ }
+  return STEPS_INDEX;
+}
 const MUSCLES = { abdominals: 'Abs', abductors: 'Abductors', adductors: 'Adductors', biceps: 'Biceps', calves: 'Calves', chest: 'Chest', forearms: 'Forearms', glutes: 'Glutes', hamstrings: 'Hamstrings', lats: 'Lats', 'lower back': 'Lower back', 'middle back': 'Upper back', neck: 'Neck', quadriceps: 'Quads', shoulders: 'Shoulders', traps: 'Traps', triceps: 'Triceps' };
 
 async function openHowTo(name, cues) {
-  const index = await loadMedia();
+  const [index, stepsIndex] = await Promise.all([loadMedia(), loadSteps()]);
   const m = index.get(normName(name));
+  const tr = stepsIndex.get(normName(name)) || {};
+  const steps = tr[LANG] || tr.en || (m ? m.steps : []);
+  const stepsTranslated = LANG === 'en' || !!tr[LANG];
   // a lifting query ("proper form") finds nothing useful for a sprint or an agility drill, so ask for technique there
   const drillish = /\b(?:sprint|skip|high knee|drill|shuffle|cut|crossover|backpedal|ladder|shuttle|run|jog|interval|tempo|fartlek|hop|bound|jack|march|stretch|switch|dislocate|circuit)/i.test(name);
   const yt = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + (drillish ? ' drill technique how to' : ' exercise proper form'));
@@ -2196,7 +2210,7 @@ async function openHowTo(name, cues) {
       ${m.similar ? `<p class="muted small" style="margin-top:6px">${T('Photos show a close variation')}: ${esc(m.similar)}</p>` : ''}
       ${m.primary.length ? `<div class="block"><h3>${T('Muscles worked')}</h3><div class="bm-wrap">${bodyMap(m.primary, m.secondary)}<div class="bm-legend"><span><i class="p"></i>${T('Main')}</span><span><i class="s"></i>${T('Also')}</span></div></div>${muscleChips ? `<div class="chips" style="margin-top:8px">${muscleChips}</div>` : ''}</div>` : ''}` : `<div class="intent">${T('No photos for this movement yet — the video search below will show you how it is done.')}</div>`}
     ${cues ? `<div class="block"><h3>${T('Coach cue')}</h3><div class="cues" style="margin-top:6px">${esc(cues)}</div></div>` : ''}
-    ${m && m.steps.length ? `<div class="block"><h3>${T('Steps')}</h3><ol class="how-steps">${m.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${LANG !== 'en' ? `<p class="muted small">${T('Instructions are in English.')}</p>` : ''}</div>` : ''}
+    ${steps.length ? `<div class="block"><h3>${T('Steps')}</h3><ol class="how-steps">${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${stepsTranslated ? '' : `<p class="muted small">${T('Instructions are in English.')}</p>`}</div>` : ''}
     <div class="block"><a class="btn" id="howtoYT" href="${yt}" target="_blank" rel="noopener">▶ ${T('Watch on YouTube')}</a></div>
     ${m ? `<p class="credit">${T('Photos and steps from the Free Exercise DB (public domain).')}</p>` : ''}
   </div>`;
@@ -2578,18 +2592,40 @@ async function loadClub() {
   if (!state.clubIds.length) { state.club = null; state.me = null; state.clubId = null; return; }
   if (!state.clubIds.includes(state.clubId)) state.clubId = state.clubIds[0];
   try {
-    const docs = await Promise.all(state.clubIds.map((id) => db.doc('clubs/' + id).get()));
+    // a club you were removed from is no longer readable: treat it like a deleted one
+    const docs = await Promise.all(state.clubIds.map((id) => db.doc('clubs/' + id).get().catch(() => null)));
     const alive = [];
-    docs.forEach((d, i) => { if (d.exists) { alive.push(state.clubIds[i]); state.clubNames[d.id] = d.data().name; } });
+    docs.forEach((d, i) => { if (d && d.exists) { alive.push(state.clubIds[i]); state.clubNames[d.id] = d.data().name; } });
     if (alive.length !== state.clubIds.length) {
       state.clubIds = alive; await db.doc('users/' + state.user.uid).set({ clubIds: alive }, { merge: true });
       if (!alive.includes(state.clubId)) state.clubId = alive[0] || null;
     }
     if (!state.clubId) { state.club = null; state.me = null; return; }
-    const [c, m] = await Promise.all([db.doc('clubs/' + state.clubId).get(), db.doc('clubs/' + state.clubId + '/members/' + state.user.uid).get()]);
-    if (!c.exists || !m.exists) { await leaveClubLocally(state.clubId); return; }
+    const [c, m] = await Promise.all([db.doc('clubs/' + state.clubId).get().catch(() => null), db.doc('clubs/' + state.clubId + '/members/' + state.user.uid).get().catch(() => null)]);
+    if (!c || !m || !c.exists || !m.exists) { await leaveClubLocally(state.clubId); return; }
     state.club = { id: c.id, ...c.data() }; state.me = m.data();
+    if (state.me.role === 'coach' && state.club.inviteCode) ensureClubCode(state.club.id, state.club.inviteCode);
   } catch (e) { console.error(e); state.club = null; }
+}
+// Clubs are found by invite code through clubCodes/{code}. Coaches make sure their club's code is registered there
+// (new clubs at creation, older clubs the first time a coach opens them).
+async function ensureClubCode(clubId, code) {
+  try {
+    const ref = db.doc('clubCodes/' + code);
+    const snap = await ref.get();
+    if (!snap.exists) await ref.set({ clubId, createdBy: state.user.uid });
+  } catch (_) { /* rules not published yet, or another coach already registered it */ }
+}
+async function findClubByCode(code) {
+  try {
+    const snap = await db.doc('clubCodes/' + code).get();
+    if (snap.exists) return snap.data().clubId;
+  } catch (_) { /* fall through */ }
+  // older rules still allow searching clubs by code; under the new rules this is refused and we report "no club"
+  try {
+    const q = await db.collection('clubs').where('inviteCode', '==', code).limit(1).get();
+    return q.empty ? null : q.docs[0].id;
+  } catch (_) { return null; }
 }
 async function leaveClubLocally(id) {
   state.clubIds = state.clubIds.filter((x) => x !== id);
@@ -2729,13 +2765,13 @@ function renderClubJoin(el, adding) {
     const code = $('#joinCode').value.trim().toUpperCase(); if (code.length < 4) { toast(T('Enter the invite code.')); return; }
     const b = ev.currentTarget; b.disabled = true;
     try {
-      const q = await db.collection('clubs').where('inviteCode', '==', code).limit(1).get();
-      if (q.empty) { toast(T('No club with that code.')); b.disabled = false; return; }
-      const club = q.docs[0];
-      if (state.clubIds.includes(club.id)) { toast(T('You are already in that club.')); b.disabled = false; return; }
+      const clubId = await findClubByCode(code);
+      if (!clubId) { toast(T('No club with that code.')); b.disabled = false; return; }
+      if (state.clubIds.includes(clubId)) { toast(T('You are already in that club.')); b.disabled = false; return; }
       if (state.clubIds.length >= 5) { toast(T('Five clubs is the limit.')); b.disabled = false; return; }
-      await joinClubDoc(club.id, code, 'member');
-      toast(T('Welcome to') + ' ' + club.data().name); navigate('club');
+      await joinClubDoc(clubId, code, 'member');
+      const club = await db.doc('clubs/' + clubId).get().catch(() => null);
+      toast(T('Welcome to') + ' ' + (club && club.exists ? club.data().name : T('the club'))); navigate('club');
     } catch (e) { console.error(e); toast(T('Could not join. Check the code.')); b.disabled = false; }
   };
   $('#btnCreate').onclick = async (ev) => {
@@ -2746,6 +2782,7 @@ function renderClubJoin(el, adding) {
       if (state.clubIds.length >= 5) { toast(T('Five clubs is the limit.')); b.disabled = false; return; }
       const ref = await db.collection('clubs').add({ name, sport, inviteCode: code, createdBy: state.user.uid, createdAt: new Date().toISOString() });
       await joinClubDoc(ref.id, code, 'coach');
+      await ensureClubCode(ref.id, code);
       toast(T('Club created')); navigate('club');
     } catch (e) { console.error(e); toast(T('Could not create the club.')); b.disabled = false; }
   };
