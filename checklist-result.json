@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-10-12T13:46:08.494Z",
+    "started": "2026-10-12T14:20:22.996Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -110,25 +110,25 @@
       "first plan generated": {
         "pass": true,
         "detail": {
-          "source": "template",
+          "source": "profile",
           "sessions": 7,
-          "real": 3,
+          "real": 4,
           "days": 7,
-          "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
+          "rationale": "This is Week 1 of a 4-week base block focused on speed development. Sessions are scheduled on your available days (Mon/Wed/Fri) with rest or active recovery on other days. Loads are kept moderate as you're new to structured training, with emphasis on learning proper sprint mechanics and building fou",
           "titles": [
-            "0:speed:Speed and acceleration",
-            "1:rest:Rest",
-            "2:strength:Full-body strength",
-            "3:rest:Rest",
-            "4:conditioning:Conditioning",
-            "5:rest:Rest",
-            "6:rest:Rest"
+            "0:speed:Speed Mechanics + Activation",
+            "1:rest:Rest & Recover",
+            "2:strength:Lower Body Strength",
+            "3:rest:Rest & Recover",
+            "4:speed:Speed + Power",
+            "5:rest:Rest & Recover",
+            "6:mobility:Active Recovery"
           ]
         }
       },
       "first plan is AI-made (not template)": {
-        "pass": false,
-        "detail": "template"
+        "pass": true,
+        "detail": "profile"
       },
       "plan covers 7 days": {
         "pass": true,
@@ -157,14 +157,12 @@
       "how-to with photos and muscle map": {
         "pass": true,
         "detail": {
-          "exercises": 6,
+          "exercises": 4,
           "withPhotos": 2,
           "withMap": 2,
           "missing": [
-            "Leg swings",
             "Sprint 10 m",
-            "Sprint 20 m",
-            "Sprint 30 m"
+            "Sprint 20 m"
           ]
         }
       },
@@ -202,7 +200,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeEKM6VKCopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite code56HE2VCopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": false,
@@ -256,12 +254,12 @@
       }
     },
     "timings": {
-      "landing load": 183,
-      "sign-up": 1913,
-      "save setup": 1872,
-      "first plan": 50013,
-      "save session": 429,
-      "rebuild": 10948
+      "landing load": 241,
+      "sign-up": 3929,
+      "save setup": 2872,
+      "first plan": 41993,
+      "save session": 423,
+      "rebuild": 41991
     },
     "errors": [],
     "console": [],
@@ -277,10 +275,33 @@
       "Here is your setup"
     ],
     "firstPlan": {
-      "source": "template",
+      "source": "profile",
       "sessions": 7,
-      "real": 3,
+      "real": 4,
       "days": 7,
+      "rationale": "This is Week 1 of a 4-week base block focused on speed development. Sessions are scheduled on your available days (Mon/Wed/Fri) with rest or active recovery on other days. Loads are kept moderate as you're new to structured training, with emphasis on learning proper sprint mechanics and building fou",
+      "titles": [
+        "0:speed:Speed Mechanics + Activation",
+        "1:rest:Rest & Recover",
+        "2:strength:Lower Body Strength",
+        "3:rest:Rest & Recover",
+        "4:speed:Speed + Power",
+        "5:rest:Rest & Recover",
+        "6:mobility:Active Recovery"
+      ]
+    },
+    "howto": {
+      "exercises": 4,
+      "withPhotos": 2,
+      "withMap": 2,
+      "missing": [
+        "Sprint 10 m",
+        "Sprint 20 m"
+      ]
+    },
+    "rebuiltPlan": {
+      "source": "template",
+      "note": "Left ankle sprain, no jumping this week",
       "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
       "titles": [
         "0:speed:Speed and acceleration",
@@ -290,45 +311,23 @@
         "4:conditioning:Conditioning",
         "5:rest:Rest",
         "6:rest:Rest"
-      ]
-    },
-    "howto": {
-      "exercises": 6,
-      "withPhotos": 2,
-      "withMap": 2,
-      "missing": [
-        "Leg swings",
-        "Sprint 10 m",
-        "Sprint 20 m",
-        "Sprint 30 m"
-      ]
-    },
-    "rebuiltPlan": {
-      "source": "profile",
-      "note": "Left ankle sprain, no jumping this week",
-      "rationale": "Since your primary goal is speed, we adapted your plan to focus on speed acceleration mechanics and strength while strictly honoring your left ankle sprain by removing all jumping, cutting, and running. Non-impact tools like wall drills, heavy sled pushes, and stationary bike intervals keep your power and conditioning high without compromising tissue healing. All workouts are locked to 30 minutes ",
-      "titles": [
-        "0:speed:Speed Mechanics & Core",
-        "1:rest:Rest Day",
-        "2:strength:Lower Body Strength",
-        "3:rest:Rest Day",
-        "4:strength:Upper Body Strength & Conditioning",
-        "5:rest:Rest Day",
-        "6:rest:Rest Day"
       ],
       "exercises": [
-        "Acceleration wall drill",
-        "Sled push",
-        "Pallof press",
-        "Dead bug",
-        "Goblet squat",
-        "Single-leg RDL",
-        "Hip thrust",
-        "Side plank",
-        "Dumbbell shoulder press",
-        "Dumbbell row",
-        "Push-up",
-        "Bike intervals"
+        "Leg swings",
+        "Hip circles",
+        "Sprint 10 m",
+        "Sprint 20 m",
+        "Sprint 30 m",
+        "Plank",
+        "Back squat",
+        "Deadlift",
+        "Bench press",
+        "Pull-up",
+        "Plank",
+        "Leg swings",
+        "Tempo run",
+        "Interval run 400 m",
+        "Plank"
       ]
     },
     "club": {
@@ -339,6 +338,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-10-12T13:48:01.198Z"
+    "finished": "2026-10-12T14:22:44.149Z"
   }
 }
