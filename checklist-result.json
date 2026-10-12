@@ -79,5 +79,103 @@
       "detail": "Comment faire"
     }
   },
-  "errors": []
+  "errors": [],
+  "journey": {
+    "started": "2026-10-12T12:15:59.461Z",
+    "checks": {
+      "landing shows for a new visitor": {
+        "pass": true,
+        "detail": null
+      },
+      "landing language switch": {
+        "pass": true,
+        "detail": "Commencer"
+      },
+      "landing fits phone width": {
+        "pass": true,
+        "detail": "390px"
+      },
+      "sign-up page": {
+        "pass": true,
+        "detail": "Create your account"
+      },
+      "account created": {
+        "pass": true,
+        "detail": null
+      },
+      "onboarding completed": {
+        "pass": false,
+        "detail": "page.click: Test timeout of 600000ms exceeded.\nCall log:\n  \u001b[2m- waiting for locator('#btnObNext')\u001b[22m\n\u001b[2m  -   locator resolved to <button disabled class=\"btn\" id=\"btnObNext\" data-i18n=\"Continue\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m  -   waiting for element to be visible, ena"
+      },
+      "first plan generated": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "today fits one screen": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "session opens": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "how-to with photos and muscle map": {
+        "pass": false,
+        "detail": "locator.count: Target page, context or browser has been closed"
+      },
+      "session logged": {
+        "pass": false,
+        "detail": "page.evaluate: Target page, context or browser has been closed"
+      },
+      "extra activity logged": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "streak shows after two sessions": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "rebuild keeps the injury note": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "nutrition meal added": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "club created": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "profile groups render": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "feedback sends": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "dark theme and French": {
+        "pass": false,
+        "detail": "page.selectOption: Target page, context or browser has been closed"
+      },
+      "every tab loads without errors": {
+        "pass": false,
+        "detail": "page.click: Target page, context or browser has been closed"
+      },
+      "no uncaught page errors": {
+        "pass": true,
+        "detail": []
+      }
+    },
+    "timings": {
+      "landing load": 849,
+      "sign-up": 1930
+    },
+    "errors": [],
+    "console": [],
+    "notes": [],
+    "cleanup": "failed: page.evaluate: Target page, context or browser has been closed",
+    "finished": "2026-10-12T12:25:59.697Z"
+  }
 }
