@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node tools/publish-rules.mjs",
+  "installCommand": "npm install && node tools/publish-rules.mjs",
   "crons": [
     {
       "path": "/api/daily-notify",
