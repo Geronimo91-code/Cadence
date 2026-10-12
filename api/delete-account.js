@@ -51,6 +51,11 @@ export default async function handler(req, res) {
 
     await wipe(db().doc(`users/${uid}`));
     await db().doc(`usage/${uid}`).delete().catch(() => {});
+    // tester feedback and error reports carry the uid and email: remove them too
+    for (const col of ['feedback', 'problems']) {
+      const q = await db().collection(col).where('uid', '==', uid).get();
+      await Promise.all(q.docs.map((d) => d.ref.delete()));
+    }
 
     let left = await leftovers(uid);
     if (left.length) { await wipe(db().doc(`users/${uid}`)); await db().doc(`usage/${uid}`).delete().catch(() => {}); left = await leftovers(uid); }
