@@ -72,7 +72,9 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
           document.querySelectorAll('#obStep .chips').forEach((g) => { if (!g.querySelector('[aria-pressed="true"]')) g.querySelector('.chip')?.click(); });
           document.querySelectorAll('#obStep .options').forEach((g) => { if (!g.querySelector('[aria-checked="true"]')) g.querySelector('.option')?.click(); });
         });
+        const last = /Save and start/i.test(await page.textContent('#btnObNext'));
         await page.click('#btnObNext');
+        if (last) { await time('save setup', () => expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 45000 })); break; }
         await page.waitForTimeout(700);
         const toastText = (await page.textContent('#toast').catch(() => '')) || '';
         if (titles.length > 1 && titles[titles.length - 1] === (await page.textContent('#obStep h2').catch(() => '')).trim() && toastText) out.notes.push(`onboarding blocked on "${title}": ${toastText}`);
