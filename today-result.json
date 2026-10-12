@@ -11,5 +11,25 @@
     "card todaycard:102",
     "card todaycard:72",
     "card sage todaycard:106"
+  ],
+  "tabsDiag": [
+    {
+      "at": "2026-10-12T13:51:54.465Z",
+      "step": "done",
+      "errors": [
+        "Cannot set properties of null (setting 'textContent')",
+        "Cannot set properties of null (setting 'textContent')"
+      ],
+      "console": []
+    },
+    {
+      "at": "2026-10-12T13:51:59.420Z",
+      "step": "done",
+      "errors": [
+        "Cannot set properties of null (setting 'textContent')",
+        "Cannot set properties of null (setting 'textContent')"
+      ],
+      "console": []
+    }
   ]
 }
