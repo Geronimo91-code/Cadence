@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-10-12T12:34:01.336Z",
+    "started": "2026-10-12T13:46:08.494Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -110,25 +110,25 @@
       "first plan generated": {
         "pass": true,
         "detail": {
-          "source": "profile",
+          "source": "template",
           "sessions": 7,
           "real": 3,
           "days": 7,
-          "rationale": "Since speed is your primary goal for Ultimate Frisbee, this week establishes baseline mechanics for acceleration and sharp cutting across 3 short 30-minute sessions. As a beginner in Week 1, light power movements like pogo hops and broad jumps prepare your joints for maximal sprint efforts without o",
+          "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
           "titles": [
-            "0:speed:Speed & Acceleration",
-            "1:rest:Rest Day",
-            "2:strength:Lower Power & Speed Strength",
-            "3:rest:Rest Day",
-            "4:speed:Agility & Change of Direction",
-            "5:rest:Rest Day",
-            "6:rest:Rest Day"
+            "0:speed:Speed and acceleration",
+            "1:rest:Rest",
+            "2:strength:Full-body strength",
+            "3:rest:Rest",
+            "4:conditioning:Conditioning",
+            "5:rest:Rest",
+            "6:rest:Rest"
           ]
         }
       },
       "first plan is AI-made (not template)": {
-        "pass": true,
-        "detail": "profile"
+        "pass": false,
+        "detail": "template"
       },
       "plan covers 7 days": {
         "pass": true,
@@ -145,6 +145,7 @@
             "card todaycard",
             "card todaycard nextup",
             "card todaycard",
+            "quick",
             "card todaycard"
           ]
         }
@@ -156,12 +157,14 @@
       "how-to with photos and muscle map": {
         "pass": true,
         "detail": {
-          "exercises": 4,
+          "exercises": 6,
           "withPhotos": 2,
           "withMap": 2,
           "missing": [
+            "Leg swings",
             "Sprint 10 m",
-            "Sprint 20 m"
+            "Sprint 20 m",
+            "Sprint 30 m"
           ]
         }
       },
@@ -178,8 +181,8 @@
         "detail": 1
       },
       "streak shows after two sessions": {
-        "pass": false,
-        "detail": "This week: 1 of 2"
+        "pass": true,
+        "detail": "1-week streak"
       },
       "rebuild keeps the injury note": {
         "pass": true,
@@ -199,7 +202,29 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeV8RDNBCopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeEKM6VKCopyShare it with player"
+      },
+      "invite code registered for joining": {
+        "pass": false,
+        "detail": "permission-denied"
+      },
+      "second person joins with the code": {
+        "pass": true,
+        "detail": {
+          "codeDoc": "permission-denied",
+          "listClubs": "allowed",
+          "outsiderList": "allowed",
+          "wrongCode": null,
+          "joined": true
+        }
+      },
+      "wrong code finds no club": {
+        "pass": true,
+        "detail": null
+      },
+      "outsiders cannot list clubs": {
+        "pass": false,
+        "detail": "allowed"
       },
       "profile groups render": {
         "pass": true,
@@ -231,12 +256,12 @@
       }
     },
     "timings": {
-      "landing load": 206,
-      "sign-up": 1911,
-      "save setup": 1870,
-      "first plan": 10936,
-      "save session": 419,
-      "rebuild": 9943
+      "landing load": 183,
+      "sign-up": 1913,
+      "save setup": 1872,
+      "first plan": 50013,
+      "save session": 429,
+      "rebuild": 10948
     },
     "errors": [],
     "console": [],
@@ -252,59 +277,68 @@
       "Here is your setup"
     ],
     "firstPlan": {
-      "source": "profile",
+      "source": "template",
       "sessions": 7,
       "real": 3,
       "days": 7,
-      "rationale": "Since speed is your primary goal for Ultimate Frisbee, this week establishes baseline mechanics for acceleration and sharp cutting across 3 short 30-minute sessions. As a beginner in Week 1, light power movements like pogo hops and broad jumps prepare your joints for maximal sprint efforts without o",
+      "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
       "titles": [
-        "0:speed:Speed & Acceleration",
-        "1:rest:Rest Day",
-        "2:strength:Lower Power & Speed Strength",
-        "3:rest:Rest Day",
-        "4:speed:Agility & Change of Direction",
-        "5:rest:Rest Day",
-        "6:rest:Rest Day"
+        "0:speed:Speed and acceleration",
+        "1:rest:Rest",
+        "2:strength:Full-body strength",
+        "3:rest:Rest",
+        "4:conditioning:Conditioning",
+        "5:rest:Rest",
+        "6:rest:Rest"
       ]
     },
     "howto": {
-      "exercises": 4,
+      "exercises": 6,
       "withPhotos": 2,
       "withMap": 2,
       "missing": [
+        "Leg swings",
         "Sprint 10 m",
-        "Sprint 20 m"
+        "Sprint 20 m",
+        "Sprint 30 m"
       ]
     },
     "rebuiltPlan": {
       "source": "profile",
       "note": "Left ankle sprain, no jumping this week",
-      "rationale": "To protect your sprained left ankle, all plyometrics like Pogo hops and high-impact speed work have been removed this week. We kept acceleration wall drills to maintain your speed goal safely, while focusing heavy work on non-impacting compound strength patterns. Sessions are kept tight at 30 minutes across your available Monday, Wednesday, and Friday schedule.",
+      "rationale": "Since your primary goal is speed, we adapted your plan to focus on speed acceleration mechanics and strength while strictly honoring your left ankle sprain by removing all jumping, cutting, and running. Non-impact tools like wall drills, heavy sled pushes, and stationary bike intervals keep your power and conditioning high without compromising tissue healing. All workouts are locked to 30 minutes ",
       "titles": [
-        "0:speed:Speed & Lower Body Power",
+        "0:speed:Speed Mechanics & Core",
         "1:rest:Rest Day",
-        "2:strength:Posterior Chain & Upper Body",
+        "2:strength:Lower Body Strength",
         "3:rest:Rest Day",
-        "4:strength:Single-Leg Strength & Core",
+        "4:strength:Upper Body Strength & Conditioning",
         "5:rest:Rest Day",
         "6:rest:Rest Day"
       ],
       "exercises": [
         "Acceleration wall drill",
-        "Goblet squat",
-        "Dumbbell row",
-        "Plank",
-        "Romanian deadlift",
-        "Push-up",
-        "Lat pulldown",
+        "Sled push",
         "Pallof press",
-        "Split squat",
-        "Incline bench press",
-        "Face pull",
-        "Dead bug"
+        "Dead bug",
+        "Goblet squat",
+        "Single-leg RDL",
+        "Hip thrust",
+        "Side plank",
+        "Dumbbell shoulder press",
+        "Dumbbell row",
+        "Push-up",
+        "Bike intervals"
       ]
     },
+    "club": {
+      "codeDoc": "permission-denied",
+      "listClubs": "allowed",
+      "outsiderList": "allowed",
+      "wrongCode": null,
+      "joined": true
+    },
     "cleanup": "deleted",
-    "finished": "2026-10-12T12:34:59.998Z"
+    "finished": "2026-10-12T13:48:01.198Z"
   }
 }
