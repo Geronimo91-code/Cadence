@@ -14,10 +14,11 @@
   ],
   "tabsDiag": [
     {
-      "at": "2026-10-12T14:16:45.761Z",
+      "at": "2026-10-12T14:25:59.142Z",
       "step": "done",
       "errors": [],
       "console": []
     }
-  ]
+  ],
+  "rulesStatus": "HTTP 404"
 }
