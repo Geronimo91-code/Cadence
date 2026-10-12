@@ -95,6 +95,7 @@ test('today fits one screen', async ({ page }) => {
     };
   });
   try { m.tabsDiag = JSON.parse(fs.readFileSync('tabs-diag.json', 'utf8')); } catch (_) { /* none */ }
+  try { const r = await page.request.get(URL.replace(/\/$/, '') + '/rules-status.json'); m.rulesStatus = r.ok() ? await r.json() : 'HTTP ' + r.status(); } catch (e) { m.rulesStatus = String(e).slice(0, 120); }
   fs.writeFileSync('today-result.json', JSON.stringify(m, null, 2));
   expect(m.state, 'Today should be in a known state').not.toBe('unknown');
   if (m.state === 'week in progress') expect(m.cols, 'week board should show 7 days').toBe(7);
