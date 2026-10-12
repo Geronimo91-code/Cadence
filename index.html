@@ -1844,6 +1844,10 @@ function viewPlan(el) {
     el.append(seg);
   }
   el.insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:10px"><span class="badge">${esc(p.phase)} phase</span> &nbsp;${esc(weekLabel(p.weekId))}${planIsFuture() ? ' · starts Monday' : ''}</p><p class="muted">${esc(p.focus)}</p>`);
+  if (p.weekNote) {
+    el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('Your note for this week')}</strong><div class="muted small" style="margin-top:4px;white-space:pre-wrap">${esc(p.weekNote)}</div>${planIsCurrent() ? `<button class="btn ghost sm" id="btnEditNote" style="padding-left:0;margin-top:4px">${T('Edit')}</button>` : ''}</div>`);
+    if ($('#btnEditNote')) $('#btnEditNote').onclick = () => openRebuild();
+  }
   if (p.source === 'template') el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('Template week')}</strong><div class="muted small">${T('Built from your settings while the plan service was unavailable. Rebuild for a tailored week.')}</div></div>`);
   if (!p.sessions.some((x) => Array.isArray(x.warmup))) el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('This plan is in an older format')}</strong><div class="muted small">${T('Use Rebuild this week below to get full session details.')}</div></div>`);
   const t = todayIndex();
@@ -1949,7 +1953,7 @@ function openRebuild() {
     <div class="block">
       <h3>${T('Anything Cadence should know?')}</h3>
       <p class="muted small" style="margin:4px 0 8px">${T('Injuries, travel, a heavy week at work, a tournament on Sunday — it plans around what you write here.')}</p>
-      <textarea class="input" id="rbNote" placeholder="${T('e.g. Left ankle rolled on Saturday, no jumping or cutting this week')}"></textarea>
+      <textarea class="input" id="rbNote" placeholder="${T('e.g. Left ankle rolled on Saturday, no jumping or cutting this week')}">${state.plan?.weekId === isoWeekId() ? esc(state.plan.weekNote || '') : ''}</textarea>
       <div class="list" style="margin-top:6px"><div class="li"><div><div>${T('Keep this as an ongoing limit')}</div><span class="muted">${T('Adds it to your profile so future weeks respect it too.')}</span></div><button class="switch" id="rbKeep" role="switch" aria-checked="false"></button></div></div>
     </div>
     <div class="card">

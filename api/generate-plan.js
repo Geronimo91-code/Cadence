@@ -15,7 +15,14 @@ export default async function handler(req, res) {
   const started = Date.now();
   // one-off overrides for this rebuild; the stored profile is untouched unless the client saved it
   const body = req.body || {};
-  if (typeof body.note === 'string' && body.note.trim()) profile.weekNote = body.note.trim().slice(0, 400);
+  const id = weekId();
+  // The athlete's note for this week (injury, travel...) is kept on the plan, so rebuilding the week never silently drops it.
+  // An explicit empty string clears it; no note field at all keeps the one already on this week's plan.
+  if (typeof body.note === 'string') { if (body.note.trim()) profile.weekNote = body.note.trim().slice(0, 400); }
+  else {
+    const current = await db().doc(`users/${user.uid}/plans/${id}`).get();
+    if (current.exists && current.data().weekNote) profile.weekNote = current.data().weekNote;
+  }
   if (Array.isArray(body.days) && body.days.length) {
     profile.days = [...new Set(body.days.map(Number).filter((d) => d >= 0 && d <= 6))].sort((a, b) => a - b);
   }
@@ -36,7 +43,6 @@ export default async function handler(req, res) {
   const priorPlans = await db().collection(`users/${user.uid}/plans`).get();
   profile.weekNumber = priorPlans.size + 1;
 
-  const id = weekId();
   const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads as a percentage of effort or bodyweight/RPE (never guess kilograms unless the athlete gave a number), rest times, and short coaching cues an athlete can read on a phone at the gym or field.
 
 ${PLAN_RULES}
@@ -51,6 +57,7 @@ ${planShape(id)}`;
     plan.weekId = id;
     plan.createdAt = new Date().toISOString();
     plan.source = 'profile';
+    plan.weekNote = profile.weekNote || null;
     await db().doc(`users/${user.uid}/plans/${id}`).set(plan);
     return res.status(200).json(plan);
   } catch (e) {
@@ -59,6 +66,7 @@ ${planShape(id)}`;
     // Rather than leave the athlete with nothing, fall back to a template week built from their settings
     try {
       const plan = templatePlan(profile, id);
+      plan.weekNote = profile.weekNote || null;
       await db().doc(`users/${user.uid}/plans/${id}`).set(plan);
       return res.status(200).json({ ...plan, fallback: true, detail: String(e && e.message || e).slice(0, 200) });
     } catch (inner) {

@@ -160,6 +160,7 @@ ${nutritionLine}
 ${prevReview.exists ? `Previous week's adjustments were: ${(prevReview.data().adjustments || []).join('; ')}` : 'This is the first review.'}
 Plan's own hint for next week: ${plan.nextWeekHint || 'none'}
 ${coachNote}
+${plan.weekNote ? `What the athlete wrote about this week: "${plan.weekNote}". If it describes an injury or pain, assume it can still affect next week unless the logs show it has cleared, and say how next week accounts for it.` : ''}
 
 Session log:
 ${sessionLines.join('\n')}

@@ -271,6 +271,8 @@ es: {
 (function () {
   const add = {
     fr: {
+      "Edit": "Modifier",
+      "Your note for this week": "Ta note pour cette semaine",
       "Muscles worked": "Muscles travaillés",
       "Front view": "Face",
       "Back view": "Dos",
@@ -343,6 +345,8 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+      "Edit": "Bewerken",
+      "Your note for this week": "Jouw notitie voor deze week",
       "Muscles worked": "Gebruikte spieren",
       "Front view": "Voorkant",
       "Back view": "Achterkant",
@@ -415,6 +419,8 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+      "Edit": "Düzenle",
+      "Your note for this week": "Bu haftaki notun",
       "Muscles worked": "Çalışan kaslar",
       "Front view": "Ön",
       "Back view": "Arka",
@@ -487,6 +493,8 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+      "Edit": "Editar",
+      "Your note for this week": "Tu nota para esta semana",
       "Muscles worked": "Músculos trabajados",
       "Front view": "Frente",
       "Back view": "Espalda",
