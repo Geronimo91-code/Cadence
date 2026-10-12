@@ -58,12 +58,21 @@ test('site and API routes', async ({ request }) => {
 test('sign in and tabs', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await signIn(page);
-  for (const [view, title] of [['plan', 'This week'], ['log', 'Log'], ['nutrition', 'Nutrition'], ['club', 'Club'], ['profile', 'Profile'], ['today', 'Today']]) {
-    await page.click(`.tab[data-view="${view}"]`);
-    await expect(page.locator('#topTitle')).toHaveText(title);
-    await expect(page.locator('#view')).not.toContainText('Something went wrong');
-  }
+  // diagnostics go to tabs-diag.json, which the today test folds into today-result.json (published to test-results)
+  const diag = { at: new Date().toISOString(), step: 'sign in', errors, console: [] };
+  page.on('console', (m) => { if (m.type() === 'error') diag.console.push(m.text().slice(0, 300)); });
+  const save = () => { try { const prev = fs.existsSync('tabs-diag.json') ? JSON.parse(fs.readFileSync('tabs-diag.json', 'utf8')) : []; fs.writeFileSync('tabs-diag.json', JSON.stringify([...prev, diag].slice(-4), null, 2)); } catch (_) { /* diagnostics only */ } };
+  try {
+    await signIn(page);
+    for (const [view, title] of [['plan', 'This week'], ['log', 'Log'], ['nutrition', 'Nutrition'], ['club', 'Club'], ['profile', 'Profile'], ['today', 'Today']]) {
+      diag.step = view;
+      await page.click(`.tab[data-view="${view}"]`);
+      await expect(page.locator('#topTitle')).toHaveText(title);
+      await expect(page.locator('#view')).not.toContainText('Something went wrong');
+    }
+    diag.step = 'done';
+  } catch (e) { diag.failure = String(e.message || e).slice(0, 600); save(); throw e; }
+  save();
   expect(errors, 'uncaught page errors: ' + errors.join(' | ')).toHaveLength(0);
 });
 
@@ -85,6 +94,7 @@ test('today fits one screen', async ({ page }) => {
       blocks: [...document.querySelectorAll('#view > *')].map((e) => `${e.className || e.tagName}:${Math.round(e.getBoundingClientRect().height)}`),
     };
   });
+  try { m.tabsDiag = JSON.parse(fs.readFileSync('tabs-diag.json', 'utf8')); } catch (_) { /* none */ }
   fs.writeFileSync('today-result.json', JSON.stringify(m, null, 2));
   expect(m.state, 'Today should be in a known state').not.toBe('unknown');
   if (m.state === 'week in progress') expect(m.cols, 'week board should show 7 days').toBe(7);
