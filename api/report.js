@@ -2,9 +2,11 @@
 // POST { type: 'feedback', text, ... }   → saved to feedback/{id}
 // POST { type: 'error', message, ... }   → saved to problems/{id}
 // POST { action: 'whoami' }              → { admin }
+// POST { action: 'sync' }                → publish firestore.rules if changed, register club codes (idempotent)
 // POST { action: 'inbox' }               → latest feedback + problems (admins only)
 // POST { action: 'stats' }               → usage overview and per-user table (admins only)
 import { requireUser, db, checkLimit, getAdmin, weekId } from './_lib.js';
+import { syncRules } from './_sync.js';
 
 const ADMINS = (process.env.ADMIN_EMAILS || 'melihgeron@gmail.com').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
 const clip = (v, n) => (v == null ? '' : String(v).slice(0, n));
@@ -16,7 +18,8 @@ export default async function handler(req, res) {
   const body = req.body || {};
   const isAdmin = !!user.email && ADMINS.includes(user.email.toLowerCase());
 
-  if (body.action === 'whoami') return res.status(200).json({ admin: isAdmin });
+  if (body.action === 'whoami') { await syncRules().catch(() => {}); return res.status(200).json({ admin: isAdmin }); }
+  if (body.action === 'sync') return res.status(200).json(await syncRules());
 
   if (body.action === 'inbox') {
     if (!isAdmin) return res.status(403).json({ error: 'Not allowed' });
