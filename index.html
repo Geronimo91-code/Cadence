@@ -2434,6 +2434,7 @@ async function viewLog(el) {
   try {
     const wq = await db.collection('users/' + state.user.uid + '/weights').orderBy('at', 'desc').limit(30).get();
     const ws = wq.docs.map((d) => d.data()).reverse();
+    if (!$('#wLatest')) return; // left the screen while loading
     if (ws.length) {
       const last = ws[ws.length - 1]; const first = ws[0];
       const diff = ws.length > 1 ? (last.kg - first.kg) : 0;
@@ -2441,7 +2442,8 @@ async function viewLog(el) {
       const min = Math.min(...ws.map((w) => w.kg)) - 1, max = Math.max(...ws.map((w) => w.kg)) + 1;
       $('#wChart').innerHTML = ws.map((w) => `<i style="height:${Math.round(((w.kg - min) / (max - min)) * 100)}%" title="${w.kg} kg"></i>`).join('');
     } else $('#wLatest').textContent = T('No entries yet');
-  } catch (e) { $('#wLatest').textContent = T('Could not load'); }
+  } catch (e) { const wl = $('#wLatest'); if (wl) wl.textContent = T('Could not load'); }
+  if (!$('#wAdd')) return;
   $('#wAdd').onclick = async () => {
     const kg = Number($('#wIn').value); if (!(kg > 30 && kg < 250)) { toast(T('Enter your weight in kg.')); return; }
     try {
@@ -2546,7 +2548,9 @@ async function viewNutrition(el) {
   };
   try { const d = await ref.get(); if (d.exists) doc = d.data(); } catch (_) {}
   doc.meals = doc.meals || [];
+  if (!$('#kcalLeft')) return; // left the screen while loading
   const render = () => {
+    if (!$('#kcalLeft')) return;
     const sum = doc.meals.reduce((a, m) => ({ k: a.k + (m.kcal || 0), p: a.p + (m.protein || 0), c: a.c + (m.carbs || 0), f: a.f + (m.fat || 0) }), { k: 0, p: 0, c: 0, f: 0 });
     $('#kcalLeft').textContent = Math.max(0, t.kcal - sum.k) + (sum.k > t.kcal ? '' : '');
     if (sum.k > t.kcal) $('#kcalLeft').textContent = '+' + (sum.k - t.kcal);
@@ -2576,7 +2580,7 @@ async function viewNutrition(el) {
       items.forEach((m) => { const c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.textContent = `${m.name} · ${m.kcal}`; c.onclick = async () => { doc.meals.push({ ...m, id: Date.now().toString(36), at: new Date().toISOString() }); await persist(); render(); toast(T('Added')); }; w.querySelector('.recent').append(c); });
     }
   } catch (_) {}
-
+  if (!$('#mealAdd')) return;
   $('#mealAdd').onclick = async () => {
     const name = $('#mealName').value.trim(); const kcal = Number($('#mealK').value);
     if (!name) { toast(T('Give the meal a name.')); return; }
@@ -2707,7 +2711,7 @@ async function viewClub(el) {
   $$('[data-role]', ml).forEach((b) => { b.onclick = async () => { const m = members.find((x) => x.uid === b.dataset.role); const role = m.role === 'coach' ? 'member' : 'coach'; if (!confirm((role === 'coach' ? T('Give coaching rights to') : T('Remove coaching rights from')) + ' ' + m.name + '?')) return; await db.doc('clubs/' + c.id + '/members/' + m.uid).set({ role }, { merge: true }); navigate('club'); }; });
   $$('[data-remove]', ml).forEach((b) => { b.onclick = async () => { const m = members.find((x) => x.uid === b.dataset.remove); if (!confirm(T('Remove') + ' ' + m.name + '?')) return; await db.doc('clubs/' + c.id + '/members/' + m.uid).delete(); navigate('club'); }; });
 
-  if (coach) renderCoachList($('#coachList'), c, members).catch((e) => { console.error(e); $('#coachList').textContent = T('Could not load'); });
+  if (coach) renderCoachList($('#coachList'), c, members).catch((e) => { console.error(e); const cl = $('#coachList'); if (cl) cl.textContent = T('Could not load'); });
 }
 
 async function renderCoachList(el, c, members) {
