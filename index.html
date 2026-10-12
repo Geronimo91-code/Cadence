@@ -915,9 +915,9 @@ a.btn { text-decoration: none; }
     <button class="tab" data-view="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="Today">Today</span></button>
     <button class="tab" data-view="plan"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span data-i18n="Plan">Plan</span></button>
     <button class="tab" data-view="log"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span data-i18n="Log">Log</span></button>
-    <button class="tab" data-view="nutrition"><svg viewBox="0 0 24 24"><path d="M12 21c-4 0-7-3-7-7 0-3 2-5 4-7 1 2 3 2 3 2s0-2 2-4c2 2 5 4 5 9 0 4-3 7-7 7z"/></svg data-i18n="Nutrition">Nutrition</button>
+    <button class="tab" data-view="nutrition"><svg viewBox="0 0 24 24"><path d="M12 21c-4 0-7-3-7-7 0-3 2-5 4-7 1 2 3 2 3 2s0-2 2-4c2 2 5 4 5 9 0 4-3 7-7 7z"/></svg><span data-i18n="Nutrition">Nutrition</span></button>
     <button class="tab" data-view="club"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M14 19c0-3 2-5 5-5s3 1 3 3"/></svg><span data-i18n="Club">Club</span></button>
-    <button class="tab" data-view="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg data-i18n="Profile">Profile</button>
+    <button class="tab" data-view="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span data-i18n="Profile">Profile</span></button>
   </nav>
 </section>
 
@@ -1334,7 +1334,7 @@ function renderGoal(el) {
     wrap.append(b);
   });
   paint(); el.append(wrap);
-  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fGoalNote">Anything specific? <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fGoalNote" placeholder="e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half"></textarea></div>`);
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fGoalNote">${T('Anything specific?')} <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fGoalNote" placeholder="${T('e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half')}"></textarea></div>`);
   bind($('#fGoalNote'), 'goalNote');
 }
 function renderAvailability(el) {
@@ -1353,7 +1353,7 @@ function renderAvailability(el) {
   const prefWrap = document.createElement('div'); prefWrap.className = 'dayprefs'; el.append(prefWrap); renderDayPrefs(prefWrap);
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fTime">${T('Usual start time')}</label><input class="input" id="fTime" type="time"><span class="hint">${T('Used for calendar reminders. Sessions themselves aren\'t locked to it.')}</span></div>`);
   bind($('#fTime'), 'sessionTime'); if (!$('#fTime').value) { $('#fTime').value = '18:00'; ob.data.sessionTime = ob.data.sessionTime || '18:00'; }
-  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">Fixed commitments <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fFixed" placeholder="e.g. Club practice Tue & Thu 19:30, matches most Sundays"></textarea><span class="hint">${T('Cadence plans around these instead of replacing them.')}</span></div>`);
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">${T('Fixed commitments')} <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fFixed" placeholder="${T('e.g. Club practice Tue & Thu 19:30, matches most Sundays')}"></textarea><span class="hint">${T('Cadence plans around these instead of replacing them.')}</span></div>`);
   bind($('#fFixed'), 'fixed');
 }
 const FOCUS_OPTIONS = [['', 'Let Cadence decide'], ['strength', 'Strength'], ['speed', 'Speed'], ['conditioning', 'Conditioning'], ['skills', 'Skills / practice'], ['mobility', 'Mobility'], ['match', 'Match']];
@@ -1387,7 +1387,7 @@ function renderDayPrefs(wrap, data) {
 function renderSetup(el) {
   const d = ob.data;
   el.append(chipGroup(EQUIPMENT, d.equipment, (v) => { d.equipment = v; }));
-  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:26px"><label for="fInjuries">Injuries or limits <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fInjuries" placeholder="e.g. Left knee, no deep jumps for now. Lower back gets sore with heavy deadlifts."></textarea></div>`);
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:26px"><label for="fInjuries">${T('Injuries or limits')} <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fInjuries" placeholder="${T('e.g. Left knee, no deep jumps for now. Lower back gets sore with heavy deadlifts.')}"></textarea></div>`);
   bind($('#fInjuries'), 'injuries');
 }
 function renderDeadline(el) {
@@ -1396,7 +1396,7 @@ function renderDeadline(el) {
   if (d.hasDeadline) {
     const min = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
     el.insertAdjacentHTML('beforeend', `
-      <div class="field" style="margin-top:22px"><label for="fEvent">${T('Event')}</label><input class="input" id="fEvent" placeholder="e.g. Belgian Championship, Spring Half Marathon"></div>
+      <div class="field" style="margin-top:22px"><label for="fEvent">${T('Event')}</label><input class="input" id="fEvent" placeholder="${T('e.g. Belgian Championship, Spring Half Marathon')}"></div>
       <div class="field"><label for="fDate">${T('Date')}</label><input class="input" id="fDate" type="date" min="${min}"></div>`);
     bind($('#fEvent'), 'deadlineName', (v) => v.trim()); bind($('#fDate'), 'deadlineDate');
   }
@@ -1523,7 +1523,7 @@ function openReview(r) {
   const li = (items, cls = '') => items?.length ? `<ul class="review-list ${cls}">${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : `<p class="muted small">${T('Nothing to note.')}</p>`;
   const st = r.stats || {};
   sheet.innerHTML = `<div class="container">
-    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>${T('Week review')}</h2></div>
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Week review')}</h2></div>
     <span class="badge">${esc(r.weekId)} · ${weekLabel(r.weekId)}</span>
     <h1>${T('How the week went')}</h1>
     <div class="stat"><div><b>${st.adherence ?? 0}%</b><span>adherence</span></div><div><b>${st.done ?? 0}/${st.planned ?? 0}</b><span>${T('sessions done')}</span></div><div><b>${st.avgRpe ?? '–'}</b><span>${T('avg RPE')}</span></div></div>
@@ -2016,7 +2016,7 @@ function openSession(raw, weekIdOverride, logOverride) {
   const isPastWeek = wk < isoWeekId();
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', sess.title);
   const list = (items) => items.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : `<p class="muted small">${T('None')}</p>`;
-  const rest = (sec) => sec ? (sec >= 60 ? `${Math.round(sec / 60 * 10) / 10} min rest` : `${sec} s rest`) : '';
+  const rest = (sec) => sec ? (sec >= 60 ? `${Math.round(sec / 60 * 10) / 10} ${T('min rest')}` : `${sec} ${T('s rest')}`) : '';
   const svgCheck = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>';
 
   // Draft: from existing log if it has set data, otherwise from the prescription
@@ -2032,7 +2032,7 @@ function openSession(raw, weekIdOverride, logOverride) {
   };
 
   sheet.innerHTML = `<div class="container">
-    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>${T(DAYS[sess.day])}${wk !== isoWeekId() ? ' · ' + weekLabel(wk) : ''}</h2></div>
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T(DAYS[sess.day])}${wk !== isoWeekId() ? ' · ' + weekLabel(wk) : ''}</h2></div>
     <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(T(sess.type))}">${esc(T(sess.type))}${sess.fixed ? ' · fixed' : ''}</span><span id="sheetStatus">${statusHtml(existing)}</span></div>
     <h1>${esc(sess.title)}</h1>
     <div class="muted small">${sess.durationMin} min planned</div>
@@ -2048,7 +2048,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     <div class="block">
       <div class="field"><label>${T('How hard was the whole session? (RPE 1–10)')} <button type="button" class="btn ghost sm" id="btnRpeInfo" style="padding:2px 8px;color:var(--green)">${T('What is RPE?')}</button></label><div class="rpe" id="sessRpe"></div></div>
       <div class="field"><label for="logDur">${T('Actual duration')}</label><div class="unit-input"><input class="input" id="logDur" type="number" inputmode="numeric" value="${draft.durationMin || ''}"><span>min</span></div></div>
-      <div class="field"><label for="logNote">Notes <span class="muted">${T('(optional — pain, energy, what to change)')}</span></label><textarea class="input" id="logNote" placeholder="e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6">${esc(draft.note || '')}</textarea></div>
+      <div class="field"><label for="logNote">${T('Notes')} <span class="muted">${T('(optional — pain, energy, what to change)')}</span></label><textarea class="input" id="logNote" placeholder="${T('e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6')}">${esc(draft.note || '')}</textarea></div>
       <button class="btn" id="btnSaveLog">${existing ? T('Update log') : T('Save session')}</button>
       <button class="btn ghost" id="btnSkip" style="width:100%;margin-top:6px">${existing?.status === 'skipped' ? T('Saved as skipped') : T('I skipped this session')}</button>
     </div>
@@ -2459,7 +2459,7 @@ async function viewLog(el) {
 function openLog(l) {
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
   sheet.innerHTML = `<div class="container">
-    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ Back</button><h2>${T(DAYS[l.day])} · ${new Date(l.loggedAt).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })}</h2></div>
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T(DAYS[l.day])} · ${new Date(l.loggedAt).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })}</h2></div>
     ${statusHtml(l)}<h1>${esc(l.title)}</h1>
     <div class="muted small">${l.durationMin ? l.durationMin + ' min' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}</div>
     ${l.note ? `<div class="intent">${esc(l.note)}</div>` : ''}
@@ -2486,14 +2486,14 @@ async function viewNutrition(el) {
     <div class="daynav"><button class="btn ghost sm" id="nPrev">‹</button><h3>${isToday ? T('Today') : dayDate.toLocaleDateString(localeTag(), { weekday: 'long', day: 'numeric', month: 'short' })}</h3><button class="btn ghost sm" id="nNext" ${isToday ? 'disabled style="visibility:hidden"' : ''}>›</button></div>
     <div class="card" id="nCard">
       <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${trainingDay ? '' : 'rest'}">${trainingDay ? T('Training day') : T('Rest day')}${sess && sess.type !== 'rest' ? ' · ' + esc(sess.title) : ''}</span><span class="muted small">${n.goal === 'gain' ? T('Slow gain') : n.goal === 'lose' ? T('Slow loss') : T('Maintain')}</span></div>
-      <div class="kcal"><b id="kcalLeft">–</b><span>kcal left of ${t.kcal}</span></div>
+      <div class="kcal"><b id="kcalLeft">–</b><span>${T('kcal left of')} ${t.kcal}</span></div>
       <div class="macro" id="mP"><div class="lbl"><span>${T('Protein')}</span><b><span class="v">0</span> / ${t.protein} g</b></div><div class="bar"><i style="width:0%"></i></div></div>
       <div class="macro" id="mC"><div class="lbl"><span>${T('Carbs')}</span><b><span class="v">0</span> / ${t.carbs} g</b></div><div class="bar"><i style="width:0%"></i></div></div>
       <div class="macro" id="mF"><div class="lbl"><span>${T('Fat')}</span><b><span class="v">0</span> / ${t.fat} g</b></div><div class="bar"><i style="width:0%"></i></div></div>
     </div>
     <div class="card">
       <h3>${T('Add a meal')}</h3>
-      <div class="field" style="margin-top:10px"><input class="input" id="mealName" placeholder="e.g. Chicken wrap and a banana"></div>
+      <div class="field" style="margin-top:10px"><input class="input" id="mealName" placeholder="${T('e.g. Chicken wrap and a banana')}"></div>
       <div class="grid4"><div><label>kcal</label><input class="input" id="mealK" type="number" inputmode="numeric"></div><div><label>${T('Protein')}</label><input class="input" id="mealP" type="number" inputmode="numeric"></div><div><label>${T('Carbs')}</label><input class="input" id="mealC" type="number" inputmode="numeric"></div><div><label>${T('Fat')}</label><input class="input" id="mealF" type="number" inputmode="numeric"></div></div>
       <div class="row" style="margin-top:12px"><button class="btn secondary" id="mealEst">${T('Estimate from name')}</button><button class="btn secondary" id="mealPhoto">${T('Photo')}</button><button class="btn" id="mealAdd">Add</button></div>
       <input type="file" id="mealFile" accept="image/*" capture="environment" class="hidden">
@@ -2536,7 +2536,7 @@ async function viewNutrition(el) {
     const sum = doc.meals.reduce((a, m) => ({ k: a.k + (m.kcal || 0), p: a.p + (m.protein || 0), c: a.c + (m.carbs || 0), f: a.f + (m.fat || 0) }), { k: 0, p: 0, c: 0, f: 0 });
     $('#kcalLeft').textContent = Math.max(0, t.kcal - sum.k) + (sum.k > t.kcal ? '' : '');
     if (sum.k > t.kcal) $('#kcalLeft').textContent = '+' + (sum.k - t.kcal);
-    $('#kcalLeft').nextElementSibling.textContent = sum.k > t.kcal ? `kcal over ${t.kcal}` : `kcal left of ${t.kcal}`;
+    $('#kcalLeft').nextElementSibling.textContent = sum.k > t.kcal ? `${T('kcal over')} ${t.kcal}` : `${T('kcal left of')} ${t.kcal}`;
     [['#mP', sum.p, t.protein], ['#mC', sum.c, t.carbs], ['#mF', sum.f, t.fat]].forEach(([id, v, tg]) => { const m = $(id); m.querySelector('.v').textContent = Math.round(v); m.querySelector('i').style.width = Math.min(100, (v / tg) * 100) + '%'; m.classList.toggle('over', v > tg * 1.15); });
     const list = $('#mealList');
     if (!doc.meals.length) { list.innerHTML = `<span class="muted">${T('Nothing logged yet.')}</span>`; return; }

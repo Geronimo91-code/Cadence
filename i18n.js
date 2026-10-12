@@ -271,6 +271,11 @@ es: {
 (function () {
   const add = {
     fr: {
+      "e.g. Belgian Championship, Spring Half Marathon": "ex. Championnat de Belgique, semi-marathon de printemps",
+      "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "ex. Entraînement club mar. et jeu. 19h30, matchs la plupart des dimanches",
+      "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "ex. Genou OK, la dernière série de squats était dure, sprints réduits à 6",
+      "e.g. Left knee, no deep jumps for now. Lower back gets sore with heavy deadlifts.": "ex. Genou gauche, pas de sauts profonds pour l'instant. Le bas du dos tire avec les soulevés lourds.",
+      "e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half": "ex. Entrer dans l'équipe A au printemps, squatter 100 kg, ne plus avoir de crampes en deuxième mi-temps",
       "Edit": "Modifier",
       "Your note for this week": "Ta note pour cette semaine",
       "Muscles worked": "Muscles travaillés",
@@ -345,6 +350,11 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+      "e.g. Belgian Championship, Spring Half Marathon": "bv. Belgisch kampioenschap, halve marathon in het voorjaar",
+      "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "bv. Clubtraining di & do 19:30, meestal wedstrijden op zondag",
+      "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "bv. Knie voelde goed, laatste squatset was zwaar, sprints ingekort tot 6",
+      "e.g. Left knee, no deep jumps for now. Lower back gets sore with heavy deadlifts.": "bv. Linkerknie, voorlopig geen diepe sprongen. Onderrug wordt stijf bij zware deadlifts.",
+      "e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half": "bv. In het voorjaar in het A-team, 100 kg squatten, geen krampen meer in de tweede helft",
       "Edit": "Bewerken",
       "Your note for this week": "Jouw notitie voor deze week",
       "Muscles worked": "Gebruikte spieren",
@@ -419,6 +429,11 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+      "e.g. Belgian Championship, Spring Half Marathon": "ör. Belçika Şampiyonası, bahar yarı maratonu",
+      "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "ör. Kulüp antrenmanı Salı ve Perşembe 19:30, çoğu pazar maç",
+      "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "ör. Diz iyiydi, son squat seti zorladı, sprintleri 6'ya indirdim",
+      "e.g. Left knee, no deep jumps for now. Lower back gets sore with heavy deadlifts.": "ör. Sol diz, şimdilik derin sıçrama yok. Ağır deadlift'te bel ağrıyor.",
+      "e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half": "ör. Baharda A takımına girmek, 100 kg squat, ikinci yarıda kramp girmesin",
       "Edit": "Düzenle",
       "Your note for this week": "Bu haftaki notun",
       "Muscles worked": "Çalışan kaslar",
@@ -493,6 +508,11 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+      "e.g. Belgian Championship, Spring Half Marathon": "p. ej. Campeonato de Bélgica, media maratón de primavera",
+      "e.g. Club practice Tue & Thu 19:30, matches most Sundays": "p. ej. Entreno del club mar y jue 19:30, partidos casi todos los domingos",
+      "e.g. Knee felt fine, last set of squats was a grind, cut sprints to 6": "p. ej. La rodilla bien, la última serie de sentadillas costó, sprints recortados a 6",
+      "e.g. Left knee, no deep jumps for now. Lower back gets sore with heavy deadlifts.": "p. ej. Rodilla izquierda, sin saltos profundos por ahora. La zona lumbar molesta con peso muerto pesado.",
+      "e.g. Make the A-team roster by spring, hit a 100 kg squat, stop cramping in the second half": "p. ej. Entrar en el equipo A en primavera, sentadilla con 100 kg, no tener calambres en la segunda parte",
       "Edit": "Editar",
       "Your note for this week": "Tu nota para esta semana",
       "Muscles worked": "Músculos trabajados",
