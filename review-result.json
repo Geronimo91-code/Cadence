@@ -1,9 +1,9 @@
 {
   "step": "done",
-  "planWeek": "build phase  7 Sept – 13 Sept",
+  "planWeek": "base phase  14 Sept – 20 Sept",
   "buttonFound": true,
   "status": 200,
-  "body": "{\"review\":{\"weekId\":\"2026-W37\",\"nextWeekId\":\"2026-W38\",\"createdAt\":\"2026-09-22T08:04:24.856Z\",\"stats\":{\"planned\":3,\"done\":0,\"partial\":0,\"skipped\":0,\"missed\":3,\"avgRpe\":null,\"setsDone\":0,\"setsTotal\":0,\"adherence\":0},\"load\":{\"acute\":0,\"chronic\":0,\"acwr\":null},\"summary\":\"We had a tough start to the block with no sessions or nutrition logged this past week. Life gets busy, but consistency is key to unlocking your swimming power and strength goals. For this coming week, we will keep the structured se",
+  "body": "{\"review\":{\"weekId\":\"2026-W38\",\"nextWeekId\":\"2026-W42\",\"createdAt\":\"2026-10-12T12:05:24.228Z\",\"stats\":{\"planned\":3,\"done\":0,\"partial\":0,\"skipped\":0,\"missed\":3,\"avgRpe\":null,\"setsDone\":0,\"setsTotal\":0,\"adherence\":0,\"extra\":0},\"load\":{\"acute\":0,\"chronic\":0,\"acwr\":null},\"summary\":\"We had a complete miss last week with no sessions logged, meaning we couldn't build momentum or execute the planned Week 3 work. Since we have no logged history and 0% adherence, jumping into heavy loading or a high-inten",
   "reviewSheet": true,
   "toast": "Week closed. Next week is ready.",
   "errors": []
