@@ -1542,7 +1542,7 @@ function openReview(r) {
 }
 function sessionKey(wk, day, slot) { return wk + '-' + day + (slot ? '-' + slot : ''); }
 let exHistory = null;
-// ---- weekly streak: weeks in a row with at least 2 sessions logged (1 if the athlete trains once a week) ----
+// ---- weekly streak: weeks in a row with at least 2 sessions logged, partly done ones included (1 if the athlete trains once a week) ----
 let streakCache = null;
 async function getStreak() {
   if (streakCache) return streakCache;
@@ -1550,7 +1550,7 @@ async function getStreak() {
   const perWeek = new Map();
   try {
     const q = await db.collection('users/' + state.user.uid + '/logs').orderBy('loggedAt', 'desc').limit(250).get();
-    q.forEach((d) => { const l = d.data(); if (!l.weekId || !l.status || l.status === 'skipped') return; perWeek.set(l.weekId, (perWeek.get(l.weekId) || 0) + (l.status === 'partial' ? 0.5 : 1)); });
+    q.forEach((d) => { const l = d.data(); if (!l.weekId || !l.status || l.status === 'skipped') return; perWeek.set(l.weekId, (perWeek.get(l.weekId) || 0) + 1); });
   } catch (e) { console.error(e); return null; }
   const thisCount = perWeek.get(isoWeekId()) || 0;
   let streak = thisCount >= need ? 1 : 0;
