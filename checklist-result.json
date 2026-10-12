@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-10-12T12:15:59.461Z",
+    "started": "2026-10-12T12:34:01.336Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -104,64 +104,126 @@
         "detail": null
       },
       "onboarding completed": {
-        "pass": false,
-        "detail": "page.click: Test timeout of 600000ms exceeded.\nCall log:\n  \u001b[2m- waiting for locator('#btnObNext')\u001b[22m\n\u001b[2m  -   locator resolved to <button disabled class=\"btn\" id=\"btnObNext\" data-i18n=\"Continue\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m  -   waiting for element to be visible, ena"
+        "pass": true,
+        "detail": "8 screens"
       },
       "first plan generated": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": {
+          "source": "profile",
+          "sessions": 7,
+          "real": 3,
+          "days": 7,
+          "rationale": "Since speed is your primary goal for Ultimate Frisbee, this week establishes baseline mechanics for acceleration and sharp cutting across 3 short 30-minute sessions. As a beginner in Week 1, light power movements like pogo hops and broad jumps prepare your joints for maximal sprint efforts without o",
+          "titles": [
+            "0:speed:Speed & Acceleration",
+            "1:rest:Rest Day",
+            "2:strength:Lower Power & Speed Strength",
+            "3:rest:Rest Day",
+            "4:speed:Agility & Change of Direction",
+            "5:rest:Rest Day",
+            "6:rest:Rest Day"
+          ]
+        }
+      },
+      "first plan is AI-made (not template)": {
+        "pass": true,
+        "detail": "profile"
+      },
+      "plan covers 7 days": {
+        "pass": true,
+        "detail": 7
       },
       "today fits one screen": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": {
+          "h": 844,
+          "v": 844,
+          "cards": [
+            "DIV",
+            "card",
+            "card todaycard",
+            "card todaycard nextup",
+            "card todaycard",
+            "card todaycard"
+          ]
+        }
       },
       "session opens": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": null
       },
       "how-to with photos and muscle map": {
-        "pass": false,
-        "detail": "locator.count: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": {
+          "exercises": 4,
+          "withPhotos": 2,
+          "withMap": 2,
+          "missing": [
+            "Sprint 10 m",
+            "Sprint 20 m"
+          ]
+        }
+      },
+      "session still open after Back": {
+        "pass": true,
+        "detail": null
       },
       "session logged": {
-        "pass": false,
-        "detail": "page.evaluate: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": "1 logs"
       },
       "extra activity logged": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": 1
       },
       "streak shows after two sessions": {
         "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "detail": "This week: 1 of 2"
       },
       "rebuild keeps the injury note": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": {
+          "card": true,
+          "saved": "Left ankle sprain, no jumping this week",
+          "prefilled": "Left ankle sprain, no jumping this week"
+        }
+      },
+      "rebuilt plan avoids jumping": {
+        "pass": true,
+        "detail": []
       },
       "nutrition meal added": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": null
       },
       "club created": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeV8RDNBCopyShare it with player"
       },
       "profile groups render": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": [
+          "Your training",
+          "App",
+          "Help",
+          "Account"
+        ]
       },
       "feedback sends": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": null
       },
       "dark theme and French": {
-        "pass": false,
-        "detail": "page.selectOption: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": {
+          "bg": "rgb(14, 16, 18)",
+          "tab": "Aujourd'hui"
+        }
       },
       "every tab loads without errors": {
-        "pass": false,
-        "detail": "page.click: Target page, context or browser has been closed"
+        "pass": true,
+        "detail": []
       },
       "no uncaught page errors": {
         "pass": true,
@@ -169,13 +231,80 @@
       }
     },
     "timings": {
-      "landing load": 849,
-      "sign-up": 1930
+      "landing load": 206,
+      "sign-up": 1911,
+      "save setup": 1870,
+      "first plan": 10936,
+      "save session": 419,
+      "rebuild": 9943
     },
     "errors": [],
     "console": [],
     "notes": [],
-    "cleanup": "failed: page.evaluate: Target page, context or browser has been closed",
-    "finished": "2026-10-12T12:25:59.697Z"
+    "onboardingSteps": [
+      "Let's start with you",
+      "What do you play or train?",
+      "What are you working toward?",
+      "When can you train?",
+      "What do you have access to?",
+      "Anything on the calendar?",
+      "Eating to match",
+      "Here is your setup"
+    ],
+    "firstPlan": {
+      "source": "profile",
+      "sessions": 7,
+      "real": 3,
+      "days": 7,
+      "rationale": "Since speed is your primary goal for Ultimate Frisbee, this week establishes baseline mechanics for acceleration and sharp cutting across 3 short 30-minute sessions. As a beginner in Week 1, light power movements like pogo hops and broad jumps prepare your joints for maximal sprint efforts without o",
+      "titles": [
+        "0:speed:Speed & Acceleration",
+        "1:rest:Rest Day",
+        "2:strength:Lower Power & Speed Strength",
+        "3:rest:Rest Day",
+        "4:speed:Agility & Change of Direction",
+        "5:rest:Rest Day",
+        "6:rest:Rest Day"
+      ]
+    },
+    "howto": {
+      "exercises": 4,
+      "withPhotos": 2,
+      "withMap": 2,
+      "missing": [
+        "Sprint 10 m",
+        "Sprint 20 m"
+      ]
+    },
+    "rebuiltPlan": {
+      "source": "profile",
+      "note": "Left ankle sprain, no jumping this week",
+      "rationale": "To protect your sprained left ankle, all plyometrics like Pogo hops and high-impact speed work have been removed this week. We kept acceleration wall drills to maintain your speed goal safely, while focusing heavy work on non-impacting compound strength patterns. Sessions are kept tight at 30 minutes across your available Monday, Wednesday, and Friday schedule.",
+      "titles": [
+        "0:speed:Speed & Lower Body Power",
+        "1:rest:Rest Day",
+        "2:strength:Posterior Chain & Upper Body",
+        "3:rest:Rest Day",
+        "4:strength:Single-Leg Strength & Core",
+        "5:rest:Rest Day",
+        "6:rest:Rest Day"
+      ],
+      "exercises": [
+        "Acceleration wall drill",
+        "Goblet squat",
+        "Dumbbell row",
+        "Plank",
+        "Romanian deadlift",
+        "Push-up",
+        "Lat pulldown",
+        "Pallof press",
+        "Split squat",
+        "Incline bench press",
+        "Face pull",
+        "Dead bug"
+      ]
+    },
+    "cleanup": "deleted",
+    "finished": "2026-10-12T12:34:59.998Z"
   }
 }
