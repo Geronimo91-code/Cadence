@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-10-12T14:20:22.996Z",
+    "started": "2026-10-12T14:38:43.133Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -110,25 +110,25 @@
       "first plan generated": {
         "pass": true,
         "detail": {
-          "source": "profile",
+          "source": "template",
           "sessions": 7,
-          "real": 4,
+          "real": 3,
           "days": 7,
-          "rationale": "This is Week 1 of a 4-week base block focused on speed development. Sessions are scheduled on your available days (Mon/Wed/Fri) with rest or active recovery on other days. Loads are kept moderate as you're new to structured training, with emphasis on learning proper sprint mechanics and building fou",
+          "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
           "titles": [
-            "0:speed:Speed Mechanics + Activation",
-            "1:rest:Rest & Recover",
-            "2:strength:Lower Body Strength",
-            "3:rest:Rest & Recover",
-            "4:speed:Speed + Power",
-            "5:rest:Rest & Recover",
-            "6:mobility:Active Recovery"
+            "0:speed:Speed and acceleration",
+            "1:rest:Rest",
+            "2:strength:Full-body strength",
+            "3:rest:Rest",
+            "4:conditioning:Conditioning",
+            "5:rest:Rest",
+            "6:rest:Rest"
           ]
         }
       },
       "first plan is AI-made (not template)": {
-        "pass": true,
-        "detail": "profile"
+        "pass": false,
+        "detail": "template"
       },
       "plan covers 7 days": {
         "pass": true,
@@ -157,12 +157,14 @@
       "how-to with photos and muscle map": {
         "pass": true,
         "detail": {
-          "exercises": 4,
+          "exercises": 6,
           "withPhotos": 2,
           "withMap": 2,
           "missing": [
+            "Leg swings",
             "Sprint 10 m",
-            "Sprint 20 m"
+            "Sprint 20 m",
+            "Sprint 30 m"
           ]
         }
       },
@@ -200,7 +202,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite code56HE2VCopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeM6ENTKCopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": false,
@@ -254,12 +256,12 @@
       }
     },
     "timings": {
-      "landing load": 241,
-      "sign-up": 3929,
-      "save setup": 2872,
-      "first plan": 41993,
-      "save session": 423,
-      "rebuild": 41991
+      "landing load": 279,
+      "sign-up": 1907,
+      "save setup": 864,
+      "first plan": 41974,
+      "save session": 923,
+      "rebuild": 41979
     },
     "errors": [],
     "console": [],
@@ -275,28 +277,30 @@
       "Here is your setup"
     ],
     "firstPlan": {
-      "source": "profile",
+      "source": "template",
       "sessions": 7,
-      "real": 4,
+      "real": 3,
       "days": 7,
-      "rationale": "This is Week 1 of a 4-week base block focused on speed development. Sessions are scheduled on your available days (Mon/Wed/Fri) with rest or active recovery on other days. Loads are kept moderate as you're new to structured training, with emphasis on learning proper sprint mechanics and building fou",
+      "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
       "titles": [
-        "0:speed:Speed Mechanics + Activation",
-        "1:rest:Rest & Recover",
-        "2:strength:Lower Body Strength",
-        "3:rest:Rest & Recover",
-        "4:speed:Speed + Power",
-        "5:rest:Rest & Recover",
-        "6:mobility:Active Recovery"
+        "0:speed:Speed and acceleration",
+        "1:rest:Rest",
+        "2:strength:Full-body strength",
+        "3:rest:Rest",
+        "4:conditioning:Conditioning",
+        "5:rest:Rest",
+        "6:rest:Rest"
       ]
     },
     "howto": {
-      "exercises": 4,
+      "exercises": 6,
       "withPhotos": 2,
       "withMap": 2,
       "missing": [
+        "Leg swings",
         "Sprint 10 m",
-        "Sprint 20 m"
+        "Sprint 20 m",
+        "Sprint 30 m"
       ]
     },
     "rebuiltPlan": {
@@ -338,6 +342,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-10-12T14:22:44.149Z"
+    "finished": "2026-10-12T14:40:57.597Z"
   }
 }
