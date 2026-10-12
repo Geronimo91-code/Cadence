@@ -14,21 +14,9 @@
   ],
   "tabsDiag": [
     {
-      "at": "2026-10-12T13:51:54.465Z",
+      "at": "2026-10-12T13:57:43.918Z",
       "step": "done",
-      "errors": [
-        "Cannot set properties of null (setting 'textContent')",
-        "Cannot set properties of null (setting 'textContent')"
-      ],
-      "console": []
-    },
-    {
-      "at": "2026-10-12T13:51:59.420Z",
-      "step": "done",
-      "errors": [
-        "Cannot set properties of null (setting 'textContent')",
-        "Cannot set properties of null (setting 'textContent')"
-      ],
+      "errors": [],
       "console": []
     }
   ]
