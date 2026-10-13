@@ -6,26 +6,21 @@
   "blocks": [
     "DIV:32",
     "card:118",
-    "card todaycard:113",
-    "card todaycard nextup:75",
+    "card todaycard:171",
     "card todaycard:102",
     "card todaycard:72",
     "card sage todaycard:106"
   ],
   "tabsDiag": [
     {
-      "at": "2026-10-12T14:35:24.835Z",
+      "at": "2026-10-13T12:02:20.967Z",
       "step": "done",
       "errors": [],
-      "console": [
-        "Failed to load resource: the server responded with a status of 404 ()",
-        "Failed to load resource: the server responded with a status of 400 ()",
-        "Failed to load resource: the server responded with a status of 400 ()"
-      ]
+      "console": []
     }
   ],
   "rulesStatus": {
-    "at": "2026-10-12T14:35:33.866Z",
+    "at": "2026-10-13T12:02:29.281Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
