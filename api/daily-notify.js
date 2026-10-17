@@ -1,9 +1,13 @@
 // GET /api/daily-notify — Vercel cron, once per day. Sends each opted-in user today's session.
 import webpush from 'web-push';
 import { requireCron, db, weekId } from './_lib.js';
+import { garminSyncAll } from './_garmin.js';
 
 export default async function handler(req, res) {
   if (!requireCron(req, res)) return;
+  // Garmin first: overnight sleep and yesterday's activities are ready by now
+  let garmin = null;
+  try { garmin = await garminSyncAll(); } catch (e) { garmin = String(e.message || e).slice(0, 120); }
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_SUBJECT) {
     console.error('daily-notify: VAPID keys missing');
     return res.status(503).json({ error: 'VAPID keys missing', sent: 0 });
@@ -11,7 +15,7 @@ export default async function handler(req, res) {
   webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
 
   const users = await db().collectionGroup('push').get();
-  const run = { at: new Date().toISOString(), subscribers: users.size, sent: 0, nudged: 0, rest: 0, skipped: 0, removed: 0, failed: 0 };
+  const run = { at: new Date().toISOString(), subscribers: users.size, sent: 0, nudged: 0, rest: 0, skipped: 0, removed: 0, failed: 0, garmin };
 
   for (const subDoc of users.docs) {
     const uid = subDoc.ref.parent.parent.id;

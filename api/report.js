@@ -7,6 +7,7 @@
 // POST { action: 'stats' }               → usage overview and per-user table (admins only)
 import { requireUser, db, checkLimit, getAdmin, weekId } from './_lib.js';
 import { syncRules } from './_sync.js';
+import { garminConnect, garminSync, garminDisconnect, garminStatus } from './_garmin.js';
 
 const ADMINS = (process.env.ADMIN_EMAILS || 'melihgeron@gmail.com').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
 const clip = (v, n) => (v == null ? '' : String(v).slice(0, n));
@@ -20,6 +21,17 @@ export default async function handler(req, res) {
 
   if (body.action === 'whoami') { await syncRules().catch(() => {}); return res.status(200).json({ admin: isAdmin }); }
   if (body.action === 'sync') return res.status(200).json(await syncRules());
+  // Personal Garmin link (unofficial API): admins only, so nobody else's account depends on it
+  if (String(body.action || '').startsWith('garmin-')) {
+    if (!isAdmin) return res.status(403).json({ error: 'Not available' });
+    try {
+      if (body.action === 'garmin-connect') return res.status(200).json(await garminConnect(user.uid, body.tokens));
+      if (body.action === 'garmin-sync') return res.status(200).json(await garminSync(user.uid, { force: !!body.force }));
+      if (body.action === 'garmin-status') return res.status(200).json(await garminStatus(user.uid));
+      if (body.action === 'garmin-disconnect') return res.status(200).json(await garminDisconnect(user.uid));
+    } catch (e) { return res.status(e.code === 'input' ? 400 : 502).json({ error: String(e.message || e).slice(0, 200), code: e.code || null }); }
+    return res.status(400).json({ error: 'Unknown action' });
+  }
 
   if (body.action === 'inbox') {
     if (!isAdmin) return res.status(403).json({ error: 'Not allowed' });

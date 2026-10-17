@@ -46,7 +46,11 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
   // A session logged without an RPE still counts: estimate it from the session type (games and tournaments are hard)
   const DEFAULT_RPE = { match: 8, skills: 6, conditioning: 7, speed: 7, strength: 6, mobility: 3 };
   const loadOf = (l) => (l.status === 'skipped' || !l.status ? 0 : (l.sessionRpe || DEFAULT_RPE[l.type] || 6) * (l.durationMin || 0));
-  const weekLoads = loadSnaps.map((snap) => snap.docs.reduce((a, d) => a + loadOf(d.data()), 0));
+  // A Garmin recording on the same day and of the same kind as a logged planned session is that session, recorded by the watch: count it once
+  const sameKind = (a, b) => a === b || (['conditioning', 'speed'].includes(a) && ['conditioning', 'speed'].includes(b));
+  const twinOf = (l, all) => (l.source === 'garmin' ? all.find((o) => !o.extra && o.status && o.status !== 'skipped' && o.day === l.day && sameKind(o.type, l.type)) : null);
+  const weekLoads = loadSnaps.map((snap) => { const all = snap.docs.map((d) => d.data()); return all.reduce((a, l) => a + (twinOf(l, all) ? 0 : loadOf(l)), 0); });
+  const garminLine = (g) => (g ? [g.distanceKm ? `${g.distanceKm} km` : '', g.avgHr ? `avg HR ${g.avgHr}` : '', g.maxHr ? `max HR ${g.maxHr}` : '', g.aerobicTE ? `aerobic TE ${g.aerobicTE}` : '', g.load ? `Garmin load ${g.load}` : ''].filter(Boolean).join(', ') : '');
   const acute = weekLoads[0];
   const priors = weekLoads.slice(1).filter((v) => v > 0);
   const chronic = priors.length ? priors.reduce((a, b) => a + b, 0) / priors.length : 0;
@@ -92,11 +96,18 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
     return line;
   });
   // Sessions the athlete added that were not in the plan (games, tournaments, pick-up, runs): real load, not part of adherence
-  const extras = [...logs.values()].filter((l) => l.extra && l.status !== 'skipped').sort((a, b) => (a.day || 0) - (b.day || 0));
+  const allLogs = [...logs.values()];
+  for (const g of allLogs.filter((l) => l.source === 'garmin')) {
+    const twin = twinOf(g, allLogs);
+    if (!twin) continue;
+    const i = planned.findIndex((s) => s.day === twin.day && String(s.slot || 0) === String(twin.slot || 0));
+    if (i >= 0 && garminLine(g.garmin)) sessionLines[i] += `\n    · watch recorded: ${g.durationMin} min, ${garminLine(g.garmin)}`;
+  }
+  const extras = allLogs.filter((l) => l.extra && l.status !== 'skipped' && !twinOf(l, allLogs)).sort((a, b) => (a.day || 0) - (b.day || 0));
   stats.extra = extras.length;
   extras.forEach((l) => {
     if (l.sessionRpe) rpes.push(l.sessionRpe);
-    sessionLines.push(`- ${DAY_NAMES[l.day] || ''} · EXTRA, not in the plan: ${l.title} (${l.type})${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`);
+    sessionLines.push(`- ${DAY_NAMES[l.day] || ''} · EXTRA, not in the plan${l.source === 'garmin' ? ' (recorded by Garmin watch)' : ''}: ${l.title} (${l.type})${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}${l.source === 'garmin' ? ' (estimated from the watch)' : ''}` : ''}${garminLine(l.garmin) ? ', ' + garminLine(l.garmin) : ''}${l.note ? `, note: "${l.note}"` : ''}`);
   });
   stats.avgRpe = rpes.length ? Math.round((rpes.reduce((a, b) => a + b, 0) / rpes.length) * 10) / 10 : null;
   stats.adherence = stats.planned ? Math.round(((stats.done + stats.partial * 0.5) / stats.planned) * 100) : 0;
@@ -113,6 +124,20 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
       nutritionLine = `Nutrition (${n} of 7 days logged, goal: ${profile.nutrition.goal}): avg ${Math.round(tot.kcal / n)} kcal vs target ${Math.round(tot.tk / n)}; avg protein ${Math.round(tot.protein / n)} g vs target ${Math.round(tot.tp / n)} g.`;
     } else nutritionLine = `Nutrition tracking on (goal: ${profile.nutrition.goal}) but no meals logged this week.`;
   }
+  // Garmin watch recovery data, if the athlete linked it
+  let recoveryLine = '';
+  try {
+    const mon = mondayOf(reviewWeek); const ds = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setUTCDate(mon.getUTCDate() + i); ds.push(d.toISOString().slice(0, 10)); }
+    const gd = (await Promise.all(ds.map((d) => db().doc(`users/${uid}/garmin/${d}`).get()))).filter((d) => d.exists).map((d) => d.data());
+    if (gd.length) {
+      const avg = (k) => { const v = gd.map((x) => x[k]).filter((x) => typeof x === 'number'); return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null; };
+      const parts = [avg('sleepH') != null && `sleep ${avg('sleepH')} h/night`, avg('sleepScore') != null && `sleep score ${avg('sleepScore')}`, avg('restingHr') != null && `resting HR ${avg('restingHr')}`, avg('hrv') != null && `overnight HRV ${avg('hrv')} ms`, avg('readiness') != null && `training readiness ${avg('readiness')}/100`].filter(Boolean);
+      const low = gd.filter((x) => (x.readiness != null && x.readiness < 40) || (x.sleepH != null && x.sleepH < 6)).map((x) => DAY_NAMES[(new Date(x.date + 'T00:00:00Z').getUTCDay() + 6) % 7]);
+      const status = gd.map((x) => x.hrvStatus).filter(Boolean).pop();
+      if (parts.length) recoveryLine = `Recovery from the athlete's Garmin watch (${gd.length} of 7 nights): ${parts.join(', ')}${status ? `; latest HRV status ${status}` : ''}${low.length ? `; poor recovery on ${low.join(', ')}` : ''}. Use it with the RPEs: poor sleep or low readiness with high RPE means ease off.`;
+    }
+  } catch (_) {}
   const loadLine = acute
     ? `Training load (session RPE × minutes): this week ${acute}${chronic ? `, four-week average ${Math.round(chronic)}, acute:chronic ratio ${acwr}` : ' (no history yet)'}.`
     : 'Training load: nothing with both RPE and duration logged this week.';
@@ -156,6 +181,7 @@ Week under review: ${reviewWeek} (phase: ${plan.phase}; focus: ${plan.focus})
 Adherence: ${stats.adherence}% — ${stats.done} done, ${stats.partial} partial, ${stats.skipped} skipped, ${stats.missed} not logged, of ${stats.planned} planned. ${stats.setsTotal ? `Sets: ${stats.setsDone}/${stats.setsTotal}.` : ''} ${stats.avgRpe ? `Average session RPE: ${stats.avgRpe}.` : 'No RPE logged.'}
 ${weightLine}
 ${loadLine}
+${recoveryLine}
 ${nutritionLine}
 ${prevReview.exists ? `Previous week's adjustments were: ${(prevReview.data().adjustments || []).join('; ')}` : 'This is the first review.'}
 Plan's own hint for next week: ${plan.nextWeekHint || 'none'}

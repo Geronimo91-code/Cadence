@@ -753,6 +753,9 @@ a.btn { text-decoration: none; }
   .ld-card { grid-column: span 2; }
   .ld-card.wide { grid-column: span 3; }
 }
+.g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
+.g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
+.wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
 </style>
 </head>
 <body>
@@ -1172,6 +1175,7 @@ auth.onAuthStateChanged(async (user) => {
   if (!state.profile) { startOnboarding(); return; }
   await loadPlan();
   enterApp();
+  garminBoot();
 });
 $('#btnObSignOut').onclick = () => auth.signOut();
 $('#btnObCancel').onclick = () => enterApp();
@@ -1544,13 +1548,20 @@ function sessionKey(wk, day, slot) { return wk + '-' + day + (slot ? '-' + slot 
 let exHistory = null;
 // ---- weekly streak: weeks in a row with at least 2 sessions logged, partly done ones included (1 if the athlete trains once a week) ----
 let streakCache = null;
+// A Garmin recording on the same day and of the same kind as a logged planned session is that session: count it once (mirrors weekly-review)
+function garminTwin(l, all) {
+  if (l.source !== 'garmin') return false;
+  const same = (a, b) => a === b || (['conditioning', 'speed'].includes(a) && ['conditioning', 'speed'].includes(b));
+  return all.some((o) => !o.extra && o.weekId === l.weekId && o.day === l.day && o.status && o.status !== 'skipped' && same(o.type, l.type));
+}
 async function getStreak() {
   if (streakCache) return streakCache;
   const need = Math.min(2, Math.max(1, (state.profile?.days || []).length));
   const perWeek = new Map();
   try {
     const q = await db.collection('users/' + state.user.uid + '/logs').orderBy('loggedAt', 'desc').limit(250).get();
-    q.forEach((d) => { const l = d.data(); if (!l.weekId || !l.status || l.status === 'skipped') return; perWeek.set(l.weekId, (perWeek.get(l.weekId) || 0) + 1); });
+    const all = q.docs.map((d) => d.data());
+    all.forEach((l) => { if (!l.weekId || !l.status || l.status === 'skipped' || garminTwin(l, all)) return; perWeek.set(l.weekId, (perWeek.get(l.weekId) || 0) + 1); });
   } catch (e) { console.error(e); return null; }
   const thisCount = perWeek.get(isoWeekId()) || 0;
   let streak = thisCount >= need ? 1 : 0;
@@ -1703,6 +1714,18 @@ async function viewToday(el) {
     $('#btnOpenToday' + i).onclick = () => openSession(sess);
   });
 
+  // ---- last night, from the Garmin watch (only when linked) ----
+  if (state.garminDay && planIsCurrent()) {
+    const g = state.garminDay;
+    const bits = [g.sleepH ? `<div><b>${g.sleepH}<small>h</small></b><span>${T('sleep')}${g.sleepScore ? ' · ' + g.sleepScore : ''}</span></div>` : '', g.hrv ? `<div><b>${g.hrv}</b><span>HRV</span></div>` : '', g.restingHr ? `<div><b>${g.restingHr}</b><span>${T('resting HR')}</span></div>` : '', g.readiness != null ? `<div><b class="${g.readiness < 40 ? 'g-low' : g.readiness >= 70 ? 'g-high' : ''}">${g.readiness}</b><span>${T('readiness')}</span></div>` : ''].filter(Boolean);
+    if (bits.length) {
+      const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '2.5';
+      const low = (g.readiness != null && g.readiness < 40) || (g.sleepH && g.sleepH < 6);
+      c.innerHTML = `<div class="muted small" style="font-weight:600;margin-bottom:6px">${g.isToday ? T('Last night') : T('Night before')} · Garmin</div><div class="wk-stats" style="grid-template-columns:repeat(${bits.length},minmax(0,1fr))">${bits.join('')}</div>${low && realToday.length ? `<div class="muted small" style="margin-top:8px">${T('Low recovery: keep today easy, or drop a set or two.')}</div>` : ''}`;
+      el.append(c);
+    }
+  }
+
   // ---- up next: the next session after today that isn't logged yet ----
   const upcoming = state.plan.sessions.filter((x) => x.type !== 'rest' && x.day > t && !logFor(x)).sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0))[0];
   if (upcoming) {
@@ -1716,7 +1739,7 @@ async function viewToday(el) {
   {
     const planned = state.plan.sessions.filter((x) => x.type !== 'rest');
     const done = planned.filter((x) => ['done', 'partial'].includes(logFor(x)?.status)).length;
-    const weekLogs = Object.values(state.logs).filter((l) => l.weekId === state.plan.weekId && l.status && l.status !== 'skipped');
+    const weekLogs = Object.values(state.logs).filter((l, _, all) => l.weekId === state.plan.weekId && l.status && l.status !== 'skipped' && !garminTwin(l, all));
     const minutes = weekLogs.reduce((a, l) => a + (l.durationMin || 0), 0);
     const extras = weekLogs.filter((l) => l.extra).length;
     const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '4';
@@ -1883,17 +1906,21 @@ function viewPlan(el) {
   }
   el.append(card);
   if (!planIsFuture()) {
-    const extras = Object.entries(state.logs).filter(([, l]) => l.extra && l.weekId === p.weekId).sort((a, b) => (a[1].day || 0) - (b[1].day || 0));
+    const extras = Object.entries(state.logs).filter(([, l]) => l.extra && l.weekId === p.weekId && !l.hidden).sort((a, b) => (a[1].day || 0) - (b[1].day || 0));
     const box = document.createElement('div'); box.className = 'card';
     box.innerHTML = `<h3 style="margin-bottom:4px">${T('Extra this week')}</h3>` + (extras.length
-      ? extras.map(([k, l]) => `<div class="extra-row"><div><strong>${esc(l.title)}</strong><div class="muted small">${T(DAYS[l.day])} · ${l.durationMin} ${T('min')}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}</div></div><button type="button" class="btn ghost sm" data-del="${esc(k)}">${T('Remove')}</button></div>`).join('')
+      ? extras.map(([k, l]) => `<div class="extra-row"><div><strong>${esc(l.title)}</strong>${l.source === 'garmin' ? ' <span class="g-tag">Garmin</span>' : ''}<div class="muted small">${T(DAYS[l.day])} · ${l.durationMin} ${T('min')}${l.garmin?.distanceKm ? ' · ' + l.garmin.distanceKm + ' km' : ''}${l.garmin?.avgHr ? ' · ♥ ' + l.garmin.avgHr : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}</div></div><button type="button" class="btn ghost sm" data-del="${esc(k)}">${T('Remove')}</button></div>`).join('')
       : `<p class="muted small">${T("Games, tournaments, pick-up or a run that wasn't in the plan. Logging them keeps next week's plan honest.")}</p>`) +
       `<button class="btn secondary" id="btnExtra" style="margin-top:10px">+ ${T('Log something extra')}</button>`;
     el.append(box);
     $('#btnExtra').onclick = () => openExtra();
     $$('[data-del]', box).forEach((b) => { b.onclick = async () => {
       if (!confirm(T('Remove') + '?')) return;
-      try { await db.doc('users/' + state.user.uid + '/logs/' + b.dataset.del).delete(); delete state.logs[b.dataset.del]; streakCache = null; toast(T('Removed')); navigate('plan'); } catch (e) { toast(T('Could not send. Check your connection and try again.')); }
+      try {
+        const ref = db.doc('users/' + state.user.uid + '/logs/' + b.dataset.del);
+        // a Garmin activity would come back on the next sync, so it is hidden and not counted instead of deleted
+        if (state.logs[b.dataset.del]?.source === 'garmin') { await ref.set({ status: 'skipped', hidden: true }, { merge: true }); } else { await ref.delete(); }
+        delete state.logs[b.dataset.del]; streakCache = null; toast(T('Removed')); navigate('plan'); } catch (e) { toast(T('Could not send. Check your connection and try again.')); }
     }; });
   }
   if (p.rationale) el.insertAdjacentHTML('beforeend', `<div class="card sage"><h3 style="margin-bottom:6px">${T('Why this week')}</h3><p class="muted">${esc(p.rationale)}</p></div>`);
@@ -2825,6 +2852,100 @@ async function showInboxIfAdmin(el) {
   if (!state.isAdmin || state.view !== 'profile' || $('#inboxCard')) return;
   el.insertAdjacentHTML('afterbegin', `<div class="card" id="inboxCard"><div class="list"><div class="li"><div><div>Admin panel</div><span class="muted">Users, activity, AI use and tester feedback.</span></div><button class="btn sm secondary" id="btnInbox">Open</button></div></div></div>`);
   $('#btnInbox').onclick = openInbox;
+  paintGarminCard($('#inboxCard'));
+}
+
+/* ---------- Garmin: personal link through the unofficial API, admin only ---------- */
+const GARMIN_SCRIPT = `pip install garminconnect curl_cffi
+python3 -c "import getpass; from garminconnect import Garmin; g=Garmin(input('Garmin email: '), getpass.getpass('Password: '), prompt_mfa=lambda: input('Code: ')); g.login(); print(g.client.dumps())"`;
+function garminAgo(iso) {
+  if (!iso) return 'never';
+  const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  return m < 2 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago';
+}
+async function loadGarminDay() {
+  const today = dateKey(), y = new Date(); y.setDate(y.getDate() - 1);
+  for (const d of [today, dateKey(y)]) {
+    try { const s = await db.doc('users/' + state.user.uid + '/garmin/' + d).get(); if (s.exists && (s.data().sleepH || s.data().readiness != null)) { state.garminDay = { ...s.data(), isToday: d === today }; return; } } catch (_) {}
+  }
+  state.garminDay = null;
+}
+async function reloadWeekLogs() {
+  if (!state.plan) return;
+  const lq = await db.collection('users/' + state.user.uid + '/logs').where('weekId', '==', state.plan.weekId).get();
+  state.logs = {}; lq.forEach((d) => { state.logs[d.id] = d.data(); }); streakCache = null;
+}
+async function garminBoot() {
+  try {
+    if (state.isAdmin === undefined) state.isAdmin = !!(await api('/api/report', { action: 'whoami' })).admin;
+    if (!state.isAdmin) return;
+    const r = await api('/api/report', { action: 'garmin-sync' });
+    state.garmin = r;
+    if (!r.connected) return;
+    await loadGarminDay();
+    if (r.activities > 0) await reloadWeekLogs();
+    if (['today', 'plan'].includes(state.view) && !document.querySelector('.sheet')) navigate(state.view);
+    else if (state.view === 'profile') paintGarminCard($('#inboxCard'));
+  } catch (_) {}
+}
+async function paintGarminCard(host) {
+  if (!host) return;
+  let row = $('#garminRow');
+  if (!row) { host.querySelector('.list').insertAdjacentHTML('beforeend', '<div class="li" id="garminRow"></div>'); row = $('#garminRow'); }
+  if (!state.garmin) { row.innerHTML = '<div><div>Garmin</div><span class="muted">Checking…</span></div>'; try { state.garmin = await api('/api/report', { action: 'garmin-status' }); } catch (_) { state.garmin = { connected: false }; } }
+  const g = state.garmin;
+  row.innerHTML = g.connected
+    ? `<div style="flex:1;min-width:0"><div>Garmin${g.displayName ? ' · ' + esc(g.displayName) : ''}</div><span class="muted">Synced ${garminAgo(g.lastSync)}${g.lastError ? '' : ' · runs by itself every morning'}</span>${g.lastError ? `<span class="error" style="display:block">${esc(g.lastError)}</span>` : ''}</div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm secondary" id="btnGSync">Sync</button><button class="btn sm ghost" id="btnGOff" aria-label="Disconnect Garmin">✕</button></div>`
+    : `<div><div>Garmin</div><span class="muted">Bring in your watch activities, sleep, HRV and readiness. Only you see this.</span></div><button class="btn sm secondary" id="btnGOn">Connect</button>`;
+  if ($('#btnGOn')) $('#btnGOn').onclick = openGarminConnect;
+  if ($('#btnGSync')) $('#btnGSync').onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
+    try {
+      const r = await api('/api/report', { action: 'garmin-sync', force: true }); state.garmin = r;
+      if (r.connected) { await loadGarminDay(); if (r.activities) await reloadWeekLogs(); }
+      toast(r.error ? 'Garmin: ' + r.error : `Garmin synced · ${r.activities || 0} new ${r.activities === 1 ? 'activity' : 'activities'}`);
+    } catch (e) { toast(e.message || 'Could not sync'); }
+    paintGarminCard(host);
+  };
+  if ($('#btnGOff')) $('#btnGOff').onclick = async () => {
+    if (!confirm('Disconnect Garmin? Activities already brought in stay in your log.')) return;
+    try { state.garmin = await api('/api/report', { action: 'garmin-disconnect' }); state.garminDay = null; paintGarminCard(host); } catch (e) { toast(e.message || 'Could not disconnect'); }
+  };
+}
+function openGarminConnect() {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Connect Garmin');
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>Connect Garmin</h2></div>
+    <p class="muted small">Garmin has no public API for this, so you sign in once on your own computer and paste the result here. Your password never reaches Cadence.</p>
+    <div class="block" style="margin-top:14px"><h3>1. Run this in a terminal</h3>
+      <pre class="g-code" id="gScript"></pre>
+      <button class="btn sm secondary" id="btnGCopy">Copy</button>
+      <p class="muted small" style="margin-top:8px">It asks for your Garmin email, password and, if you use it, the code Garmin sends you. It prints one line starting with {"di_token".</p></div>
+    <div class="field" style="margin-top:16px"><label for="gTok">2. Paste that line here</label><textarea class="input" id="gTok" rows="4" spellcheck="false" autocomplete="off" placeholder='{"di_token": "...", "di_refresh_token": "...", "di_client_id": "..."}'></textarea></div>
+    <div class="error" id="gErr"></div>
+    <button class="btn" id="btnGSave">Connect and sync</button>
+    <p class="muted small" style="margin-top:10px">Cadence then brings in the last two weeks and keeps syncing each morning and when you open the app. The pasted text works like a password: don't share it.</p>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  $('#gScript', sheet).textContent = GARMIN_SCRIPT;
+  $('#btnGCopy', sheet).onclick = () => navigator.clipboard.writeText(GARMIN_SCRIPT).then(() => toast(T('Link copied').replace(/link/i, 'Command')));
+  $('#btnGSave', sheet).onclick = async (ev) => {
+    const raw = $('#gTok', sheet).value.trim(); const err = $('#gErr', sheet);
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (!m) { err.textContent = 'Paste the line the script printed, from { to }.'; return; }
+    const b = ev.currentTarget; b.disabled = true; b.textContent = 'Connecting… (up to a minute)'; err.textContent = '';
+    try {
+      const r = await api('/api/report', { action: 'garmin-connect', tokens: m[0] }, { slowMsg: 'Bringing in two weeks of Garmin data…' });
+      state.garmin = r;
+      if (r.error) throw new Error(r.error);
+      await loadGarminDay(); await reloadWeekLogs();
+      history.back(); toast(`Garmin connected · ${r.activities || 0} activities, ${r.days || 0} days of sleep data`);
+      paintGarminCard($('#inboxCard'));
+    } catch (e) { err.textContent = e.message || 'Could not connect.'; b.disabled = false; b.textContent = 'Connect and sync'; }
+  };
 }
 
 async function openInbox() {

@@ -271,6 +271,12 @@ es: {
 (function () {
   const add = {
     fr: {
+    "sleep": "sommeil",
+    "resting HR": "FC repos",
+    "readiness": "forme",
+    "Last night": "Cette nuit",
+    "Night before": "Nuit précédente",
+    "Low recovery: keep today easy, or drop a set or two.": "Récupération faible : reste léger aujourd’hui, ou enlève une ou deux séries.",
       "base phase": "phase de base",
       "build phase": "phase de développement",
       "peak phase": "phase de pic",
@@ -356,6 +362,12 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "sleep": "slaap",
+    "resting HR": "rust-HS",
+    "readiness": "paraatheid",
+    "Last night": "Afgelopen nacht",
+    "Night before": "Nacht ervoor",
+    "Low recovery: keep today easy, or drop a set or two.": "Weinig herstel: hou het vandaag rustig, of laat een set of twee vallen.",
       "base phase": "basisfase",
       "build phase": "opbouwfase",
       "peak phase": "piekfase",
@@ -441,6 +453,12 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "sleep": "uyku",
+    "resting HR": "dinlenik nabız",
+    "readiness": "hazırlık",
+    "Last night": "Dün gece",
+    "Night before": "Önceki gece",
+    "Low recovery: keep today easy, or drop a set or two.": "Toparlanma düşük: bugün hafif tut ya da bir iki seti bırak.",
       "base phase": "temel evre",
       "build phase": "gelişim evresi",
       "peak phase": "zirve evresi",
@@ -526,6 +544,12 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "sleep": "sueño",
+    "resting HR": "FC reposo",
+    "readiness": "preparación",
+    "Last night": "Anoche",
+    "Night before": "Noche anterior",
+    "Low recovery: keep today easy, or drop a set or two.": "Poca recuperación: hoy tómatelo con calma o quita una o dos series.",
       "base phase": "fase base",
       "build phase": "fase de desarrollo",
       "peak phase": "fase de pico",
