@@ -8,19 +8,19 @@
     "card:118",
     "card todaycard:171",
     "card todaycard:102",
-    "card todaycard:72",
-    "card sage todaycard:106"
+    "quick:45",
+    "card todaycard:72"
   ],
   "tabsDiag": [
     {
-      "at": "2026-10-13T12:02:20.967Z",
+      "at": "2026-10-17T23:52:44.342Z",
       "step": "done",
       "errors": [],
       "console": []
     }
   ],
   "rulesStatus": {
-    "at": "2026-10-13T12:02:29.281Z",
+    "at": "2026-10-17T23:52:54.691Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
