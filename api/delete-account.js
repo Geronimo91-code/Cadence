@@ -56,6 +56,7 @@ export default async function handler(req, res) {
     await wipe(db().doc(`users/${uid}`));
     await db().doc(`usage/${uid}`).delete().catch(() => {});
     await db().doc(`garminAuth/${uid}`).delete().catch(() => {});
+    { const pq = await db().collection('garminPair').where('uid', '==', uid).get(); await Promise.all(pq.docs.map((d) => d.ref.delete())); }
     // tester feedback and error reports carry the uid and email: remove them too
     for (const col of ['feedback', 'problems']) {
       const q = await db().collection(col).where('uid', '==', uid).get();

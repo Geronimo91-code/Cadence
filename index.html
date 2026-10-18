@@ -753,6 +753,8 @@ a.btn { text-decoration: none; }
   .ld-card { grid-column: span 2; }
   .ld-card.wide { grid-column: span 3; }
 }
+.g-pair{font:700 2rem var(--font-display);letter-spacing:.12em;text-align:center;padding:14px;border-radius:14px;border:2px dashed var(--line,rgba(127,127,127,.4));margin:8px 0;user-select:all}
+.g-wait{text-align:center;margin-top:16px}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -2916,34 +2918,50 @@ function openGarminConnect() {
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Connect Garmin');
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>Connect Garmin</h2></div>
-    <p class="muted small">Garmin has no public API for this, so you sign in once on your own computer and paste the result here. Your password never reaches Cadence.</p>
-    <div class="block" style="margin-top:14px"><h3>1. Run this in a terminal</h3>
+    <p class="muted small">Garmin has no public way to do this, so you sign in to Garmin once in a free Google notebook. Your password goes only to Garmin, never to Cadence.</p>
+    <div class="block" style="margin-top:14px"><h3>1. Your pairing code</h3>
+      <div class="g-pair" id="gPair">…</div>
+      <p class="muted small">Valid for 20 minutes. Keep this screen open, or come back to it.</p></div>
+    <div class="block" style="margin-top:14px"><h3>2. Open the Garmin login</h3>
+      <a class="btn" id="gColab" href="https://colab.research.google.com/github/Geronimo91-code/Cadence/blob/main/tools/garmin-login.ipynb" target="_blank" rel="noopener" style="text-decoration:none;display:block;text-align:center">Open in Google Colab</a>
+      <p class="muted small" style="margin-top:8px">Tap ▶ on the cell, sign in with Google if it asks, then answer: the pairing code, your Garmin email, password, and the code Garmin sends you if you use one. When it says ✅, come back here.</p></div>
+    <div class="g-wait muted small" id="gWait">Waiting for Garmin…</div>
+    <details class="set-more" style="margin-top:18px"><summary>On a computer instead</summary>
       <pre class="g-code" id="gScript"></pre>
-      <button class="btn sm secondary" id="btnGCopy">Copy</button>
-      <p class="muted small" style="margin-top:8px">It asks for your Garmin email, password and, if you use it, the code Garmin sends you. It prints one line starting with {"di_token".</p></div>
-    <div class="field" style="margin-top:16px"><label for="gTok">2. Paste that line here</label><textarea class="input" id="gTok" rows="4" spellcheck="false" autocomplete="off" placeholder='{"di_token": "...", "di_refresh_token": "...", "di_client_id": "..."}'></textarea></div>
-    <div class="error" id="gErr"></div>
-    <button class="btn" id="btnGSave">Connect and sync</button>
-    <p class="muted small" style="margin-top:10px">Cadence then brings in the last two weeks and keeps syncing each morning and when you open the app. The pasted text works like a password: don't share it.</p>
+      <button class="btn sm secondary" id="btnGCopy">Copy command</button>
+      <div class="field" style="margin-top:12px"><label for="gTok">Paste the line it prints</label><textarea class="input" id="gTok" rows="3" spellcheck="false" autocomplete="off" placeholder='{"di_token": "...", "di_refresh_token": "...", "di_client_id": "..."}'></textarea></div>
+      <div class="error" id="gErr"></div>
+      <button class="btn secondary" id="btnGSave">Connect and sync</button>
+    </details>
   </div>`;
   document.body.append(sheet); document.body.style.overflow = 'hidden';
-  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  let poll = null;
+  const close = () => { clearInterval(poll); sheet.remove(); document.body.style.overflow = ''; };
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   registerSheet(close);
+  const done = async (r) => {
+    clearInterval(poll); state.garmin = r;
+    await loadGarminDay(); await reloadWeekLogs();
+    history.back(); toast(r.activities != null ? `Garmin connected · ${r.activities} activities, ${r.days || 0} days of sleep data` : 'Garmin connected');
+    paintGarminCard($('#inboxCard'));
+  };
+  api('/api/report', { action: 'garmin-pair-start' }).then((r) => { $('#gPair', sheet).textContent = r.code; }).catch((e) => { $('#gPair', sheet).textContent = '—'; $('#gWait', sheet).textContent = e.message || 'Could not create a code. Try again.'; });
+  // the notebook finishes on Google's side; watch for the connection to appear
+  poll = setInterval(async () => {
+    if (!sheet.isConnected) return clearInterval(poll);
+    try { const r = await api('/api/report', { action: 'garmin-status' }); if (r.connected) done(r); } catch (_) {}
+  }, 5000);
   $('#gScript', sheet).textContent = GARMIN_SCRIPT;
-  $('#btnGCopy', sheet).onclick = () => navigator.clipboard.writeText(GARMIN_SCRIPT).then(() => toast(T('Link copied').replace(/link/i, 'Command')));
+  $('#btnGCopy', sheet).onclick = () => navigator.clipboard.writeText(GARMIN_SCRIPT).then(() => toast('Command copied'));
   $('#btnGSave', sheet).onclick = async (ev) => {
     const raw = $('#gTok', sheet).value.trim(); const err = $('#gErr', sheet);
     const m = raw.match(/\{[\s\S]*\}/);
-    if (!m) { err.textContent = 'Paste the line the script printed, from { to }.'; return; }
+    if (!m) { err.textContent = 'Paste the line the command printed, from { to }.'; return; }
     const b = ev.currentTarget; b.disabled = true; b.textContent = 'Connecting… (up to a minute)'; err.textContent = '';
     try {
       const r = await api('/api/report', { action: 'garmin-connect', tokens: m[0] }, { slowMsg: 'Bringing in two weeks of Garmin data…' });
-      state.garmin = r;
       if (r.error) throw new Error(r.error);
-      await loadGarminDay(); await reloadWeekLogs();
-      history.back(); toast(`Garmin connected · ${r.activities || 0} activities, ${r.days || 0} days of sleep data`);
-      paintGarminCard($('#inboxCard'));
+      done(r);
     } catch (e) { err.textContent = e.message || 'Could not connect.'; b.disabled = false; b.textContent = 'Connect and sync'; }
   };
 }

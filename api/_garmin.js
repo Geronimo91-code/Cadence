@@ -193,3 +193,26 @@ export async function garminSyncAll() {
   for (const d of q.docs) out.push({ uid: d.id.slice(0, 6), ...(await garminSync(d.id, { force: true, days: 2 })) });
   return out;
 }
+
+// Phone flow: the app shows a short pairing code; the login notebook (tools/garmin-login.ipynb, run in
+// Google Colab) sends the tokens with that code, so nothing has to be copied between apps.
+const PAIR_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export async function garminPairStart(uid) {
+  const { randomInt } = await import('node:crypto');
+  let code = '';
+  for (let i = 0; i < 8; i++) code += PAIR_ALPHABET[randomInt(PAIR_ALPHABET.length)];
+  const old = await db().collection('garminPair').where('uid', '==', uid).get();
+  await Promise.all(old.docs.map((d) => d.ref.delete()));
+  await db().doc(`garminPair/${code}`).set({ uid, exp: Date.now() + 20 * 60000 });
+  return { code: code.slice(0, 4) + '-' + code.slice(4), expiresInMin: 20 };
+}
+export async function garminPairFinish(rawCode, tokens) {
+  const code = String(rawCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 8) throw new GarminError('That pairing code looks wrong. It has 8 letters and numbers, like K7Q2-M9XD.', 'input');
+  const ref = db().doc(`garminPair/${code}`);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data().exp < Date.now()) throw new GarminError('That pairing code is unknown or expired. Tap Connect in Cadence again for a new one.', 'input');
+  const { uid } = snap.data();
+  await ref.delete(); // single use
+  return garminConnect(uid, tokens);
+}

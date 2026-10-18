@@ -7,13 +7,17 @@
 // POST { action: 'stats' }               → usage overview and per-user table (admins only)
 import { requireUser, db, checkLimit, getAdmin, weekId } from './_lib.js';
 import { syncRules } from './_sync.js';
-import { garminConnect, garminSync, garminDisconnect, garminStatus } from './_garmin.js';
+import { garminConnect, garminSync, garminDisconnect, garminStatus, garminPairStart, garminPairFinish } from './_garmin.js';
 
 const ADMINS = (process.env.ADMIN_EMAILS || 'melihgeron@gmail.com').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
 const clip = (v, n) => (v == null ? '' : String(v).slice(0, n));
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  // Garmin login notebook: no Cadence sign-in there, the single-use pairing code ties it to the account
+  if ((req.body || {}).action === 'garmin-pair') {
+    try { const r = await garminPairFinish(req.body.code, req.body.tokens); return res.status(r.error ? 502 : 200).json({ ok: !r.error, activities: r.activities || 0, days: r.days || 0, error: r.error || null }); } catch (e) { return res.status(e.code === 'input' ? 400 : 502).json({ ok: false, error: String(e.message || e).slice(0, 200) }); }
+  }
   const user = await requireUser(req, res);
   if (!user) return;
   const body = req.body || {};
@@ -27,6 +31,7 @@ export default async function handler(req, res) {
     try {
       if (body.action === 'garmin-connect') return res.status(200).json(await garminConnect(user.uid, body.tokens));
       if (body.action === 'garmin-sync') return res.status(200).json(await garminSync(user.uid, { force: !!body.force }));
+      if (body.action === 'garmin-pair-start') return res.status(200).json(await garminPairStart(user.uid));
       if (body.action === 'garmin-status') return res.status(200).json(await garminStatus(user.uid));
       if (body.action === 'garmin-disconnect') return res.status(200).json(await garminDisconnect(user.uid));
     } catch (e) { return res.status(e.code === 'input' ? 400 : 502).json({ error: String(e.message || e).slice(0, 200), code: e.code || null }); }
