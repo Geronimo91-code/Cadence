@@ -7,7 +7,7 @@
 // POST { action: 'stats' }               → usage overview and per-user table (admins only)
 import { requireUser, db, checkLimit, getAdmin, weekId } from './_lib.js';
 import { syncRules } from './_sync.js';
-import { garminConnect, garminSync, garminDisconnect, garminStatus, garminPairStart, garminPairFinish } from './_garmin.js';
+import { garminConnect, garminSync, garminDisconnect, garminStatus, garminPairStart, garminPairFinish, garminPushPlan, garminSetPush } from './_garmin.js';
 
 const ADMINS = (process.env.ADMIN_EMAILS || 'melihgeron@gmail.com').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
 const clip = (v, n) => (v == null ? '' : String(v).slice(0, n));
@@ -31,6 +31,8 @@ export default async function handler(req, res) {
     try {
       if (body.action === 'garmin-connect') return res.status(200).json(await garminConnect(user.uid, body.tokens));
       if (body.action === 'garmin-sync') return res.status(200).json(await garminSync(user.uid, { force: !!body.force }));
+      if (body.action === 'garmin-push') return res.status(200).json(await garminPushPlan(user.uid));
+      if (body.action === 'garmin-set-push') return res.status(200).json(await garminSetPush(user.uid, body.on));
       if (body.action === 'garmin-pair-start') return res.status(200).json(await garminPairStart(user.uid));
       if (body.action === 'garmin-status') return res.status(200).json(await garminStatus(user.uid));
       if (body.action === 'garmin-disconnect') return res.status(200).json(await garminDisconnect(user.uid));

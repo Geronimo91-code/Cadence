@@ -755,6 +755,7 @@ a.btn { text-decoration: none; }
 }
 .g-pair{font:700 2rem var(--font-display);letter-spacing:.12em;text-align:center;padding:14px;border-radius:14px;border:2px dashed var(--line,rgba(127,127,127,.4));margin:8px 0;user-select:all}
 .g-wait{text-align:center;margin-top:16px}
+.g-push{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.9rem}.g-push input{width:18px;height:18px;accent-color:var(--accent,currentColor)}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1499,6 +1500,7 @@ async function loadPlan(preferWeek) {
   try {
     const q = await db.collection('users/' + state.user.uid + '/plans').orderBy('weekId', 'desc').limit(4).get();
     state.plans = q.docs.map((d) => d.data());
+    garminPushSoon();
     const thisWeek = isoWeekId();
     const pick = (preferWeek && state.plans.find((p) => p.weekId === preferWeek)) || state.plans.find((p) => p.weekId === thisWeek) || state.plans[0] || null;
     state.plan = pick; state.planWeek = pick?.weekId || null;
@@ -2877,6 +2879,23 @@ async function reloadWeekLogs() {
   const lq = await db.collection('users/' + state.user.uid + '/logs').where('weekId', '==', state.plan.weekId).get();
   state.logs = {}; lq.forEach((d) => { state.logs[d.id] = d.data(); }); streakCache = null;
 }
+// Send the plan to Garmin when it changed since the last send (server re-sends only changed sessions)
+let garminPushKey = null, garminPushTimer = null;
+function garminPushSoon(force) {
+  if (!state.garmin?.connected || state.garmin.pushPlan === false) return;
+  const key = (state.plans || []).map((p) => `${p.weekId}:${p.createdAt || ''}:${JSON.stringify(p.sessions || []).length}`).join('|');
+  if (!force && key === garminPushKey) return;
+  garminPushKey = key;
+  clearTimeout(garminPushTimer);
+  garminPushTimer = setTimeout(async () => {
+    try {
+      const r = await api('/api/report', { action: 'garmin-push' });
+      state.garminPush = r;
+      if (r.pushed) toast(`${r.pushed} ${r.pushed === 1 ? 'session' : 'sessions'} sent to Garmin`);
+      if (state.view === 'profile') paintGarminCard($('#inboxCard'));
+    } catch (_) { garminPushKey = null; }
+  }, 2500);
+}
 async function garminBoot() {
   try {
     if (state.isAdmin === undefined) state.isAdmin = !!(await api('/api/report', { action: 'whoami' })).admin;
@@ -2886,6 +2905,7 @@ async function garminBoot() {
     if (!r.connected) return;
     await loadGarminDay();
     if (r.activities > 0) await reloadWeekLogs();
+    garminPushSoon();
     if (['today', 'plan'].includes(state.view) && !document.querySelector('.sheet')) navigate(state.view);
     else if (state.view === 'profile') paintGarminCard($('#inboxCard'));
   } catch (_) {}
@@ -2897,14 +2917,21 @@ async function paintGarminCard(host) {
   if (!state.garmin) { row.innerHTML = '<div><div>Garmin</div><span class="muted">Checking…</span></div>'; try { state.garmin = await api('/api/report', { action: 'garmin-status' }); } catch (_) { state.garmin = { connected: false }; } }
   const g = state.garmin;
   row.innerHTML = g.connected
-    ? `<div style="flex:1;min-width:0"><div>Garmin${g.displayName ? ' · ' + esc(g.displayName) : ''}</div><span class="muted">Synced ${garminAgo(g.lastSync)}${g.lastError ? '' : ' · runs by itself every morning'}</span>${g.lastError ? `<span class="error" style="display:block">${esc(g.lastError)}</span>` : ''}</div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm secondary" id="btnGSync">Sync</button><button class="btn sm ghost" id="btnGOff" aria-label="Disconnect Garmin">✕</button></div>`
+    ? `<div style="flex:1;min-width:0"><div>Garmin${g.displayName ? ' · ' + esc(g.displayName) : ''}</div><span class="muted">Synced ${garminAgo(g.lastSync)}${g.lastError ? '' : ' · runs by itself every morning'}</span>${g.lastError ? `<span class="error" style="display:block">${esc(g.lastError)}</span>` : ''}
+      <label class="g-push"><input type="checkbox" id="gPushOn" ${g.pushPlan !== false ? 'checked' : ''}> Put my sessions on my watch</label>
+      ${g.pushPlan !== false && state.garminPush ? `<span class="muted small" style="display:block">${state.garminPush.pushed || 0} sent, ${state.garminPush.kept || 0} already there${state.garminPush.errors?.length ? ` · <span class="error">${esc(state.garminPush.errors[0])}</span>` : ''}</span>` : ''}</div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm secondary" id="btnGSync">Sync</button><button class="btn sm ghost" id="btnGOff" aria-label="Disconnect Garmin">✕</button></div>`
     : `<div><div>Garmin</div><span class="muted">Bring in your watch activities, sleep, HRV and readiness. Only you see this.</span></div><button class="btn sm secondary" id="btnGOn">Connect</button>`;
   if ($('#btnGOn')) $('#btnGOn').onclick = openGarminConnect;
+  if ($('#gPushOn')) $('#gPushOn').onchange = async (ev) => {
+    const on = ev.currentTarget.checked;
+    try { await api('/api/report', { action: 'garmin-set-push', on }); state.garmin.pushPlan = on; if (on) garminPushSoon(true); else toast('Sessions you already sent stay on Garmin; new ones won\'t be sent'); } catch (e) { ev.currentTarget.checked = !on; toast(e.message || 'Could not save'); }
+  };
   if ($('#btnGSync')) $('#btnGSync').onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true; b.textContent = '…';
     try {
       const r = await api('/api/report', { action: 'garmin-sync', force: true }); state.garmin = r;
       if (r.connected) { await loadGarminDay(); if (r.activities) await reloadWeekLogs(); }
+      if (!r.error) garminPushSoon(true);
       toast(r.error ? 'Garmin: ' + r.error : `Garmin synced · ${r.activities || 0} new ${r.activities === 1 ? 'activity' : 'activities'}`);
     } catch (e) { toast(e.message || 'Could not sync'); }
     paintGarminCard(host);

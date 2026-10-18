@@ -3,7 +3,8 @@
 // protection); the resulting DI tokens are pasted into the app. From then on this module refreshes the
 // token itself and pulls activities and overnight wellness.
 // Tokens live in garminAuth/{uid}, which no client can read (no Firestore rule matches it).
-import { db, weekId } from './_lib.js';
+import { db, weekId, mondayOf } from './_lib.js';
+import GARMIN_EXERCISES from './_garmin-exercises.js';
 
 const API = 'https://connectapi.garmin.com';
 const DI_TOKEN_URL = 'https://diauth.garmin.com/di-oauth2-service/oauth/token';
@@ -47,15 +48,19 @@ async function refresh(tok) {
 }
 
 // GET a connectapi path; renews the token once on expiry or 401
-async function call(tok, path, params) {
+async function call(tok, path, params, { method = 'GET', body } = {}) {
   if (expiresSoon(tok.di_token)) await refresh(tok);
   const url = API + path + (params ? '?' + new URLSearchParams(params) : '');
-  const go = () => fetch(url, { headers: { ...HEADERS, Authorization: 'Bearer ' + tok.di_token, Accept: 'application/json' } });
+  const go = () => fetch(url, { method, headers: { ...HEADERS, Authorization: 'Bearer ' + tok.di_token, Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
   let r = await go();
   if (r.status === 401) { await refresh(tok); r = await go(); }
   if (r.status === 204) return null;
-  if (!r.ok) throw new GarminError(`Garmin answered ${r.status} for ${path.split('/')[1]}.`, r.status === 401 ? 'auth' : r.status === 429 ? 'rate' : 'api');
-  return r.json();
+  if (!r.ok) {
+    const detail = method === 'GET' ? '' : ' ' + (await r.text().catch(() => '')).slice(0, 120).replace(/\s+/g, ' ');
+    throw new GarminError(`Garmin answered ${r.status} for ${path.split('/')[1]}.${detail}`, r.status === 401 ? 'auth' : r.status === 429 ? 'rate' : 'api');
+  }
+  const text = await r.text();
+  try { return text ? JSON.parse(text) : null; } catch (_) { return null; }
 }
 
 const ymd = (d) => d.toISOString().slice(0, 10);
@@ -142,7 +147,7 @@ async function saveTok(uid, tok, extra) {
   await authRef(uid).set({ ...rest, ...extra }, { merge: true });
 }
 
-const publicStatus = (d) => (d ? { connected: true, displayName: d.fullName || d.displayName || null, lastSync: d.lastSync || null, lastError: d.lastError || null, connectedAt: d.connectedAt || null } : { connected: false });
+const publicStatus = (d) => (d ? { connected: true, displayName: d.fullName || d.displayName || null, lastSync: d.lastSync || null, lastError: d.lastError || null, connectedAt: d.connectedAt || null, pushPlan: d.pushPlan !== false } : { connected: false });
 
 export async function garminStatus(uid) { const s = await authRef(uid).get(); return publicStatus(s.exists ? s.data() : null); }
 
@@ -190,7 +195,11 @@ export async function garminDisconnect(uid) {
 export async function garminSyncAll() {
   const q = await db().collection('garminAuth').get();
   const out = [];
-  for (const d of q.docs) out.push({ uid: d.id.slice(0, 6), ...(await garminSync(d.id, { force: true, days: 2 })) });
+  for (const d of q.docs) {
+    const r = { uid: d.id.slice(0, 6), ...(await garminSync(d.id, { force: true, days: 2 })) };
+    if (!r.error) { try { r.push = await garminPushPlan(d.id); } catch (e) { r.push = String(e.message || e).slice(0, 120); } }
+    out.push(r);
+  }
   return out;
 }
 
@@ -216,3 +225,119 @@ export async function garminPairFinish(rawCode, tokens) {
   await ref.delete(); // single use
   return garminConnect(uid, tokens);
 }
+
+// ---------------- Plan → Garmin workouts on the calendar ----------------
+// Each upcoming Cadence session becomes a Garmin workout scheduled on its day, so it reaches the watch.
+// garminPush/{uid} remembers what was sent (workout id + a fingerprint), so only changed sessions are re-sent.
+const COND = {
+  lap: { conditionTypeId: 1, conditionTypeKey: 'lap.button', displayOrder: 1, displayable: true },
+  time: { conditionTypeId: 2, conditionTypeKey: 'time', displayOrder: 2, displayable: true },
+  reps: { conditionTypeId: 10, conditionTypeKey: 'reps', displayOrder: 10, displayable: true },
+  iter: { conditionTypeId: 7, conditionTypeKey: 'iterations', displayOrder: 7, displayable: false },
+};
+const STEP = { warmup: [1, 'warmup'], cooldown: [2, 'cooldown'], interval: [3, 'interval'], rest: [5, 'rest'], repeat: [6, 'repeat'] };
+const NO_TARGET = { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target', displayOrder: 1 };
+const SPORTS = { strength: { sportTypeId: 5, sportTypeKey: 'strength_training', displayOrder: 5 }, running: { sportTypeId: 1, sportTypeKey: 'running', displayOrder: 1 }, cardio: { sportTypeId: 6, sportTypeKey: 'cardio_training', displayOrder: 6 } };
+const stepType = (k) => ({ stepTypeId: STEP[k][0], stepTypeKey: STEP[k][1], displayOrder: STEP[k][0] });
+const clip = (v, n) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, n);
+
+// "8" / "6-8" → reps; "45 s" / "2-4 min" → seconds; anything else (metres, "max") → press lap when done
+function endOf(reps) {
+  const r = String(reps || '').toLowerCase();
+  const nums = (r.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  const top = nums.length ? Math.max(...nums.slice(0, 2)) : null;
+  if (top && /\b(s|sec|secs|seconds?)\b/.test(r)) return { cond: COND.time, value: top };
+  if (top && /\bmin/.test(r)) return { cond: COND.time, value: top * 60 };
+  if (top && !/\d\s*(m|km|yd)\b/.test(r) && !/[a-z]{3,}/.test(r.replace(/reps?|each|side|leg|arm/g, ''))) return { cond: COND.reps, value: nums[0] };
+  return { cond: COND.lap, value: null };
+}
+const kgOf = (load) => { const m = String(load || '').match(/(\d+(?:[.,]\d+)?)\s*kg/i); return m ? Number(m[1].replace(',', '.')) : null; };
+
+export function sessionToWorkout(sess, dateLabel) {
+  const exs = sess.exercises || [];
+  const runny = /sprint|run|tempo|stride|shuttle|interval|bound|skip|acceleration/i;
+  const sport = sess.type === 'strength' ? 'strength' : (['speed', 'conditioning'].includes(sess.type) && exs.some((e) => runny.test(e.name))) ? 'running' : 'cardio';
+  const withExercises = sport !== 'running';
+  let order = 0;
+  const step = (kind, end, desc, extra = {}) => ({ type: 'ExecutableStepDTO', stepOrder: ++order, stepType: stepType(kind), endCondition: end.cond, ...(end.value != null ? { endConditionValue: end.value } : {}), targetType: NO_TARGET, ...(desc ? { description: clip(desc, 250) } : {}), ...extra });
+  const steps = [];
+  if ((sess.warmup || []).length) steps.push(step('warmup', { cond: COND.lap }, 'Warm-up: ' + sess.warmup.join(' · ')));
+  for (const e of exs) {
+    const end = endOf(e.reps);
+    const sets = Math.max(1, Math.min(20, Number(e.sets) || 1));
+    const kg = kgOf(e.load);
+    const map = GARMIN_EXERCISES[String(e.name || '').toLowerCase()];
+    const ex = withExercises && map ? { category: map[0], exerciseName: map[1] } : {};
+    const desc = [e.name, e.reps && `${e.reps}`, e.load && !kg ? e.load : '', e.cues].filter(Boolean).join(' · ');
+    const extra = { ...ex, ...(kg && withExercises ? { weightValue: kg * 1000, weightUnit: { unitId: 8, unitKey: 'kilogram', factor: 1000.0 } } : {}) };
+    const groupOrder = ++order;
+    const inner = [step('interval', end, desc, extra)];
+    if (Number(e.restSec) > 0) inner.push(step('rest', { cond: COND.time, value: Number(e.restSec) }, null));
+    steps.push({ type: 'RepeatGroupDTO', stepOrder: groupOrder, stepType: stepType('repeat'), numberOfIterations: sets, workoutSteps: inner, endCondition: COND.iter, endConditionValue: sets, smartRepeat: false, skipLastRestStep: true });
+  }
+  if ((sess.cooldown || []).length) steps.push(step('cooldown', { cond: COND.lap }, 'Cool-down: ' + sess.cooldown.join(' · ')));
+  return {
+    workoutName: clip(`Cadence ${dateLabel} · ${sess.title}`, 80),
+    description: clip(sess.intent || '', 500),
+    sportType: SPORTS[sport],
+    estimatedDurationInSecs: (Number(sess.durationMin) || 45) * 60,
+    workoutSegments: [{ segmentOrder: 1, sportType: SPORTS[sport], workoutSteps: steps }],
+  };
+}
+
+const pushRef = (uid) => db().doc(`garminPush/${uid}`);
+const fingerprint = (o) => { let h = 0; const s = JSON.stringify(o); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+export async function garminPushPlan(uid) {
+  const snap = await authRef(uid).get();
+  if (!snap.exists) return { connected: false };
+  const d = snap.data();
+  if (d.pushPlan === false) return { pushed: 0, off: true };
+  const tok = { di_token: d.di_token, di_refresh_token: d.di_refresh_token, di_client_id: d.di_client_id, displayName: d.displayName };
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Brussels' });
+  const weeks = [weekId(new Date(today + 'T12:00:00')), weekId(new Date(Date.parse(today + 'T12:00:00') + 7 * 86400000))];
+  const wanted = {};
+  for (const wk of weeks) {
+    const p = await db().doc(`users/${uid}/plans/${wk}`).get();
+    if (!p.exists) continue;
+    const mon = mondayOf(wk);
+    for (const s of p.data().sessions || []) {
+      if (['rest', 'match'].includes(s.type) || !(s.exercises || []).length) continue;
+      const dt = new Date(mon); dt.setUTCDate(mon.getUTCDate() + s.day);
+      const date = dt.toISOString().slice(0, 10);
+      if (date < today) continue;
+      const key = `${wk}-${s.day}-${s.slot || 0}`;
+      const logged = await db().doc(`users/${uid}/logs/${wk}-${s.day}${s.slot ? '-' + s.slot : ''}`).get();
+      if (logged.exists) continue;
+      const workout = sessionToWorkout(s, `${DAY_SHORT[s.day]} ${date.slice(8)}/${date.slice(5, 7)}`);
+      wanted[key] = { date, workout, fp: fingerprint({ date, workout }) };
+    }
+  }
+  const prev = (await pushRef(uid).get()).data()?.sessions || {};
+  const next = {}; const out = { pushed: 0, kept: 0, removed: 0, errors: [] };
+  try {
+    // drop workouts whose session changed or left the plan (only future ones; past ones stay as history)
+    for (const [key, old] of Object.entries(prev)) {
+      if (wanted[key] && wanted[key].fp === old.fp) { next[key] = old; out.kept++; continue; }
+      if (!wanted[key] && old.date <= today) { if (old.date === today) next[key] = old; continue; } // done or past: leave it on the watch
+      { await call(tok, `/workout-service/workout/${old.workoutId}`, null, { method: 'DELETE' }).catch((e) => { if (e.code === 'auth') throw e; }); out.removed++; }
+    }
+    for (const [key, w] of Object.entries(wanted)) {
+      if (next[key]) continue;
+      try {
+        const made = await call(tok, '/workout-service/workout', null, { method: 'POST', body: w.workout });
+        if (!made?.workoutId) throw new GarminError('Garmin did not return a workout id.', 'api');
+        const sch = await call(tok, `/workout-service/schedule/${made.workoutId}`, null, { method: 'POST', body: { date: w.date } });
+        next[key] = { workoutId: made.workoutId, scheduleId: sch?.workoutScheduleId || null, date: w.date, fp: w.fp, title: w.workout.workoutName };
+        out.pushed++;
+      } catch (e) { if (e.code === 'auth') throw e; out.errors.push(`${w.workout.workoutName}: ${e.message}`.slice(0, 200)); }
+    }
+  } finally {
+    await pushRef(uid).set({ sessions: next, at: new Date().toISOString(), lastErrors: out.errors.slice(0, 5) });
+    if (tok.dirty) await saveTok(uid, tok, {});
+  }
+  return out;
+}
+
+export async function garminSetPush(uid, on) { await authRef(uid).set({ pushPlan: !!on }, { merge: true }); return { pushPlan: !!on }; }
