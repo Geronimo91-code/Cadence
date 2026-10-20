@@ -273,7 +273,7 @@ export function sessionToWorkout(sess, dateLabel) {
     const groupOrder = ++order;
     const inner = [step('interval', end, desc, extra)];
     if (Number(e.restSec) > 0) inner.push(step('rest', { cond: COND.time, value: Number(e.restSec) }, null));
-    steps.push({ type: 'RepeatGroupDTO', stepOrder: groupOrder, stepType: stepType('repeat'), numberOfIterations: sets, workoutSteps: inner, endCondition: COND.iter, endConditionValue: sets, smartRepeat: false, skipLastRestStep: true });
+    steps.push({ type: 'RepeatGroupDTO', stepOrder: groupOrder, stepType: stepType('repeat'), numberOfIterations: sets, workoutSteps: inner, endCondition: COND.iter, endConditionValue: sets, smartRepeat: false, skipLastRestStep: false });
   }
   if ((sess.cooldown || []).length) steps.push(step('cooldown', { cond: COND.lap }, 'Cool-down: ' + sess.cooldown.join(' · ')));
   return {
