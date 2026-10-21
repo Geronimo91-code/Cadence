@@ -262,6 +262,7 @@ export function sessionToWorkout(sess, dateLabel) {
   const step = (kind, end, desc, extra = {}) => ({ type: 'ExecutableStepDTO', stepOrder: ++order, stepType: stepType(kind), endCondition: end.cond, ...(end.value != null ? { endConditionValue: end.value } : {}), targetType: NO_TARGET, ...(desc ? { description: clip(desc, 250) } : {}), ...extra });
   const steps = [];
   if ((sess.warmup || []).length) steps.push(step('warmup', { cond: COND.lap }, 'Warm-up: ' + sess.warmup.join(' · ')));
+  const plan = [];
   for (const e of exs) {
     const end = endOf(e.reps);
     const sets = Math.max(1, Math.min(20, Number(e.sets) || 1));
@@ -270,10 +271,19 @@ export function sessionToWorkout(sess, dateLabel) {
     const ex = withExercises && map ? { category: map[0], exerciseName: map[1] } : {};
     const desc = [e.name, e.reps && `${e.reps}`, e.load && !kg ? e.load : '', e.cues].filter(Boolean).join(' · ');
     const extra = { ...ex, ...(kg && withExercises ? { weightValue: kg * 1000, weightUnit: { unitId: 8, unitKey: 'kilogram', factor: 1000.0 } } : {}) };
-    const groupOrder = ++order;
-    const inner = [step('interval', end, desc, extra)];
-    if (Number(e.restSec) > 0) inner.push(step('rest', { cond: COND.time, value: Number(e.restSec) }, null));
-    steps.push({ type: 'RepeatGroupDTO', stepOrder: groupOrder, stepType: stepType('repeat'), numberOfIterations: sets, workoutSteps: inner, endCondition: COND.iter, endConditionValue: sets, smartRepeat: false, skipLastRestStep: false });
+    // Every set is its own step, no repeat blocks: older watches (Instinct 2, Fenix 6…) reject repeat options
+    plan.push({ end, desc, extra, sets, rest: Number(e.restSec) || 0 });
+  }
+  // Garmin caps a workout at 50 steps: if needed, drop the rest timers between sets (rest goes into the note), last exercises first
+  const count = () => plan.reduce((a, x) => a + (x.merged ? 1 : x.sets + (x.rest ? x.sets - 1 : 0)), 0) + (sess.warmup?.length ? 1 : 0) + (sess.cooldown?.length ? 1 : 0);
+  for (let i = plan.length - 1; i >= 0 && count() > 50; i--) { if (plan[i].rest) { plan[i].desc += ` · rest ${plan[i].rest} s`; plan[i].rest = 0; } }
+  for (let i = plan.length - 1; i >= 0 && count() > 50; i--) { if (plan[i].sets > 1) { plan[i].merged = true; plan[i].desc = `${plan[i].sets} sets: ${plan[i].desc}`; plan[i].end = { cond: COND.lap, value: null }; } }
+  for (const x of plan) {
+    if (x.merged) { steps.push(step('interval', x.end, x.desc, x.extra)); continue; }
+    for (let k = 1; k <= x.sets; k++) {
+      steps.push(step('interval', x.end, x.sets > 1 ? `${x.desc} (set ${k}/${x.sets})` : x.desc, x.extra));
+      if (x.rest && k < x.sets) steps.push(step('rest', { cond: COND.time, value: x.rest }, null));
+    }
   }
   if ((sess.cooldown || []).length) steps.push(step('cooldown', { cond: COND.lap }, 'Cool-down: ' + sess.cooldown.join(' · ')));
   return {
