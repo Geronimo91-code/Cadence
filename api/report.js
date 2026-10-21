@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     try {
       if (body.action === 'garmin-connect') return res.status(200).json(await garminConnect(user.uid, body.tokens));
       if (body.action === 'garmin-sync') return res.status(200).json(await garminSync(user.uid, { force: !!body.force }));
-      if (body.action === 'garmin-push') return res.status(200).json(await garminPushPlan(user.uid));
+      if (body.action === 'garmin-push') return res.status(200).json(await garminPushPlan(user.uid, { force: !!body.force }));
       if (body.action === 'garmin-set-push') return res.status(200).json(await garminSetPush(user.uid, body.on));
       if (body.action === 'garmin-pair-start') return res.status(200).json(await garminPairStart(user.uid));
       if (body.action === 'garmin-status') return res.status(200).json(await garminStatus(user.uid));

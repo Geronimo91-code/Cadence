@@ -299,7 +299,7 @@ const pushRef = (uid) => db().doc(`garminPush/${uid}`);
 const fingerprint = (o) => { let h = 0; const s = JSON.stringify(o); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
 const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export async function garminPushPlan(uid) {
+export async function garminPushPlan(uid, { force = false } = {}) {
   const snap = await authRef(uid).get();
   if (!snap.exists) return { connected: false };
   const d = snap.data();
@@ -329,9 +329,21 @@ export async function garminPushPlan(uid) {
   try {
     // drop workouts whose session changed or left the plan (only future ones; past ones stay as history)
     for (const [key, old] of Object.entries(prev)) {
-      if (wanted[key] && wanted[key].fp === old.fp) { next[key] = old; out.kept++; continue; }
+      if (!force && wanted[key] && wanted[key].fp === old.fp) { next[key] = old; out.kept++; continue; }
       if (!wanted[key] && old.date <= today) { if (old.date === today) next[key] = old; continue; } // done or past: leave it on the watch
       { await call(tok, `/workout-service/workout/${old.workoutId}`, null, { method: 'DELETE' }).catch((e) => { if (e.code === 'auth') throw e; }); out.removed++; }
+    }
+    if (force) {
+      // also remove Cadence workouts this record lost track of (older versions that were never replaced)
+      const known = new Set(Object.values(next).map((x) => String(x.workoutId)));
+      const list = await call(tok, '/workout-service/workouts', { start: '0', limit: '200' }).catch((e) => { if (e.code === 'auth') throw e; return []; }) || [];
+      for (const w of Array.isArray(list) ? list : []) {
+        if (!/^Cadence /.test(w.workoutName || '') || known.has(String(w.workoutId))) continue;
+        const dm = String(w.workoutName).match(/ (\d{2})\/(\d{2}) /); // "Cadence Mon 19/10 · …"
+        if (dm && `${today.slice(0, 4)}-${dm[2]}-${dm[1]}` < today) continue; // past ones stay as history
+        await call(tok, `/workout-service/workout/${w.workoutId}`, null, { method: 'DELETE' }).catch((e) => { if (e.code === 'auth') throw e; });
+        out.removed++;
+      }
     }
     for (const [key, w] of Object.entries(wanted)) {
       if (next[key]) continue;

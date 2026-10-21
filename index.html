@@ -2881,7 +2881,7 @@ async function reloadWeekLogs() {
 }
 // Send the plan to Garmin when it changed since the last send (server re-sends only changed sessions)
 let garminPushKey = null, garminPushTimer = null;
-function garminPushSoon(force) {
+function garminPushSoon(force, { resend = false, report = false } = {}) {
   if (!state.garmin?.connected || state.garmin.pushPlan === false) return;
   const key = (state.plans || []).map((p) => `${p.weekId}:${p.createdAt || ''}:${JSON.stringify(p.sessions || []).length}`).join('|');
   if (!force && key === garminPushKey) return;
@@ -2889,12 +2889,13 @@ function garminPushSoon(force) {
   clearTimeout(garminPushTimer);
   garminPushTimer = setTimeout(async () => {
     try {
-      const r = await api('/api/report', { action: 'garmin-push' });
+      const r = await api('/api/report', { action: 'garmin-push', force: resend });
       state.garminPush = r;
-      if (r.pushed) toast(`${r.pushed} ${r.pushed === 1 ? 'session' : 'sessions'} sent to Garmin`);
+      if (report) toast(r.errors?.length ? 'Garmin: ' + r.errors[0] : r.pushed ? `${r.pushed} ${r.pushed === 1 ? 'workout' : 'workouts'} sent to Garmin${r.removed ? `, ${r.removed} old removed` : ''}` : 'Your Garmin calendar is already up to date');
+      else if (r.pushed) toast(`${r.pushed} ${r.pushed === 1 ? 'session' : 'sessions'} sent to Garmin`);
       if (state.view === 'profile') paintGarminCard($('#inboxCard'));
-    } catch (_) { garminPushKey = null; }
-  }, 2500);
+    } catch (e) { garminPushKey = null; if (report) { toast(e.message || 'Could not reach Garmin'); if (state.view === 'profile') paintGarminCard($('#inboxCard')); } }
+  }, report ? 0 : 2500);
 }
 async function garminBoot() {
   try {
@@ -2919,9 +2920,11 @@ async function paintGarminCard(host) {
   row.innerHTML = g.connected
     ? `<div style="flex:1;min-width:0"><div>Garmin${g.displayName ? ' · ' + esc(g.displayName) : ''}</div><span class="muted">Synced ${garminAgo(g.lastSync)}${g.lastError ? '' : ' · runs by itself every morning'}</span>${g.lastError ? `<span class="error" style="display:block">${esc(g.lastError)}</span>` : ''}
       <label class="g-push"><input type="checkbox" id="gPushOn" ${g.pushPlan !== false ? 'checked' : ''}> Put my sessions on my watch</label>
+      ${g.pushPlan !== false ? '<button type="button" class="btn sm ghost" id="btnGResend" style="margin-top:6px;padding-left:0">Resend workouts to watch</button>' : ''}
       ${g.pushPlan !== false && state.garminPush ? `<span class="muted small" style="display:block">${state.garminPush.pushed || 0} sent, ${state.garminPush.kept || 0} already there${state.garminPush.errors?.length ? ` · <span class="error">${esc(state.garminPush.errors[0])}</span>` : ''}</span>` : ''}</div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm secondary" id="btnGSync">Sync</button><button class="btn sm ghost" id="btnGOff" aria-label="Disconnect Garmin">✕</button></div>`
     : `<div><div>Garmin</div><span class="muted">Bring in your watch activities, sleep, HRV and readiness. Only you see this.</span></div><button class="btn sm secondary" id="btnGOn">Connect</button>`;
   if ($('#btnGOn')) $('#btnGOn').onclick = openGarminConnect;
+  if ($('#btnGResend')) $('#btnGResend').onclick = (ev) => { ev.currentTarget.disabled = true; ev.currentTarget.textContent = 'Sending…'; garminPushSoon(true, { resend: true, report: true }); };
   if ($('#gPushOn')) $('#gPushOn').onchange = async (ev) => {
     const on = ev.currentTarget.checked;
     try { await api('/api/report', { action: 'garmin-set-push', on }); state.garmin.pushPlan = on; if (on) garminPushSoon(true); else toast('Sessions you already sent stay on Garmin; new ones won\'t be sent'); } catch (e) { ev.currentTarget.checked = !on; toast(e.message || 'Could not save'); }
