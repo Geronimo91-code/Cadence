@@ -190,7 +190,7 @@ export const PLAN_RULES = `Rules:
 - Respect injuries and limits literally. If the athlete wrote a note about this week, it outranks every other rule: work around the pain, absence or constraint they describe, and mention in the rationale how you adapted.
 - Where the athlete fixed a day's focus or time, that is not a suggestion: schedule exactly that type at that time. Build the rest of the week around those anchors.
 - The FIRST goal leads the week; other goals get one focused slot or are woven into sessions.
-- If the athlete mentions an existing strength program (e.g. StrongLifts 5x5, a named routine), keep it as-is on its days and build the rest around it.
+- If the athlete asks for a named program or a set/rep scheme (StrongLifts 5x5, "do 5x5", 3x10, a named routine), follow it exactly on its strength days and build the rest of the week around it. Write it as numbers: "5x5" means "sets": 5 and "reps": "5" on every main lift, never "reps": "5x5". StrongLifts 5x5 alternates workout A (Back squat 5x5, Bench press 5x5, Barbell row 5x5) and workout B (Back squat 5x5, Overhead press 5x5, Deadlift 1x5), 3 minutes rest; add at most one or two short accessories after the main lifts. A requested program overrides the exercise-count, session-length and deload rules below. Load: progress each lift 2.5 kg from the athlete's last logged load (deadlift 5 kg) when all sets were completed, otherwise repeat it.
 - Session length must match the athlete's typical session length (±10 min).
 - Beginners: fewer exercises, simpler patterns, more cues. Competitive athletes: periodised, sport-specific.
 - Deload: every fourth week of a block is a step back — same movements, roughly 60% of the usual volume, nothing near failure. The athlete's week number is given below; if it is a deload week, say so plainly in the rationale.
@@ -278,6 +278,14 @@ function tidyLoad(load, name) {
   });
 }
 
+// "5x5" / "3 × 8" written into reps means sets × reps: split it so the app and the watch show every set
+function setsReps(sets, reps) {
+  const r = String(reps ?? '').trim();
+  const m = r.match(/^(\d+)\s*[x×]\s*(\d+(?:\s*-\s*\d+)?)\s*(.*)$/i);
+  if (m && (!Number(sets) || Number(sets) === 1 || Number(sets) === Number(m[1]))) return { sets: Number(m[1]), reps: (m[2].replace(/\s+/g, '') + (m[3] ? ' ' + m[3] : '')).trim() };
+  return { sets: Number(sets) || 0, reps: r };
+}
+
 export function validatePlan(plan) {
   if (!plan || !Array.isArray(plan.sessions) || plan.sessions.length === 0) throw new Error('missing sessions');
   const clean = plan.sessions.map((s) => ({
@@ -291,7 +299,7 @@ export function validatePlan(plan) {
     intent: String(s.intent || ''),
     warmup: Array.isArray(s.warmup) ? s.warmup.map(String) : [],
     exercises: Array.isArray(s.exercises) ? s.exercises.map((x) => ({
-      name: canonicalExercise(x.name), sets: Number(x.sets) || 0, reps: String(x.reps ?? ''), load: tidyLoad(x.load, x.name),
+      name: canonicalExercise(x.name), ...setsReps(x.sets, x.reps), load: tidyLoad(x.load, x.name),
       restSec: Number(x.restSec) || 0, cues: String(x.cues || ''),
     })).filter((x) => x.name) : [],
     cooldown: Array.isArray(s.cooldown) ? s.cooldown.map(String) : [],
@@ -394,18 +402,26 @@ const normalize = (s) => String(s || '')
   .trim();
 
 const LOOKUP = new Map(EXERCISE_NAMES.map((n) => [normalize(n), n]));
+// Same names with the equipment kept, so "barbell rows" stays a barbell row instead of snapping to the dumbbell one
+const keepKit = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).map((w) => (w.length > 2 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)).join(' ');
+const EXACT = new Map(EXERCISE_NAMES.map((n) => [keepKit(n), n]));
 
 // Snap a model-written name onto the library when it clearly means the same movement.
 // Scores candidates by how many of their words appear, preferring the one that starts where the athlete's name starts.
 export function canonicalExercise(name) {
   const n = normalize(name);
   if (!n) return String(name || '').trim();
-  if (LOOKUP.has(n)) return LOOKUP.get(n);
+  if (EXACT.has(keepKit(name))) return EXACT.get(keepKit(name));
+  // the input names its equipment: only accept a library name with the same equipment (or none)
+  const kit = (keepKit(name).match(/\b(barbell|dumbbell|kettlebell)\b/) || [])[1];
+  const kitOk = (c) => !kit || !/\b(barbell|dumbbell|kettlebell)\b/i.test(c) || c.toLowerCase().includes(kit);
+  if (LOOKUP.has(n) && kitOk(LOOKUP.get(n))) return LOOKUP.get(n);
   const words = n.split(' ');
   let best = null, bestScore = 0;
-  for (const [key, canonical] of LOOKUP) {
+  for (const canonical of EXERCISE_NAMES) {
+    const key = normalize(canonical);
     const kw = key.split(' ');
-    if (!kw.every((w) => words.includes(w))) continue;
+    if (!kw.every((w) => words.includes(w)) || !kitOk(canonical)) continue;
     const leads = words[0] === kw[0] ? 1 : 0;
     const score = kw.length * 10 + leads * 5 + key.length / 100;
     if (score > bestScore) { bestScore = score; best = canonical; }
