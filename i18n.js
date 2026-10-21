@@ -271,6 +271,10 @@ es: {
 (function () {
   const add = {
     fr: {
+    "Backup week": "Semaine de secours",
+    "The AI was busy, so these are standard sessions, not your plan.": "L’IA était occupée : ce sont des séances standard, pas ton plan.",
+    "Try again": "Réessayer",
+    "Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.": "Semaine de secours : l’IA était occupée, voici une séance standard. Reconstruis la semaine pour réessayer.",
     "sleep": "sommeil",
     "resting HR": "FC repos",
     "readiness": "forme",
@@ -362,6 +366,10 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "Backup week": "Reserveweek",
+    "The AI was busy, so these are standard sessions, not your plan.": "De AI was bezet, dit zijn standaardsessies, niet jouw plan.",
+    "Try again": "Opnieuw proberen",
+    "Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.": "Reserveweek: de AI was bezet, dit is een standaardsessie. Bouw de week opnieuw om het nog eens te proberen.",
     "sleep": "slaap",
     "resting HR": "rust-HS",
     "readiness": "paraatheid",
@@ -453,6 +461,10 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "Backup week": "Yedek hafta",
+    "The AI was busy, so these are standard sessions, not your plan.": "Yapay zekâ meşguldü; bunlar standart seanslar, senin planın değil.",
+    "Try again": "Tekrar dene",
+    "Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.": "Yedek hafta: yapay zekâ meşguldü, bu standart bir seans. Tekrar denemek için haftayı yeniden oluştur.",
     "sleep": "uyku",
     "resting HR": "dinlenik nabız",
     "readiness": "hazırlık",
@@ -544,6 +556,10 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "Backup week": "Semana de reserva",
+    "The AI was busy, so these are standard sessions, not your plan.": "La IA estaba ocupada: son sesiones estándar, no tu plan.",
+    "Try again": "Reintentar",
+    "Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.": "Semana de reserva: la IA estaba ocupada, esta es una sesión estándar. Rehaz la semana para volver a intentarlo.",
     "sleep": "sueño",
     "resting HR": "FC reposo",
     "readiness": "preparación",

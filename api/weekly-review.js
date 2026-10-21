@@ -1,5 +1,5 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, logProblem } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, logProblem } from './_lib.js';
 
 export { reviewWeek };
 
@@ -204,6 +204,7 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
       modelFailed = String(e && e.message || e).slice(0, 200);
       console.warn('review model failed, using fallback:', modelFailed);
       await logProblem(uid, 'weekly-review', modelFailed, { fallback: 'template' });
+      profile.lastLoads = await lastLoads(uid);
       next = templatePlan(profile, nextId);
       out = {};
     }

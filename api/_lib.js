@@ -470,7 +470,12 @@ export function templatePlan(profile, id) {
   const rotation = [...new Set([GOAL_TO_TYPE[goals[0]] || 'strength', 'strength', GOAL_TO_TYPE[goals[1]] || 'speed', 'conditioning'])];
   const prefs = profile.dayPrefs || {};
   const sessions = [];
-  let r = 0;
+  let r = 0, slAlt = 0;
+  const asked = [profile.weekNote, profile.goalNote].filter(Boolean).join(' ');
+  const sch = asked.match(/\b(\d{1,2})\s*[x×]\s*(\d{1,2})\b/);
+  const wanted = { stronglifts: /strong\s*lifts?|\b5\s*[x×]\s*5\b/i.test(asked), scheme: sch ? [Number(sch[1]), Number(sch[2])] : null };
+  const lastLoad = profile.lastLoads || {};
+  if (wanted.stronglifts) rotation.splice(0, rotation.length, 'strength', GOAL_TO_TYPE[goals[1]] && GOAL_TO_TYPE[goals[1]] !== 'strength' ? GOAL_TO_TYPE[goals[1]] : 'speed', 'strength', 'conditioning');
   for (let d = 0; d < 7; d++) {
     if (!days.includes(d)) {
       sessions.push({ day: d, slot: 0, timeOfDay: null, title: tx.rest, type: 'rest', fixed: false, durationMin: 0, intent: tx.restIntent, warmup: [], exercises: [], cooldown: [] });
@@ -480,12 +485,22 @@ export function templatePlan(profile, id) {
     slots.forEach((slot, i) => {
       const key = slot.focus || rotation[r++ % rotation.length];
       const tpl = TEMPLATES[key] || TEMPLATES.strength;
-      const exercises = tpl.pick.flatMap(([group, n]) => (EXERCISE_LIBRARY[group] || []).slice(0, n).map((name) => ({
+      let exercises = tpl.pick.flatMap(([group, n]) => (EXERCISE_LIBRARY[group] || []).slice(0, n).map((name) => ({
         name, sets: tpl.sets, reps: tx.reps[tpl.reps] || tpl.reps, load: tx.loads[tpl.load] || tpl.load, restSec: tpl.type === 'speed' ? 180 : 90, cues: '',
       })));
+      let title = tx.titles[key] || tpl.title;
+      // A program the athlete asked for still applies when the AI is unavailable
+      if (tpl.type === 'strength' && wanted.stronglifts) {
+        const A = slAlt++ % 2 === 0;
+        title = `StrongLifts 5x5 · ${A ? 'A' : 'B'}`;
+        exercises = (A ? [['Back squat', 5], ['Bench press', 5], ['Barbell row', 5]] : [['Back squat', 5], ['Overhead press', 5], ['Deadlift', 1]])
+          .map(([name, sets]) => ({ name, sets, reps: '5', load: lastLoad[name.toLowerCase()] ? `${lastLoad[name.toLowerCase()]} kg` : 'RPE 7', restSec: 180, cues: '' }));
+      } else if (tpl.type === 'strength' && wanted.scheme) {
+        exercises = exercises.map((x) => ({ ...x, sets: wanted.scheme[0], reps: String(wanted.scheme[1]) }));
+      }
       sessions.push({
         day: d, slot: i, timeOfDay: slot.time || (i ? 'evening' : null),
-        title: tx.titles[key] || tpl.title, type: tpl.type, fixed: false,
+        title, type: tpl.type, fixed: false,
         durationMin: profile.sessionMin || 60,
         intent: tx.intent,
         warmup: EXERCISE_LIBRARY.warmup.slice(0, 4).map((x) => `${x}, 30 s`),
@@ -498,6 +513,23 @@ export function templatePlan(profile, id) {
     sessions, rationale: tx.rationale,
     nextWeekHint: '', source: 'template', createdAt: new Date().toISOString(),
   };
+}
+
+// Last working weight per exercise (heaviest completed set of the latest session with that lift), for the backup week
+export async function lastLoads(uid) {
+  const out = {};
+  try {
+    const q = await db().collection(`users/${uid}/logs`).orderBy('loggedAt', 'desc').limit(80).get();
+    for (const d of q.docs) {
+      for (const ex of d.data().exercises || []) {
+        const k = String(ex.name || '').toLowerCase();
+        if (!k || out[k]) continue;
+        const kg = Math.max(0, ...(ex.sets || []).filter((st) => st.done).map((st) => Number(String(st.load ?? '').replace(',', '.')) || 0));
+        if (kg > 0) out[k] = kg;
+      }
+    }
+  } catch (_) {}
+  return out;
 }
 
 // ---------------- What the athlete has actually lifted ----------------

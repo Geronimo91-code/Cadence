@@ -756,6 +756,7 @@ a.btn { text-decoration: none; }
 .g-pair{font:700 2rem var(--font-display);letter-spacing:.12em;text-align:center;padding:14px;border-radius:14px;border:2px dashed var(--line,rgba(127,127,127,.4));margin:8px 0;user-select:all}
 .g-wait{text-align:center;margin-top:16px}
 .g-push{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.9rem}.g-push input{width:18px;height:18px;accent-color:var(--accent,currentColor)}
+.src-card{display:flex;align-items:center;gap:12px}.src-note{font-size:.85rem;padding:8px 12px;border-radius:10px;background:rgba(232,160,32,.16);margin:0 0 12px}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1718,6 +1719,14 @@ async function viewToday(el) {
     $('#btnOpenToday' + i).onclick = () => openSession(sess);
   });
 
+  // ---- backup week: say so plainly, with a retry ----
+  if (state.plan.source === 'template' && planIsCurrent()) {
+    const c = document.createElement('div'); c.className = 'card todaycard amber src-card';
+    c.innerHTML = `<div style="flex:1;min-width:0"><strong>${T('Backup week')}</strong><div class="muted small">${T('The AI was busy, so these are standard sessions, not your plan.')}</div></div><button class="btn sm" id="btnSrcRetry">${T('Try again')}</button>`;
+    el.append(c);
+    $('#btnSrcRetry').onclick = () => openRebuild();
+  }
+
   // ---- last night, from the Garmin watch (only when linked) ----
   if (state.garminDay && planIsCurrent()) {
     const g = state.garminDay;
@@ -1877,7 +1886,7 @@ function viewPlan(el) {
     el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('Your note for this week')}</strong><div class="muted small" style="margin-top:4px;white-space:pre-wrap">${esc(p.weekNote)}</div>${planIsCurrent() ? `<button class="btn ghost sm" id="btnEditNote" style="padding-left:0;margin-top:4px">${T('Edit')}</button>` : ''}</div>`);
     if ($('#btnEditNote')) $('#btnEditNote').onclick = () => openRebuild();
   }
-  if (p.source === 'template') el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('Template week')}</strong><div class="muted small">${T('Built from your settings while the plan service was unavailable. Rebuild for a tailored week.')}</div></div>`);
+  if (p.source === 'template') el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('Backup week')}</strong><div class="muted small">${T('Built from your settings while the plan service was unavailable. Rebuild for a tailored week.')}</div></div>`);
   if (!p.sessions.some((x) => Array.isArray(x.warmup))) el.insertAdjacentHTML('beforeend', `<div class="card amber"><strong>${T('This plan is in an older format')}</strong><div class="muted small">${T('Use Rebuild this week below to get full session details.')}</div></div>`);
   const t = todayIndex();
   const card = document.createElement('div'); card.className = 'card';
@@ -2064,6 +2073,7 @@ function openSession(raw, weekIdOverride, logOverride) {
 
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T(DAYS[sess.day])}${wk !== isoWeekId() ? ' · ' + weekLabel(wk) : ''}</h2></div>
+    ${(state.plans || []).find((x) => x.weekId === wk)?.source === 'template' ? `<div class="src-note">${T('Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.')}</div>` : ''}
     <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(T(sess.type))}">${esc(T(sess.type))}${sess.fixed ? ' · fixed' : ''}</span><span id="sheetStatus">${statusHtml(existing)}</span></div>
     <h1>${esc(sess.title)}</h1>
     <div class="muted small">${sess.durationMin} min planned</div>
