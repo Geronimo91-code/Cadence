@@ -53,6 +53,36 @@ export default async function handler(req, res) {
     });
   }
 
+  // Feature use: counts per feature per day, and which people used it (for "people" numbers). No content, just names of features.
+  if (body.action === 'track') {
+    const ev = body.events && typeof body.events === 'object' ? body.events : {};
+    const clean = Object.entries(ev).filter(([k, v]) => /^[a-z0-9_:-]{2,40}$/.test(k) && Number(v) > 0).slice(0, 30).map(([k, v]) => [k, Math.min(50, Math.round(Number(v)))]);
+    if (!clean.length) return res.status(200).json({ ok: true });
+    const day = new Date().toISOString().slice(0, 10);
+    const FV = getAdmin().firestore.FieldValue;
+    const counts = {}, seen = {};
+    for (const [k, v] of clean) { counts[k] = FV.increment(v); seen[k] = true; }
+    await Promise.all([
+      db().doc(`featureUse/${day}`).set({ counts }, { merge: true }),
+      db().doc(`featureUse/${day}/users/${user.uid}`).set({ seen }, { merge: true }),
+    ]);
+    return res.status(200).json({ ok: true });
+  }
+  if (body.action === 'usage') {
+    if (!isAdmin) return res.status(403).json({ error: 'Not allowed' });
+    const out = {};
+    for (let i = 0; i < 30; i++) {
+      const day = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
+      const [d, us] = await Promise.all([db().doc(`featureUse/${day}`).get(), db().collection(`featureUse/${day}/users`).get()]);
+      if (!d.exists) continue;
+      for (const [k, v] of Object.entries(d.data().counts || {})) {
+        const o = out[k] = out[k] || { uses7: 0, uses30: 0, p7: new Set(), p30: new Set() };
+        o.uses30 += v; if (i < 7) o.uses7 += v;
+      }
+      for (const u of us.docs) for (const k of Object.keys(u.data().seen || {})) { const o = out[k]; if (!o) continue; o.p30.add(u.id); if (i < 7) o.p7.add(u.id); }
+    }
+    return res.status(200).json({ features: Object.entries(out).map(([k, o]) => ({ name: k, uses7: o.uses7, uses30: o.uses30, people7: o.p7.size, people30: o.p30.size })).sort((a, b) => b.people30 - a.people30 || b.uses30 - a.uses30) });
+  }
   if (body.action === 'stats') {
     if (!isAdmin) return res.status(403).json({ error: 'Not allowed' });
     return res.status(200).json(await buildStats());

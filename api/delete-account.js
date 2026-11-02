@@ -58,6 +58,8 @@ export default async function handler(req, res) {
     await db().doc(`garminAuth/${uid}`).delete().catch(() => {});
     await db().doc(`garminPush/${uid}`).delete().catch(() => {});
     { const pq = await db().collection('garminPair').where('uid', '==', uid).get(); await Promise.all(pq.docs.map((d) => d.ref.delete())); }
+    // feature-use markers name the person: remove theirs (the anonymous daily totals stay)
+    await Promise.all(Array.from({ length: 62 }, (_, n) => db().doc(`featureUse/${new Date(Date.now() - n * 864e5).toISOString().slice(0, 10)}/users/${uid}`).delete().catch(() => {})));
     // tester feedback and error reports carry the uid and email: remove them too
     for (const col of ['feedback', 'problems']) {
       const q = await db().collection(col).where('uid', '==', uid).get();

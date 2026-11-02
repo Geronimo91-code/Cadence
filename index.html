@@ -1495,6 +1495,26 @@ function nutritionTargets(p, trainingDay) {
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
   return { kcal, protein, carbs, fat, trainingDay };
 }
+// Which features get used: counts only, sent in small batches
+const trackQ = {}; let trackT = null;
+function track(name) {
+  if (!state.user) return;
+  trackQ[name] = (trackQ[name] || 0) + 1;
+  clearTimeout(trackT); trackT = setTimeout(flushTrack, 15000);
+}
+function flushTrack() {
+  const events = { ...trackQ }; Object.keys(trackQ).forEach((k) => delete trackQ[k]);
+  if (Object.keys(events).length && state.user) api('/api/report', { action: 'track', events }, { slowMsg: null, timeoutMs: 15000 }).catch(() => {});
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushTrack(); });
+// Weak signal ("online" but nothing gets through): stop waiting after a few seconds; Firestore keeps the write queued and sends it later
+async function settle(write, ms = 4000) {
+  let timer;
+  const r = await Promise.race([write.then(() => 'ok'), new Promise((res) => { timer = setTimeout(() => res('queued'), ms); })]);
+  clearTimeout(timer);
+  if (r === 'queued') write.catch((e) => console.error('queued write failed', e));
+  return r;
+}
 function dateKey(d = new Date()) { return d.toLocaleDateString('en-CA'); }
 function shrinkImage(file, max, quality) {
   return new Promise((resolve, reject) => {
@@ -1640,6 +1660,7 @@ function enterApp() {
 }
 $$('.tab').forEach((t) => { t.onclick = () => navigate(t.dataset.view); });
 function navigate(view) {
+  track('view:' + view);
   state.view = view;
   $$('.tab').forEach((t) => { if (t.dataset.view === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
   $('#topTitle').textContent = { today: T('Today'), plan: T('This week'), log: T('Log'), nutrition: T('Nutrition'), club: T('Club'), profile: T('Profile') }[view];
@@ -1856,6 +1877,7 @@ function fitToday(el) {
 }
 
 function openExtra() {
+  track('extra_open');
   const kinds = [['match', 'Game or tournament', 90], ['skills', 'Team practice', 90], ['conditioning', 'Run or cardio', 40], ['strength', 'Gym', 60], ['mobility', 'Mobility or yoga', 30]];
   const draft = { kind: 0, day: planIsCurrent() ? todayIndex() : 6, rpe: null };
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Log something extra'));
@@ -1890,8 +1912,8 @@ function openExtra() {
     const b = ev.currentTarget; b.disabled = true;
     try {
       const write = db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
-      if (navigator.onLine) await write;
-      state.logs[key] = rec; streakCache = null;
+      if (navigator.onLine && (await settle(write)) === 'queued') toast(T('Saved on this device — it will sync when you are back online'));
+      state.logs[key] = rec; streakCache = null; track('extra_log');
       postActivity(rec).catch(() => {});
       history.back(); toast(T('Extra session saved')); navigate('plan');
     } catch (e) { $('#exErr', sheet).textContent = T('Could not send. Check your connection and try again.'); b.disabled = false; }
@@ -2008,6 +2030,7 @@ function openReset() {
 }
 
 function openRebuild() {
+  track('rebuild_open');
   const p = state.profile;
   // start from the profile, but let the athlete change this week without changing their usual setup
   const draft = { days: [...(p.days || [])], dayPrefs: JSON.parse(JSON.stringify(p.dayPrefs || {})), doubles: p.doubles || 'no' };
@@ -2075,6 +2098,7 @@ function openRebuild() {
 }
 
 function openSession(raw, weekIdOverride, logOverride) {
+  track('session_open');
   const wk = weekIdOverride || state.plan?.weekId;
   const sess = { warmup: [], exercises: [], cooldown: [], intent: '', fixed: false, durationMin: 0, type: 'conditioning', ...raw };
   sess.warmup = Array.isArray(sess.warmup) ? sess.warmup : []; sess.cooldown = Array.isArray(sess.cooldown) ? sess.cooldown : []; sess.exercises = Array.isArray(sess.exercises) ? sess.exercises : [];
@@ -2134,7 +2158,7 @@ function openSession(raw, weekIdOverride, logOverride) {
       const i = plan.sessions.findIndex((x) => x.day === sess.day && (x.slot || 0) === (sess.slot || 0));
       const orig = plan.sessions[i].eased.original;
       plan.sessions[i] = { ...plan.sessions[i], ...orig, eased: null, keepOriginal: true };
-      await db.doc('users/' + state.user.uid + '/plans/' + wk).set(plan);
+      await db.doc('users/' + state.user.uid + '/plans/' + wk).set(plan); track('eased_restore');
       history.back(); await loadPlan(wk); toast(T('Back to the original session')); navigate(state.view);
     } catch (e) { b.disabled = false; toast(T('Could not send. Check your connection and try again.')); }
   };
@@ -2213,17 +2237,18 @@ function openSession(raw, weekIdOverride, logOverride) {
     try {
       const key = sessionKey(wk, sess.day, sess.slot || 0);
       const write = db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
-      if (!navigator.onLine) {
+      if (!navigator.onLine || (await settle(write)) === 'queued') {
         // Firestore keeps the write queued locally and sends it on reconnect
         state.logs[key] = rec; exHistory = null; streakCache = null;
         toast(T('Saved on this device — it will sync when you are back online'));
         history.back();
+        postActivity(rec).catch(() => {});
         return;
       }
-      await write;
       if (wk === state.plan?.weekId) state.logs[key] = rec;
       exHistory = null; streakCache = null;
       postActivity(rec).catch(() => {});
+      track('session_log');
       toast(rec.status === 'skipped' ? T('Saved as skipped') : T('Session saved'));
       history.back();
     } catch (e) { console.error(e); toast(T('Could not save. Check your connection.')); btn.disabled = false; btn.textContent = T('Save session'); }
@@ -2273,6 +2298,7 @@ async function loadSteps() {
 const MUSCLES = { abdominals: 'Abs', abductors: 'Abductors', adductors: 'Adductors', biceps: 'Biceps', calves: 'Calves', chest: 'Chest', forearms: 'Forearms', glutes: 'Glutes', hamstrings: 'Hamstrings', lats: 'Lats', 'lower back': 'Lower back', 'middle back': 'Upper back', neck: 'Neck', quadriceps: 'Quads', shoulders: 'Shoulders', traps: 'Traps', triceps: 'Triceps' };
 
 async function openHowTo(name, cues) {
+  track('howto');
   const [index, stepsIndex] = await Promise.all([loadMedia(), loadSteps()]);
   const m = index.get(normName(name));
   const tr = stepsIndex.get(normName(name)) || {};
@@ -2688,7 +2714,7 @@ async function viewNutrition(el) {
     if (!name) { toast(T('Give the meal a name.')); return; }
     if (!(kcal > 0)) { toast(T('Add the calories, or tap Estimate.')); return; }
     doc.meals.push({ id: Date.now().toString(36), name, kcal: Math.round(kcal), protein: Number($('#mealP').value) || 0, carbs: Number($('#mealC').value) || 0, fat: Number($('#mealF').value) || 0, at: new Date().toISOString() });
-    await persist(); render(); ['#mealName', '#mealK', '#mealP', '#mealC', '#mealF'].forEach((id) => { $(id).value = ''; }); toast(T('Meal added'));
+    await persist(); render(); track('meal_add'); ['#mealName', '#mealK', '#mealP', '#mealC', '#mealF'].forEach((id) => { $(id).value = ''; }); toast(T('Meal added'));
   };
 }
 /* ============================================================
@@ -2860,6 +2886,7 @@ async function renderCoachList(el, c, members) {
 }
 
 async function openMember(c, r) {
+  track('coach_member');
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
   const t = todayIndex();
   const logBy = new Map(r.logs.map((l) => [l.day + '-' + (l.slot || 0), l]));
@@ -2920,6 +2947,7 @@ function renderClubJoin(el, adding) {
 }
 
 function openFeedback() {
+  track('feedback_open');
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Send feedback')}</h2></div>
@@ -3065,6 +3093,7 @@ async function paintGarminCard(host) {
   };
 }
 function openGarminConnect() {
+  track('garmin_connect');
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Connect Garmin');
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>Connect Garmin</h2></div>
@@ -3133,6 +3162,7 @@ function hrChartSvg(a) {
   return `<svg class="ga-chart" viewBox="0 -4 ${W} ${H + 20}" width="100%" role="img" aria-label="${T('Heart rate over time')}">${bands}<path d="${d}" fill="none" stroke="var(--bad,#d9534f)" stroke-width="1.6" stroke-linejoin="round"/><text x="2" y="10">${hi}</text><text x="2" y="${H - 2}">${lo}</text>${ticks}</svg>`;
 }
 async function openGarminActivity(key, log) {
+  track('garmin_details');
   const id = log?.garmin?.id; if (!id) return;
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', log.title || 'Activity');
   sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${esc(log.title || 'Activity')}</h2></div><div id="gaBody"><p class="muted">${T('Loading…')}</p></div></div>`;
@@ -3193,6 +3223,7 @@ async function openGarminActivity(key, log) {
 
 /* ---------- tournaments: the plan tapers into them and recovers after ---------- */
 function openEvents() {
+  track('tournaments');
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Tournaments'));
   sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Tournaments')}</h2></div>
     <p class="muted small">${T('Cadence lightens the week before, keeps the two days before easy, plans the tournament days with between-game tips, and makes the day after a recovery day.')}</p>
@@ -3278,10 +3309,17 @@ async function openInbox() {
         </div>
         <div class="card"><h3>New accounts, last 14 days</h3><div class="adm-bars">${bars}</div></div>
         <div class="card"><h3>Languages</h3><div class="adm-tags">${chips(s.languages)}</div><h3 style="margin-top:14px">Main sport</h3><div class="adm-tags">${chips(s.sports)}</div><div class="muted small" style="margin-top:12px">${t.clubs} club${t.clubs === 1 ? '' : 's'} · ${t.signedIn7} people opened the app this week</div></div>
+        <div class="card"><h3>What people use</h3><div id="admUsage" class="muted small">Loading…</div></div>
         <div class="card"><h3>People (${s.users.length})</h3>${users}</div>
         <div class="card"><h3>Feedback (${inbox.feedback.length})</h3>${fbHtml}</div>
         <div class="card"><h3>Problems (${inbox.problems.length})</h3>${prHtml}</div>`;
       $('#admRefresh', sheet).onclick = load;
+      api('/api/report', { action: 'usage' }, { slowMsg: null, timeoutMs: 60000 }).then((u) => {
+        const w = $('#admUsage', sheet); if (!w) return;
+        const label = (n) => ({ session_open: 'Open a session', session_log: 'Log a session', extra_log: 'Log an extra session', extra_open: 'Open extra session', howto: 'How-to', rebuild_open: 'Rebuild week', tournaments: 'Tournaments', garmin_details: 'Garmin activity details', garmin_connect: 'Garmin connect', feedback_open: 'Feedback', coach_member: 'Coach: open player', meal_add: 'Add a meal', eased_restore: 'Undo easier day' }[n] || n.replace(/^view:/, 'Tab: '));
+        w.className = '';
+        w.innerHTML = u.features.length ? `<table class="ga-laps"><thead><tr><th>Feature</th><th>People 7d</th><th>30d</th><th>Uses 30d</th></tr></thead><tbody>${u.features.map((f) => `<tr><td>${esc(label(f.name))}</td><td>${f.people7}</td><td>${f.people30}</td><td>${f.uses30}</td></tr>`).join('')}</tbody></table>` : '<p class="muted small">Nothing counted yet. Counting started today.</p>';
+      }).catch((e) => { const w = $('#admUsage', sheet); if (w) w.textContent = e.message || 'Could not load'; });
     } catch (e) { body.innerHTML = `<p class="error">${esc(e.message)}</p><button class="btn sm secondary" id="admRefresh">Try again</button>`; $('#admRefresh', sheet).onclick = load; }
   }
   load();
