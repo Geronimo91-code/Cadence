@@ -1737,10 +1737,10 @@ async function viewToday(el) {
   // ---- last night, from the Garmin watch (only when linked) ----
   if (state.garminDay && planIsCurrent()) {
     const g = state.garminDay;
-    const bits = [g.sleepH ? `<div><b>${g.sleepH}<small>h</small></b><span>${T('sleep')}${g.sleepScore ? ' · ' + g.sleepScore : ''}</span></div>` : '', g.hrv ? `<div><b>${g.hrv}</b><span>HRV</span></div>` : '', g.restingHr ? `<div><b>${g.restingHr}</b><span>${T('resting HR')}</span></div>` : '', g.readiness != null ? `<div><b class="${g.readiness < 40 ? 'g-low' : g.readiness >= 70 ? 'g-high' : ''}">${g.readiness}</b><span>${T('readiness')}</span></div>` : ''].filter(Boolean);
+    const bits = [g.sleepH ? `<div><b>${g.sleepH}<small>h</small></b><span>${T('sleep')}${g.sleepScore ? ' · ' + g.sleepScore : ''}</span></div>` : '', g.hrv ? `<div><b>${g.hrv}</b><span>HRV</span></div>` : '', g.restingHr ? `<div><b>${g.restingHr}</b><span>${T('resting HR')}</span></div>` : '', g.readiness != null ? `<div><b class="${g.readiness < 40 ? 'g-low' : g.readiness >= 70 ? 'g-high' : ''}">${g.readiness}</b><span>${T('readiness')}</span></div>` : g.bodyBattery != null ? `<div><b class="${g.bodyBattery < 30 ? 'g-low' : g.bodyBattery >= 70 ? 'g-high' : ''}">${g.bodyBattery}</b><span>${T('body battery')}</span></div>` : ''].filter(Boolean).slice(0, 4);
     if (bits.length) {
-      const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '2.5';
-      const low = (g.readiness != null && g.readiness < 40) || (g.sleepH && g.sleepH < 6);
+      const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '5';
+      const low = (g.readiness != null && g.readiness < 40) || (g.sleepH && g.sleepH < 6) || (g.readiness == null && g.bodyBattery != null && g.bodyBattery < 30);
       c.innerHTML = `<div class="muted small" style="font-weight:600;margin-bottom:6px">${g.isToday ? T('Last night') : T('Night before')} · Garmin</div><div class="wk-stats" style="grid-template-columns:repeat(${bits.length},minmax(0,1fr))">${bits.join('')}</div>${low && realToday.length ? `<div class="muted small" style="margin-top:8px">${T('Low recovery: keep today easy, or drop a set or two.')}</div>` : ''}`;
       el.append(c);
     }
@@ -1828,7 +1828,7 @@ async function viewToday(el) {
   fitToday(el);
 }
 
-// Today should fit one screen: drop the optional cards (highest data-opt first) until it does.
+// Today should fit one screen: drop the optional cards (lowest data-opt first, so a higher number means kept longer) until it does.
 function fitToday(el) {
   requestAnimationFrame(() => {
     const opts = [...el.querySelectorAll('[data-opt]')].sort((a, b) => Number(b.dataset.opt) - Number(a.dataset.opt));
@@ -2891,7 +2891,7 @@ function garminAgo(iso) {
 async function loadGarminDay() {
   const today = dateKey(), y = new Date(); y.setDate(y.getDate() - 1);
   for (const d of [today, dateKey(y)]) {
-    try { const s = await db.doc('users/' + state.user.uid + '/garmin/' + d).get(); if (s.exists && (s.data().sleepH || s.data().readiness != null)) { state.garminDay = { ...s.data(), isToday: d === today }; return; } } catch (_) {}
+    try { const s = await db.doc('users/' + state.user.uid + '/garmin/' + d).get(); if (s.exists && ['sleepH', 'readiness', 'hrv', 'restingHr', 'bodyBattery'].some((k) => s.data()[k] != null)) { state.garminDay = { ...s.data(), isToday: d === today }; return; } } catch (_) {}
   }
   state.garminDay = null;
 }
@@ -2956,7 +2956,9 @@ async function paintGarminCard(host) {
       const r = await api('/api/report', { action: 'garmin-sync', force: true }); state.garmin = r;
       if (r.connected) { await loadGarminDay(); if (r.activities) await reloadWeekLogs(); }
       if (!r.error) garminPushSoon(true);
-      toast(r.error ? 'Garmin: ' + r.error : `Garmin synced · ${r.activities || 0} new ${r.activities === 1 ? 'activity' : 'activities'}`);
+      const g = state.garminDay;
+      const night = g ? [g.sleepH ? `${g.sleepH} h sleep` : 'no sleep time', g.hrv ? `HRV ${g.hrv}` : '', g.restingHr ? `resting HR ${g.restingHr}` : ''].filter(Boolean).join(', ') : 'no sleep data from Garmin yet';
+      toast(r.error ? 'Garmin: ' + r.error : `Garmin synced · ${r.activities || 0} new ${r.activities === 1 ? 'activity' : 'activities'} · ${night}`);
     } catch (e) { toast(e.message || 'Could not sync'); }
     paintGarminCard(host);
   };

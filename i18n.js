@@ -271,6 +271,7 @@ es: {
 (function () {
   const add = {
     fr: {
+    "body battery": "body battery",
     "Details": "Détails",
     "Watch data": "Données de la montre",
     "Heart rate over time": "Fréquence cardiaque dans le temps",
@@ -394,6 +395,7 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "body battery": "body battery",
     "Details": "Details",
     "Watch data": "Horlogedata",
     "Heart rate over time": "Hartslag in de tijd",
@@ -517,6 +519,7 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "body battery": "body battery",
     "Details": "Detaylar",
     "Watch data": "Saat verileri",
     "Heart rate over time": "Zamana göre nabız",
@@ -640,6 +643,7 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "body battery": "body battery",
     "Details": "Detalles",
     "Watch data": "Datos del reloj",
     "Heart rate over time": "Frecuencia cardíaca en el tiempo",
