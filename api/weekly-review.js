@@ -50,7 +50,7 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
   // A Garmin recording on the same day and of the same kind as a logged planned session is that session, recorded by the watch: count it once
   const twinOf = (l, all) => (l.linkedTo ? all.find((o) => !o.extra && sessionKey(o.weekId, o.day, o.slot || 0) === l.linkedTo) || { day: l.day, slot: -1 } : l.source === 'garmin' && l.extra ? all.find((o) => !o.extra && o.status && o.status !== 'skipped' && o.day === l.day && sameKind(o.type, l.type)) : null);
   const weekLoads = loadSnaps.map((snap) => { const all = snap.docs.map((d) => d.data()); return all.reduce((a, l) => a + (twinOf(l, all) ? 0 : loadOf(l)), 0); });
-  const garminLine = (g) => (g ? [g.distanceKm ? `${g.distanceKm} km` : '', g.avgHr ? `avg HR ${g.avgHr}` : '', g.maxHr ? `max HR ${g.maxHr}` : '', g.aerobicTE ? `aerobic TE ${g.aerobicTE}` : '', g.load ? `Garmin load ${g.load}` : ''].filter(Boolean).join(', ') : '');
+  const garminLine = (g) => (g ? [g.distanceKm ? `${g.distanceKm} km` : '', g.avgHr ? `avg HR ${g.avgHr}` : '', g.maxHr ? `max HR ${g.maxHr}` : '', g.aerobicTE ? `aerobic TE ${g.aerobicTE}` : '', g.load ? `Garmin load ${g.load}` : '', g.gps ? `${g.gps.sprints} sprints over 20 km/h, top speed ${g.gps.topKmh} km/h, ${g.gps.hsrM} m above 15 km/h` : ''].filter(Boolean).join(', ') : '');
   const acute = weekLoads[0];
   const priors = weekLoads.slice(1).filter((v) => v > 0);
   const chronic = priors.length ? priors.reduce((a, b) => a + b, 0) / priors.length : 0;

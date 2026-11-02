@@ -109,6 +109,11 @@ async function syncActivities(tok, uid, since) {
       distanceKm: a.distance ? round1(a.distance / 1000) : null, avgHr: a.averageHR ? Math.round(a.averageHR) : null, maxHr: a.maxHR ? Math.round(a.maxHR) : null,
       aerobicTE: round1(a.aerobicTrainingEffect), anaerobicTE: round1(a.anaerobicTrainingEffect), load: a.activityTrainingLoad ? Math.round(a.activityTrainingLoad) : null, kcal: a.calories ? Math.round(a.calories) : null,
     };
+    if (snap.exists && snap.data().garmin?.gps !== undefined) garmin.gps = snap.data().garmin.gps;
+    else if ((a.distance || 0) > 500 && ['skills', 'match', 'speed', 'conditioning'].includes(kindOf(garmin.typeKey))) {
+      // games and runs with GPS: sprints, top speed, high-speed distance for the weekly review
+      try { const det = await call(tok, `/activity-service/activity/${a.activityId}/details`, { maxChartSize: '6000', maxPolylineSize: '0' }); const f = seriesOf(det); garmin.gps = gpsLoad(f.t, f.speed); } catch (e) { if (e.code === 'auth') throw e; garmin.gps = null; }
+    } else garmin.gps = null;
     const now = new Date().toISOString();
     const rec = snap.exists ? { ...snap.data(), garmin } : {
       weekId: wk, day, slot: 'g' + a.activityId, extra: true, source: 'garmin', garmin,
@@ -140,12 +145,42 @@ async function syncActivities(tok, uid, since) {
   return added;
 }
 
+// Field metrics from the speed trace: sprints (> 20 km/h for at least 1 s, 8 s apart), top speed, distance above 15 km/h
+export function gpsLoad(t, speed) {
+  if (!Array.isArray(t) || t.length < 10) return null;
+  let sprints = 0, hsr = 0, lastSprintEnd = -1e9, inSprint = false, sprintStart = 0, top = 0, dist = 0;
+  for (let i = 1; i < t.length; i++) {
+    const v = Number(speed[i]); const dt = t[i] - t[i - 1];
+    if (!Number.isFinite(v) || !(dt > 0) || dt > 30) continue;
+    dist += v * dt; top = Math.max(top, v);
+    if (v > 4.17) hsr += v * dt;
+    if (v > 5.56 && !inSprint) { inSprint = true; sprintStart = t[i]; }
+    if (v <= 5.0 && inSprint) { inSprint = false; if (t[i] - sprintStart >= 1 && sprintStart - lastSprintEnd >= 8) sprints++; lastSprintEnd = t[i]; }
+  }
+  if (dist < 300) return null;
+  return { sprints, topKmh: Math.round(top * 3.6 * 10) / 10, hsrM: Math.round(hsr), distM: Math.round(dist) };
+}
+function seriesOf(details) {
+  const series = { t: [], hr: [], speed: [] };
+  if (!details?.metricDescriptors || !details?.activityDetailMetrics) return series;
+  const idx = Object.fromEntries(details.metricDescriptors.map((m) => [m.key, m.metricsIndex]));
+  const t0 = details.activityDetailMetrics[0]?.metrics?.[idx.directTimestamp];
+  for (const row of details.activityDetailMetrics) {
+    const m = row.metrics || [];
+    const t = idx.sumElapsedDuration != null ? m[idx.sumElapsedDuration] : idx.sumDuration != null ? m[idx.sumDuration] : (m[idx.directTimestamp] - t0) / 1000;
+    if (!Number.isFinite(t)) continue;
+    series.t.push(Math.round(t)); series.hr.push(m[idx.directHeartRate] ?? null); series.speed.push(m[idx.directSpeed] ?? null);
+  }
+  return series;
+}
+const thin = (series, n = 400) => { const k = Math.max(1, Math.ceil(series.t.length / n)); const pick = (arr) => arr.filter((_, i) => i % k === 0); return { t: pick(series.t), hr: pick(series.hr).map((v) => (v == null ? null : Math.round(v))), speed: pick(series.speed).map((v) => (v == null ? null : Math.round(v * 100) / 100)) }; };
+
 // Everything Garmin knows about one activity, for the detail screen. Kept in Firestore once fetched (activities don't change).
 export async function garminActivity(uid, id) {
   if (!/^\d{5,15}$/.test(String(id))) throw new GarminError('Unknown activity.', 'input');
   const cacheRef = db().doc(`users/${uid}/garminActivities/${id}`);
   const cached = await cacheRef.get();
-  if (cached.exists && cached.data().v === 1) return cached.data();
+  if (cached.exists && cached.data().v === 2) return cached.data();
   const snap = await authRef(uid).get();
   if (!snap.exists) throw new GarminError('Garmin is not connected.', 'auth');
   const d = snap.data();
@@ -155,25 +190,16 @@ export async function garminActivity(uid, id) {
     const [act, zones, details, splits] = await Promise.all([
       call(tok, `/activity-service/activity/${id}`),
       soft(call(tok, `/activity-service/activity/${id}/hrTimeInZones`)),
-      soft(call(tok, `/activity-service/activity/${id}/details`, { maxChartSize: '400', maxPolylineSize: '0' })),
+      soft(call(tok, `/activity-service/activity/${id}/details`, { maxChartSize: '6000', maxPolylineSize: '0' })),
       soft(call(tok, `/activity-service/activity/${id}/splits`)),
     ]);
     const sm = act?.summaryDTO || {};
     const num = (v, k = 1) => (Number.isFinite(Number(v)) && v !== null ? Math.round(Number(v) * k) / k : null);
-    // time series: heart rate and speed against elapsed seconds
-    const series = { t: [], hr: [], speed: [] };
-    if (details?.metricDescriptors && details?.activityDetailMetrics) {
-      const idx = Object.fromEntries(details.metricDescriptors.map((m) => [m.key, m.metricsIndex]));
-      const t0 = details.activityDetailMetrics[0]?.metrics?.[idx.directTimestamp];
-      for (const row of details.activityDetailMetrics) {
-        const m = row.metrics || [];
-        const t = idx.sumElapsedDuration != null ? m[idx.sumElapsedDuration] : idx.sumDuration != null ? m[idx.sumDuration] : (m[idx.directTimestamp] - t0) / 1000;
-        if (!Number.isFinite(t)) continue;
-        series.t.push(Math.round(t)); series.hr.push(num(m[idx.directHeartRate])); series.speed.push(num(m[idx.directSpeed], 100));
-      }
-    }
+    const full = seriesOf(details);
+    const series = thin(full);
+    const gps = gpsLoad(full.t, full.speed);
     const out = {
-      v: 1, id: String(id),
+      v: 2, id: String(id),
       name: act?.activityName || null, typeKey: act?.activityTypeDTO?.typeKey || null, start: sm.startTimeLocal || null,
       durationS: num(sm.duration), movingS: num(sm.movingDuration), distanceM: num(sm.distance), calories: num(sm.calories),
       avgHr: num(sm.averageHR), maxHr: num(sm.maxHR), minHr: num(sm.minHR),
@@ -184,7 +210,7 @@ export async function garminActivity(uid, id) {
       bodyBatteryDelta: num(sm.differenceBodyBattery), sweatMl: num(sm.waterEstimated),
       zones: Array.isArray(zones) ? zones.map((z) => ({ zone: z.zoneNumber, secs: num(z.secsInZone), from: z.zoneLowBoundary })) : [],
       laps: (splits?.lapDTOs || []).slice(0, 60).map((l) => ({ s: num(l.duration), m: num(l.distance), hr: num(l.averageHR), maxHr: num(l.maxHR), speed: num(l.averageSpeed, 100) })),
-      series,
+      series, gps,
       fetchedAt: new Date().toISOString(),
     };
     await cacheRef.set(out).catch(() => {});

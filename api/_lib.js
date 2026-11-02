@@ -195,6 +195,7 @@ export const PLAN_RULES = `Rules:
 - Beginners: fewer exercises, simpler patterns, more cues. Competitive athletes: periodised, sport-specific.
 - Deload: every fourth week of a block is a step back — same movements, roughly 60% of the usual volume, nothing near failure. The athlete's week number is given below; if it is a deload week, say so plainly in the rationale.
 - Warm-up 5–10 min and cool-down 3–5 min in every non-rest session (3–4 items each, a few words per item).
+- Tournaments listed above: each tournament day is a session of type "match", fixed=true, title "Tournament: <name>", with a short activation warm-up, no gym work, and an intent that covers between games: eat carbohydrates within 30 minutes after each game (banana, rice cakes, a sandwich), sip about 500 ml per hour with electrolytes, 5 minutes of easy mobility between games, stay warm. The two days before a tournament: nothing hard, only a short sharp activation or rest. The day after: easy mobility and recovery only. In the week leading in, cut volume by about 40% but keep some speed.
 - Be brief: cues under 12 words, intent one short sentence, 4–6 exercises per session. Brevity matters more than completeness.`;
 
 export function planShape(id) {
@@ -241,6 +242,21 @@ function dayPrefBlock(p) {
   return `- The athlete fixed these days themselves. Follow them exactly — the right session type at the right time of day. Days not listed are yours to decide:\n${lines.join('\n')}`;
 }
 
+// Tournaments the athlete added (profile.events), within the next five weeks
+export function upcomingEvents(p, ref = new Date(), days = 35) {
+  const today = ref.toISOString().slice(0, 10);
+  const until = new Date(ref.getTime() + days * 864e5).toISOString().slice(0, 10);
+  return (Array.isArray(p.events) ? p.events : []).filter((e) => e && e.start && e.name).map((e) => {
+    const n = Math.max(1, Math.min(5, Number(e.days) || 1));
+    const end = new Date(Date.parse(e.start + 'T12:00:00Z') + (n - 1) * 864e5).toISOString().slice(0, 10);
+    return { name: String(e.name).slice(0, 60), start: e.start, end, days: n };
+  }).filter((e) => e.end >= today && e.start <= until).sort((a, b) => a.start.localeCompare(b.start));
+}
+function tournamentLines(p, ref) {
+  const ev = upcomingEvents(p, ref);
+  return ev.length ? ev.map((e) => `- TOURNAMENT: "${e.name}" ${e.start}${e.days > 1 ? ` to ${e.end} (${e.days} days)` : ''}`).join('\n') + '\n' : '';
+}
+
 export function athleteBlock(p, id, ref = new Date()) {
   const goals = (p.goals || [p.goal]).filter(Boolean);
   return `Athlete
@@ -256,7 +272,7 @@ ${dayPrefBlock(p)}
 - Equipment: ${p.equipment.join(', ')}
 - Injuries / limits: ${p.injuries || 'none'}${p.weekNote ? `\n- WHAT THE ATHLETE SAID ABOUT THIS WEEK (highest priority, overrides everything else): "${p.weekNote}"` : ''}
 - ${phaseFor(p, ref).text}
-- Week ${p.weekNumber || 1} of the current block${((p.weekNumber || 1) % 4 === 0) ? ' — THIS IS A DELOAD WEEK' : ''}.
+${tournamentLines(p, ref)}- Week ${p.weekNumber || 1} of the current block${((p.weekNumber || 1) % 4 === 0) ? ' — THIS IS A DELOAD WEEK' : ''}.
 - Today: ${DAY_NAMES[(ref.getDay() + 6) % 7]} ${ref.toISOString().slice(0, 10)}; the plan is for ISO week ${id}, Monday to Sunday.
 
 Exercise vocabulary (use these exact names where the movement fits):
@@ -446,19 +462,19 @@ const GOAL_TO_TYPE = { speed: 'speed', strength: 'strength', endurance: 'conditi
 
 // Fixed text of the fallback week, in each app language (exercise names stay as in the library, like AI plans)
 const TEMPLATE_TEXT = {
-  en: { rest: 'Rest', restIntent: 'Recovery day — walk, stretch, sleep well.', intent: 'Template session — rebuild the week when the plan service is back for something tailored.', focus: 'A solid default week built from your own settings.', rationale: 'The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.',
+  en: { tournament: "Tournament", tournamentIntent: "Between games: eat carbs within 30 min (banana, rice cakes, sandwich), sip ~500 ml per hour with electrolytes, 5 min easy mobility, stay warm.", rest: 'Rest', restIntent: 'Recovery day — walk, stretch, sleep well.', intent: 'Template session — rebuild the week when the plan service is back for something tailored.', focus: 'A solid default week built from your own settings.', rationale: 'The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.',
     titles: { strength: 'Full-body strength', speed: 'Speed and acceleration', conditioning: 'Conditioning', skills: 'Skills and agility', mobility: 'Mobility and recovery', match: 'Match' },
     loads: { 'full effort, full recovery': 'full effort, full recovery', 'sharp, not exhausting': 'sharp, not exhausting', easy: 'easy' }, reps: { '4-6 reps': '4-6 reps' } },
-  fr: { rest: 'Repos', restIntent: 'Journée de récupération — marche, étirements, bon sommeil.', intent: 'Séance modèle — refais la semaine quand le service de plans revient, pour un plan sur mesure.', focus: 'Une semaine de base solide, construite à partir de tes réglages.', rationale: "Le service de plans n'était pas disponible : cette semaine suit un modèle standard basé sur tes jours d'entraînement, tes objectifs et la durée de tes séances. Refais-la plus tard pour une semaine sur mesure.",
+  fr: { tournament: "Tournoi", tournamentIntent: "Entre les matchs : glucides dans les 30 min (banane, galettes de riz, sandwich), ~500 ml par heure avec électrolytes, 5 min de mobilité douce, reste au chaud.", rest: 'Repos', restIntent: 'Journée de récupération — marche, étirements, bon sommeil.', intent: 'Séance modèle — refais la semaine quand le service de plans revient, pour un plan sur mesure.', focus: 'Une semaine de base solide, construite à partir de tes réglages.', rationale: "Le service de plans n'était pas disponible : cette semaine suit un modèle standard basé sur tes jours d'entraînement, tes objectifs et la durée de tes séances. Refais-la plus tard pour une semaine sur mesure.",
     titles: { strength: 'Force corps entier', speed: 'Vitesse et accélération', conditioning: 'Condition physique', skills: 'Technique et agilité', mobility: 'Mobilité et récupération', match: 'Match' },
     loads: { 'full effort, full recovery': 'effort maximal, récupération complète', 'sharp, not exhausting': 'vif, sans s’épuiser', easy: 'facile' }, reps: { '4-6 reps': '4-6 répétitions' } },
-  nl: { rest: 'Rust', restIntent: 'Hersteldag — wandelen, stretchen, goed slapen.', intent: 'Standaardtraining — bouw de week opnieuw zodra de planservice terug is, voor een plan op maat.', focus: 'Een degelijke standaardweek, gebouwd op je eigen instellingen.', rationale: 'De planservice was niet beschikbaar, dus deze week volgt een standaardsjabloon op basis van je trainingsdagen, doelen en trainingsduur. Bouw hem later opnieuw voor een week op maat.',
+  nl: { tournament: "Toernooi", tournamentIntent: "Tussen de wedstrijden: koolhydraten binnen 30 min (banaan, rijstwafels, broodje), ~500 ml per uur met elektrolyten, 5 min rustige mobiliteit, blijf warm.", rest: 'Rust', restIntent: 'Hersteldag — wandelen, stretchen, goed slapen.', intent: 'Standaardtraining — bouw de week opnieuw zodra de planservice terug is, voor een plan op maat.', focus: 'Een degelijke standaardweek, gebouwd op je eigen instellingen.', rationale: 'De planservice was niet beschikbaar, dus deze week volgt een standaardsjabloon op basis van je trainingsdagen, doelen en trainingsduur. Bouw hem later opnieuw voor een week op maat.',
     titles: { strength: 'Kracht hele lichaam', speed: 'Snelheid en acceleratie', conditioning: 'Conditie', skills: 'Techniek en wendbaarheid', mobility: 'Mobiliteit en herstel', match: 'Wedstrijd' },
     loads: { 'full effort, full recovery': 'volle inzet, volledig herstel', 'sharp, not exhausting': 'scherp, niet uitputtend', easy: 'rustig' }, reps: { '4-6 reps': '4-6 herhalingen' } },
-  tr: { rest: 'Dinlenme', restIntent: 'Toparlanma günü — yürü, esne, iyi uyu.', intent: 'Şablon antrenman — plan servisi geri gelince sana özel bir hafta için haftayı yeniden oluştur.', focus: 'Kendi ayarlarından oluşturulmuş sağlam bir standart hafta.', rationale: 'Plan servisi kullanılamıyordu; bu yüzden bu hafta antrenman günlerine, hedeflerine ve antrenman süresine göre hazırlanmış standart bir şablonu izliyor. Sana özel bir hafta için daha sonra yeniden oluştur.',
+  tr: { tournament: "Turnuva", tournamentIntent: "Maçlar arasında: 30 dk içinde karbonhidrat (muz, pirinç patlağı, sandviç), saatte ~500 ml elektrolitli sıvı, 5 dk hafif mobilite, sıcak kal.", rest: 'Dinlenme', restIntent: 'Toparlanma günü — yürü, esne, iyi uyu.', intent: 'Şablon antrenman — plan servisi geri gelince sana özel bir hafta için haftayı yeniden oluştur.', focus: 'Kendi ayarlarından oluşturulmuş sağlam bir standart hafta.', rationale: 'Plan servisi kullanılamıyordu; bu yüzden bu hafta antrenman günlerine, hedeflerine ve antrenman süresine göre hazırlanmış standart bir şablonu izliyor. Sana özel bir hafta için daha sonra yeniden oluştur.',
     titles: { strength: 'Tüm vücut kuvveti', speed: 'Hız ve ivmelenme', conditioning: 'Kondisyon', skills: 'Teknik ve çeviklik', mobility: 'Mobilite ve toparlanma', match: 'Maç' },
     loads: { 'full effort, full recovery': 'tam efor, tam dinlenme', 'sharp, not exhausting': 'keskin, yormadan', easy: 'hafif' }, reps: { '4-6 reps': '4-6 tekrar' } },
-  es: { rest: 'Descanso', restIntent: 'Día de recuperación — camina, estira, duerme bien.', intent: 'Sesión de plantilla — rehaz la semana cuando vuelva el servicio de planes para tener algo a medida.', focus: 'Una semana base sólida, creada a partir de tus ajustes.', rationale: 'El servicio de planes no estaba disponible, así que esta semana sigue una plantilla estándar basada en tus días de entrenamiento, objetivos y duración de las sesiones. Rehazla más tarde para tener una semana a medida.',
+  es: { tournament: "Torneo", tournamentIntent: "Entre partidos: carbohidratos en 30 min (plátano, tortitas de arroz, bocadillo), ~500 ml por hora con electrolitos, 5 min de movilidad suave, mantente caliente.", rest: 'Descanso', restIntent: 'Día de recuperación — camina, estira, duerme bien.', intent: 'Sesión de plantilla — rehaz la semana cuando vuelva el servicio de planes para tener algo a medida.', focus: 'Una semana base sólida, creada a partir de tus ajustes.', rationale: 'El servicio de planes no estaba disponible, así que esta semana sigue una plantilla estándar basada en tus días de entrenamiento, objetivos y duración de las sesiones. Rehazla más tarde para tener una semana a medida.',
     titles: { strength: 'Fuerza de cuerpo completo', speed: 'Velocidad y aceleración', conditioning: 'Acondicionamiento', skills: 'Técnica y agilidad', mobility: 'Movilidad y recuperación', match: 'Partido' },
     loads: { 'full effort, full recovery': 'esfuerzo máximo, recuperación completa', 'sharp, not exhausting': 'rápido, sin agotarse', easy: 'suave' }, reps: { '4-6 reps': '4-6 repeticiones' } },
 };
@@ -476,7 +492,24 @@ export function templatePlan(profile, id) {
   const wanted = { stronglifts: /strong\s*lifts?|\b5\s*[x×]\s*5\b/i.test(asked), scheme: sch ? [Number(sch[1]), Number(sch[2])] : null };
   const lastLoad = profile.lastLoads || {};
   if (wanted.stronglifts) rotation.splice(0, rotation.length, 'strength', GOAL_TO_TYPE[goals[1]] && GOAL_TO_TYPE[goals[1]] !== 'strength' ? GOAL_TO_TYPE[goals[1]] : 'speed', 'strength', 'conditioning');
+  // tournament days this week, as weekday indexes
+  const mon = mondayOf(id);
+  const dateOf = (d) => new Date(mon.getTime() + d * 864e5).toISOString().slice(0, 10);
+  const evs = upcomingEvents(profile, new Date(mon.getTime() - 864e5), 14);
+  const evOn = (d) => evs.find((e) => dateOf(d) >= e.start && dateOf(d) <= e.end);
+  const nearEv = (d) => evs.some((e) => { const t = Date.parse(e.start + 'T12:00:00Z') - Date.parse(dateOf(d) + 'T12:00:00Z'); return t > 0 && t <= 2 * 864e5; });
+  const afterEv = (d) => evs.some((e) => dateOf(d) === new Date(Date.parse(e.end + 'T12:00:00Z') + 864e5).toISOString().slice(0, 10));
   for (let d = 0; d < 7; d++) {
+    const ev = evOn(d);
+    if (ev) {
+      sessions.push({ day: d, slot: 0, timeOfDay: 'morning', title: `${tx.tournament || 'Tournament'}: ${ev.name}`, type: 'match', fixed: true, durationMin: 0, intent: tx.tournamentIntent || 'Between games: eat carbs within 30 min (banana, rice cakes, sandwich), sip ~500 ml per hour with electrolytes, 5 min easy mobility, stay warm.', warmup: EXERCISE_LIBRARY.warmup.slice(0, 4).map((x) => `${x}, 30 s`), exercises: [], cooldown: EXERCISE_LIBRARY.mobility.slice(0, 2).map((x) => `${x}, 45 s`) });
+      continue;
+    }
+    if (days.includes(d) && (nearEv(d) || afterEv(d))) {
+      const tpl = TEMPLATES.mobility;
+      sessions.push({ day: d, slot: 0, timeOfDay: null, title: tx.titles.mobility || tpl.title, type: 'mobility', fixed: false, durationMin: Math.min(40, profile.sessionMin || 40), intent: tx.intent, warmup: [], exercises: EXERCISE_LIBRARY.mobility.slice(0, 5).map((name) => ({ name, sets: 2, reps: '45 s', load: tx.loads.easy || 'easy', restSec: 15, cues: '' })), cooldown: [] });
+      continue;
+    }
     if (!days.includes(d)) {
       sessions.push({ day: d, slot: 0, timeOfDay: null, title: tx.rest, type: 'rest', fixed: false, durationMin: 0, intent: tx.restIntent, warmup: [], exercises: [], cooldown: [] });
       continue;

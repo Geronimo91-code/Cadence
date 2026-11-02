@@ -763,6 +763,7 @@ a.btn { text-decoration: none; }
 .ga-zone{display:grid;grid-template-columns:62px 1fr 54px;align-items:center;gap:8px;margin-top:8px;font-size:.85rem}.ga-zone>div{height:10px;border-radius:5px;background:rgba(127,127,127,.15);overflow:hidden}.ga-zone i{display:block;height:100%;border-radius:5px}.ga-zone b{text-align:right;font-weight:600}.ga-zone small{color:var(--ink-3)}
 .ga-laps{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:6px}.ga-laps th{text-align:left;color:var(--ink-3);font-weight:600;padding:4px}.ga-laps td{padding:5px 4px;border-top:1px solid var(--line,rgba(127,127,127,.2))}
 .prog{font-size:.75rem;font-weight:600;white-space:nowrap}.prog-up{color:var(--ok,#2e8b57)}.prog-deload{color:var(--warn,#c47f00)}.prog-repeat{color:var(--ink-2)}
+.tips{margin:8px 0 0 18px;padding:0;font-size:.9rem;line-height:1.45}.tips li{margin-top:4px}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1727,6 +1728,16 @@ async function viewToday(el) {
     el.append(c);
     $('#btnOpenToday' + i).onclick = () => openSession(sess);
   });
+
+  // ---- tournament day ----
+  {
+    const ev = (p.events || []).find((e) => { const end = new Date(Date.parse(e.start + 'T12:00:00') + ((Number(e.days) || 1) - 1) * 864e5); return dateKey() >= e.start && dateKey() <= dateKey(end); });
+    if (ev) {
+      const c = document.createElement('div'); c.className = 'card todaycard amber'; c.dataset.opt = '6';
+      c.innerHTML = `<strong>🥏 ${esc(ev.name)}</strong><ul class="tips"><li>${T('After each game: carbs within 30 min (banana, rice cakes, sandwich).')}</li><li>${T('Sip about 500 ml an hour, with electrolytes.')}</li><li>${T('Between games: 5 min easy mobility, stay warm.')}</li><li>${T('Tonight: proper meal, early night.')}</li></ul>`;
+      el.append(c);
+    }
+  }
 
   // ---- backup week: say so plainly, with a retry ----
   if (state.plan.source === 'template' && planIsCurrent()) {
@@ -3115,6 +3126,7 @@ async function openGarminActivity(key, log) {
       ${tile(a.avgHr, T('avg HR'))}${tile(a.maxHr, T('max HR'))}${tile(a.calories, 'kcal')}
       ${tile(a.load, T('training load'))}${tile(a.intensityMin && (a.intensityMin.moderate || a.intensityMin.vigorous) != null ? (a.intensityMin.moderate || 0) + 2 * (a.intensityMin.vigorous || 0) : null, T('intensity min'))}${tile(a.steps, T('steps'))}
     </div></div>
+    ${a.gps ? `<div class="card"><h3>${T('Game load')}</h3><div class="ga-tiles">${tile(a.gps.sprints, T('sprints'))}${tile(a.gps.topKmh + '<small> km/h</small>', T('top speed'))}${tile((a.gps.hsrM / 1000).toFixed(2) + '<small> km</small>', T('above 15 km/h'))}</div><p class="muted small" style="margin-top:8px">${T('A sprint is over 20 km/h for at least a second.')}</p></div>` : ''}
     ${a.aerobicTE != null || a.anaerobicTE != null ? `<div class="card"><h3>${T('Training effect')}</h3><div class="ga-te">
       <div><span>${T('Aerobic')}</span><b>${a.aerobicTE ?? '–'}</b><i style="width:${Math.min(100, (a.aerobicTE || 0) * 20)}%"></i><small>${teText(a.aerobicTE)}</small></div>
       <div><span>${T('Anaerobic')}</span><b>${a.anaerobicTE ?? '–'}</b><i style="width:${Math.min(100, (a.anaerobicTE || 0) * 20)}%"></i><small>${teText(a.anaerobicTE)}</small></div>
@@ -3145,6 +3157,52 @@ async function openGarminActivity(key, log) {
       Object.assign(log, upd); if (state.logs[key]) Object.assign(state.logs[key], upd); streakCache = null;
       history.back(); toast(T('Saved')); navigate(state.view);
     } catch (e) { toast(T('Could not send. Check your connection and try again.')); b.disabled = false; }
+  };
+}
+
+/* ---------- tournaments: the plan tapers into them and recovers after ---------- */
+function openEvents() {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Tournaments'));
+  sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Tournaments')}</h2></div>
+    <p class="muted small">${T('Cadence lightens the week before, keeps the two days before easy, plans the tournament days with between-game tips, and makes the day after a recovery day.')}</p>
+    <div id="evList" style="margin-top:12px"></div>
+    <div class="card" style="margin-top:12px"><h3>${T('Add a tournament')}</h3>
+      <div class="field"><label for="evName">${T('Name')}</label><input class="input" id="evName" maxlength="60" placeholder="${T('e.g. Indoor Nationals')}"></div>
+      <div class="field"><label for="evStart">${T('First day')}</label><input class="input" id="evStart" type="date"></div>
+      <div class="block" style="margin-top:8px"><h3 style="font-size:.95rem">${T('How many days?')}</h3><div id="evDays" style="display:flex;gap:8px;margin-top:8px"></div></div>
+      <div class="error" id="evErr"></div>
+      <button class="btn" id="evAdd">${T('Add')}</button></div>
+  </div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  let nDays = 2;
+  const paintDays = () => { const w = $('#evDays', sheet); w.innerHTML = ''; [1, 2, 3, 4].forEach((n) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n; b.setAttribute('aria-pressed', String(n === nDays)); b.onclick = () => { nDays = n; paintDays(); }; w.append(b); }); };
+  paintDays();
+  $('#evStart', sheet).min = dateKey();
+  const save = async (events) => {
+    await db.doc('users/' + state.user.uid).set({ profile: { events } }, { merge: true });
+    state.profile.events = events;
+  };
+  const paintList = () => {
+    const list = (state.profile.events || []).filter((e) => e.start >= dateKey(new Date(Date.now() - 6 * 864e5))).sort((a, b) => a.start.localeCompare(b.start));
+    $('#evList', sheet).innerHTML = list.length ? list.map((e, i) => `<div class="extra-row"><div><strong>${esc(e.name)}</strong><div class="muted small">${new Date(e.start + 'T12:00:00').toLocaleDateString(localeTag(), { weekday: 'short', day: 'numeric', month: 'short' })}${e.days > 1 ? ' · ' + e.days + ' ' + T('days') : ''}</div></div><button type="button" class="btn ghost sm" data-evdel="${i}">${T('Remove')}</button></div>`).join('') : `<p class="muted small">${T('No tournaments yet.')}</p>`;
+    $$('[data-evdel]', sheet).forEach((b) => { b.onclick = async () => { const keep = list.filter((_, j) => j !== Number(b.dataset.evdel)); try { await save(keep); paintList(); } catch (_) { toast(T('Could not send. Check your connection and try again.')); } }; });
+  };
+  paintList();
+  $('#evAdd', sheet).onclick = async (ev) => {
+    const name = $('#evName', sheet).value.trim(), start = $('#evStart', sheet).value;
+    if (!name || !start) { $('#evErr', sheet).textContent = T('Add the event name and date.'); return; }
+    const b = ev.currentTarget; b.disabled = true;
+    try {
+      await save([...(state.profile.events || []), { name, start, days: nDays }]);
+      $('#evName', sheet).value = ''; $('#evStart', sheet).value = ''; $('#evErr', sheet).textContent = ''; paintList();
+      const days = (Date.parse(start + 'T12:00:00') - Date.now()) / 864e5;
+      if (days < 7 && planIsCurrent()) { if (confirm(T('It is this week. Rebuild the week now so the plan accounts for it?'))) { history.back(); openRebuild(); return; } }
+      else toast(T('Saved. Next week\'s plan will build toward it.'));
+    } catch (_) { toast(T('Could not send. Check your connection and try again.')); }
+    b.disabled = false;
   };
 }
 
@@ -3234,6 +3292,7 @@ function viewProfile(el) {
       <button type="button" class="set-row" data-edit>${ico(I.goal)}<span class="set-main"><span>${T('Goals')}</span><small>${esc(goals || '—')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.days)}<span class="set-main"><span>${T('Training days')}</span><small>${p.days.map((i) => T(DAYS[i])).join(', ')}${p.doubles && p.doubles !== 'no' ? ' · ' + T('doubles') : ''}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.flag)}<span class="set-main"><span>${T('Deadline')}</span><small>${p.deadline ? esc(p.deadline.name) : T('None')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnEvents">${ico(I.flag)}<span class="set-main"><span>${T('Tournaments')}</span><small>${(p.events || []).filter((e) => e.start >= dateKey()).length ? (p.events || []).filter((e) => e.start >= dateKey()).map((e) => esc(e.name)).join(', ') : T('None')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.food)}<span class="set-main"><span>${T('Nutrition')}</span><small>${p.nutrition ? esc(T(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1] || '')) : T('Off')}</small></span><span class="chev">›</span></button>
       <div class="set-foot"><button class="btn secondary" id="btnEdit">${T('Edit setup')}</button></div>
     </div>
@@ -3283,6 +3342,7 @@ function viewProfile(el) {
   };
   setupInstall();
   $('#btnFeedback').onclick = openFeedback;
+  if ($('#btnEvents')) $('#btnEvents').onclick = openEvents;
   showInboxIfAdmin(el);
   $('#btnExport').onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true;
