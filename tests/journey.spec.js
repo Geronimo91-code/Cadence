@@ -168,6 +168,7 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
 
     // ---- nutrition ----
     await step('nutrition meal added', async () => {
+      if (!(await page.isVisible('.tab[data-view="nutrition"]'))) { ok('nutrition meal added', true, 'nutrition off (default for new users)'); return; }
       await page.click('.tab[data-view="nutrition"]'); await page.waitForTimeout(1000);
       if (!(await page.isVisible('#mealName'))) { ok('nutrition meal added', true, 'nutrition off for this profile'); return; }
       await page.fill('#mealName', 'Chicken wrap'); await page.fill('#mealK', '520'); await page.fill('#mealP', '35');

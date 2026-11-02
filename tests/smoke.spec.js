@@ -66,6 +66,7 @@ test('sign in and tabs', async ({ page }) => {
     await signIn(page);
     for (const [view, title] of [['plan', 'This week'], ['log', 'Log'], ['nutrition', 'Nutrition'], ['club', 'Club'], ['profile', 'Profile'], ['today', 'Today']]) {
       diag.step = view;
+      if (view === 'nutrition' && !(await page.isVisible('.tab[data-view="nutrition"]'))) continue; // nutrition is off for this profile
       await page.click(`.tab[data-view="${view}"]`);
       await expect(page.locator('#topTitle')).toHaveText(title);
       await expect(page.locator('#view')).not.toContainText('Something went wrong');
@@ -163,8 +164,7 @@ test('plan and session view', async ({ page }) => {
 
 test('nutrition and club render', async ({ page }) => {
   await signIn(page);
-  await page.click('.tab[data-view="nutrition"]');
-  await expect(page.locator('#view')).toBeVisible();
+  if (await page.isVisible('.tab[data-view="nutrition"]')) { await page.click('.tab[data-view="nutrition"]'); await expect(page.locator('#view')).toBeVisible(); }
   await page.click('.tab[data-view="log"]');
   await expect(page.locator('#view')).toContainText(/Weight|Progress|Sessions/);
   await page.click('.tab[data-view="club"]');
