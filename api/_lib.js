@@ -532,6 +532,62 @@ export async function lastLoads(uid) {
   return out;
 }
 
+// ---------------- StrongLifts-style linear progression, decided by code, not by the model ----------------
+// +2.5 kg (deadlift +5) after a session where every set hit its reps; same weight after a miss; −10% after three misses in a row.
+const MAIN_LIFTS = { 'back squat': 2.5, 'bench press': 2.5, 'barbell row': 2.5, 'overhead press': 2.5, deadlift: 5 };
+const r25 = (kg) => Math.round(kg / 2.5) * 2.5;
+export async function liftHistory(uid) {
+  const out = {};
+  try {
+    const q = await db().collection(`users/${uid}/logs`).orderBy('loggedAt', 'desc').limit(120).get();
+    for (const d of q.docs) {
+      const l = d.data();
+      if (l.eased || l.status === 'skipped') continue;
+      for (const ex of l.exercises || []) {
+        const k = String(ex.name || '').toLowerCase();
+        if (!(k in MAIN_LIFTS)) continue;
+        const sets = ex.sets || [];
+        const done = sets.filter((st) => st.done && Number(st.load) > 0);
+        if (!done.length) continue;
+        const load = Math.max(...done.map((st) => Number(st.load)));
+        const target = Number(String(ex.prescribed || '').match(/[x×]\s*(\d+)/)?.[1]) || 5;
+        const success = done.length === sets.length && done.every((st) => Number(st.reps) >= target);
+        (out[k] = out[k] || []).push({ load, success, at: l.loggedAt });
+      }
+    }
+  } catch (_) {}
+  return out;
+}
+export function nextLoad(hist, inc) {
+  if (!hist?.length) return null;
+  const last = hist[0];
+  if (last.success) return { kg: r25(last.load + inc), why: 'up' };
+  let fails = 0;
+  for (const h of hist) { if (h.load !== last.load || h.success) break; fails++; }
+  if (fails >= 3) return { kg: r25(last.load * 0.9), why: 'deload' };
+  return { kg: last.load, why: 'repeat' };
+}
+// Applies to sessions that are a 5x5 program; each further session with the same lift in the week adds one more step
+export function applyProgression(plan, hist) {
+  const running = {};
+  const is5x5 = (s) => /strong\s*lifts?|5\s*[x×]\s*5/i.test(s.title || '') || (s.exercises || []).filter((e) => String(e.name || '').toLowerCase() in MAIN_LIFTS && Number(e.sets) === 5 && String(e.reps) === '5').length >= 2;
+  for (const s of [...(plan.sessions || [])].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0))) {
+    if (s.type !== 'strength' || s.eased || !is5x5(s)) continue;
+    for (const e of s.exercises || []) {
+      const k = String(e.name || '').toLowerCase();
+      if (!(k in MAIN_LIFTS)) continue;
+      if (running[k]) { running[k] = { kg: running[k].why === 'deload' || running[k].why === 'repeat' ? running[k].kg : r25(running[k].kg + MAIN_LIFTS[k]), why: running[k].why === 'up' ? 'up' : running[k].why }; }
+      else running[k] = nextLoad(hist[k], MAIN_LIFTS[k]);
+      if (!running[k]) continue;
+      e.load = `${running[k].kg} kg`;
+      e.progression = running[k].why;
+      // once the athlete repeats a weight this week, the next session of the week goes up again if it works
+      if (running[k].why !== 'up') running[k] = { ...running[k], why: 'up' };
+    }
+  }
+  return plan;
+}
+
 // ---------------- What the athlete has actually lifted ----------------
 // Gives the model real numbers to progress from, instead of guessing loads every week.
 export async function trainingHistoryBlock(uid, { weeks = 16, maxExercises = 40, maxChars = 4000 } = {}) {

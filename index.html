@@ -762,6 +762,7 @@ a.btn { text-decoration: none; }
 .ga-chart{display:block;margin-top:8px;overflow:visible}.ga-chart text{font-size:10px;fill:var(--ink-3)}
 .ga-zone{display:grid;grid-template-columns:62px 1fr 54px;align-items:center;gap:8px;margin-top:8px;font-size:.85rem}.ga-zone>div{height:10px;border-radius:5px;background:rgba(127,127,127,.15);overflow:hidden}.ga-zone i{display:block;height:100%;border-radius:5px}.ga-zone b{text-align:right;font-weight:600}.ga-zone small{color:var(--ink-3)}
 .ga-laps{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:6px}.ga-laps th{text-align:left;color:var(--ink-3);font-weight:600;padding:4px}.ga-laps td{padding:5px 4px;border-top:1px solid var(--line,rgba(127,127,127,.2))}
+.prog{font-size:.75rem;font-weight:600;white-space:nowrap}.prog-up{color:var(--ok,#2e8b57)}.prog-deload{color:var(--warn,#c47f00)}.prog-repeat{color:var(--ink-2)}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -2149,7 +2150,7 @@ function openSession(raw, weekIdOverride, logOverride) {
       const px = sess.exercises[ei] || {};
       const card = document.createElement('div'); card.className = 'ex' + (ex.swapped ? ' swapped' : '');
       card.innerHTML = `<div class="name"><span>${esc(ex.name)}</span><span class="rx">${ex.swapped ? '' : (px.sets ? px.sets + '×' : '') + esc(px.reps || '')}</span></div>
-        <div class="meta">${ex.swapped ? T('your change') : [px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}</div>
+        <div class="meta">${ex.swapped ? T('your change') : [px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}${!ex.swapped && px.progression ? ` <span class="prog prog-${px.progression}">${px.progression === 'up' ? '↑ ' + T('up from last time') : px.progression === 'deload' ? '↓ ' + T('deload after 3 misses') : '= ' + T('same weight, finish all sets')}</span>` : ''}</div>
         ${lastTimeLine(ex.name)}
         ${!ex.swapped && px.cues ? `<div class="cues">${esc(px.cues)}</div>` : ''}
         <div class="swapbar"><button class="chip how" data-how="${ei}">▶ ${T('How to')}</button><button class="chip" data-swap="${ei}">${T('Swap')}</button><button class="chip" data-addset="${ei}">${T('+ set')}</button>${ex.sets.length > 1 ? `<button class="chip" data-delset="${ei}">${T('− set')}</button>` : ''}<button class="chip" data-delex="${ei}">${T('Remove')}</button></div>
@@ -2478,6 +2479,26 @@ async function renderProgress(el) {
     html += `<div style="margin-top:16px"><b>${T('Adherence by week')}</b>${svgBars(weeks.map(([id, w]) => ({ label: id.slice(5), v: w.adherence ?? (w.total ? Math.round((w.done / w.total) * 100) : 0) })), { max: 100, suffix: '%' })}</div>`;
     const rp = weeks.filter(([, w]) => w.rpes.length).map(([id, w]) => ({ label: id.slice(5), v: Math.round((w.rpes.reduce((a, b) => a + b, 0) / w.rpes.length) * 10) / 10 }));
     if (rp.length >= 2) html += `<div style="margin-top:16px"><b>${T('Session RPE')}</b>${svgBars(rp, { max: 10, lo: 0 })}</div>`;
+  }
+  // main lifts: working weight per session and estimated max (Epley)
+  {
+    const lifts = new Map();
+    logs.forEach((l) => (l.exercises || []).forEach((ex) => {
+      const done = (ex.sets || []).filter((st) => st.done && Number(st.load) > 0);
+      if (!done.length) return;
+      const key = ex.name.trim().toLowerCase();
+      const top = Math.max(...done.map((st) => Number(st.load)));
+      const e1rm = Math.max(...done.map((st) => Number(st.load) * (1 + (Number(st.reps) || 1) / 30)));
+      const cur = lifts.get(key) || { name: ex.name, pts: [] };
+      cur.pts.push({ x: new Date(l.loggedAt).getTime(), y: top, e: e1rm }); lifts.set(key, cur);
+    }));
+    const main = [...lifts.values()].filter((v) => v.pts.length >= 2).sort((a, b) => b.pts.length - a.pts.length).slice(0, 5);
+    if (main.length) {
+      html += `<div style="margin-top:16px"><b>${T('Lifts')}</b>` + main.map((v) => {
+        const last = v.pts[v.pts.length - 1], first = v.pts[0], best = Math.max(...v.pts.map((p) => p.e));
+        return `<div style="margin-top:10px"><div class="lbl" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(v.name)}</span><span class="muted">${last.y} kg${last.y !== first.y ? ` · ${last.y > first.y ? '+' : ''}${Math.round((last.y - first.y) * 10) / 10} kg` : ''} · ${T('est. max')} ${Math.round(best / 2.5) * 2.5} kg</span></div>${svgLine(v.pts.map((p) => ({ x: p.x, y: p.y })), { h: 80 })}</div>`;
+      }).join('') + '</div>';
+    }
   }
   // best load by exercise
   const best = new Map();

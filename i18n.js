@@ -271,6 +271,11 @@ es: {
 (function () {
   const add = {
     fr: {
+    "up from last time": "plus que la dernière fois",
+    "deload after 3 misses": "allègement après 3 échecs",
+    "same weight, finish all sets": "même poids, termine toutes les séries",
+    "Lifts": "Levées",
+    "est. max": "max estimé",
     "Today is lighter: ": "Séance allégée aujourd’hui : ",
     "Use the original session": "Garder la séance d’origine",
     "Back to the original session": "Retour à la séance d’origine",
@@ -404,6 +409,11 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "up from last time": "meer dan vorige keer",
+    "deload after 3 misses": "deload na 3 missers",
+    "same weight, finish all sets": "zelfde gewicht, maak alle sets af",
+    "Lifts": "Liften",
+    "est. max": "geschat max",
     "Today is lighter: ": "Vandaag lichter: ",
     "Use the original session": "Originele sessie gebruiken",
     "Back to the original session": "Terug naar de originele sessie",
@@ -537,6 +547,11 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "up from last time": "geçen seferden fazla",
+    "deload after 3 misses": "3 başarısızlıktan sonra hafifletme",
+    "same weight, finish all sets": "aynı ağırlık, tüm setleri bitir",
+    "Lifts": "Kaldırışlar",
+    "est. max": "tahmini maks",
     "Today is lighter: ": "Bugün daha hafif: ",
     "Use the original session": "Orijinal seansı kullan",
     "Back to the original session": "Orijinal seansa dönüldü",
@@ -670,6 +685,11 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "up from last time": "más que la última vez",
+    "deload after 3 misses": "descarga tras 3 fallos",
+    "same weight, finish all sets": "mismo peso, completa todas las series",
+    "Lifts": "Levantamientos",
+    "est. max": "máx. estimado",
     "Today is lighter: ": "Hoy más ligero: ",
     "Use the original session": "Usar la sesión original",
     "Back to the original session": "Vuelta a la sesión original",
