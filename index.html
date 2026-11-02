@@ -764,6 +764,8 @@ a.btn { text-decoration: none; }
 .ga-laps{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:6px}.ga-laps th{text-align:left;color:var(--ink-3);font-weight:600;padding:4px}.ga-laps td{padding:5px 4px;border-top:1px solid var(--line,rgba(127,127,127,.2))}
 .prog{font-size:.75rem;font-weight:600;white-space:nowrap}.prog-up{color:var(--ok,#2e8b57)}.prog-deload{color:var(--warn,#c47f00)}.prog-repeat{color:var(--ink-2)}
 .tips{margin:8px 0 0 18px;padding:0;font-size:.9rem;line-height:1.45}.tips li{margin-top:4px}
+.team-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;text-align:center;padding:10px 0 14px;border-bottom:1px solid var(--line,rgba(127,127,127,.2));margin-bottom:6px}.team-sum b{display:block;font:700 1.3rem var(--font-display);color:var(--ink)}.team-sum b small{font-size:.8rem;color:var(--ink-3)}.team-sum span{font-size:.72rem;color:var(--ink-2);line-height:1.2;display:block}.team-sum b.g-low{color:var(--bad,#c0392b)}
+.chips-s{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.chip-s{font-size:.72rem;padding:2px 7px;border-radius:999px;background:rgba(127,127,127,.14);color:var(--ink-2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.chip-s.bad{background:rgba(217,83,79,.15);color:var(--bad,#c0392b)}.chip-s.good{background:rgba(46,139,87,.15);color:var(--ok,#2e8b57)}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1178,6 +1180,7 @@ auth.onAuthStateChanged(async (user) => {
     state.profile = snap.exists ? snap.data().profile : null;
     const udata = snap.exists ? snap.data() : {};
     state.clubIds = Array.isArray(udata.clubIds) ? udata.clubIds : (udata.clubId ? [udata.clubId] : []);
+    state.shareRecovery = !!udata.shareRecovery;
     state.clubId = state.clubIds[0] || null;
     if (!Array.isArray(udata.clubIds) && udata.clubId) { db.doc('users/' + user.uid).set({ clubIds: [udata.clubId] }, { merge: true }).catch(() => {}); }
     if (state.profile?.lang && LANGS[state.profile.lang]) setLang(state.profile.lang);
@@ -2813,21 +2816,44 @@ async function viewClub(el) {
   if (coach) renderCoachList($('#coachList'), c, members).catch((e) => { console.error(e); const cl = $('#coachList'); if (cl) cl.textContent = T('Could not load'); });
 }
 
+const DEFAULT_RPE_C = { match: 8, skills: 6, conditioning: 7, speed: 7, strength: 6, mobility: 3 };
+const loadOfLog = (l) => (l.status === 'skipped' || !l.status ? 0 : (l.sessionRpe || DEFAULT_RPE_C[l.type] || 6) * (l.durationMin || 0));
 async function renderCoachList(el, c, members) {
   const wk = isoWeekId();
+  const weeks = [0, 1, 2, 3, 4, 5].map((n) => isoWeekId(new Date(Date.now() - n * 7 * 864e5)));
+  const y = new Date(Date.now() - 864e5);
   const rows = await Promise.all(members.map(async (m) => {
-    let plan = null, logs = [];
+    let plan = null, all = [], rec = null;
     try { const p = await db.doc('users/' + m.uid + '/plans/' + wk).get(); plan = p.exists ? p.data() : null; } catch (_) {}
-    try { const l = await db.collection('users/' + m.uid + '/logs').where('weekId', '==', wk).get(); logs = l.docs.map((d) => d.data()); } catch (_) {}
+    try { const l = await db.collection('users/' + m.uid + '/logs').where('weekId', 'in', weeks).get(); all = l.docs.map((d) => d.data()); } catch (_) {}
+    for (const d of [dateKey(), dateKey(y)]) { try { const g = await db.doc('users/' + m.uid + '/garmin/' + d).get(); if (g.exists) { rec = g.data(); break; } } catch (_) { break; } }
+    const logs = all.filter((l) => l.weekId === wk);
     const planned = plan ? plan.sessions.filter((s) => s.type !== 'rest').length : 0;
-    const done = logs.reduce((a, l) => a + (l.status === 'done' ? 1 : l.status === 'partial' ? 0.5 : 0), 0);
-    const last = logs.sort((a, b) => (b.loggedAt || '').localeCompare(a.loggedAt || ''))[0];
-    return { m, plan, logs, planned, done, adh: planned ? Math.round((done / planned) * 100) : null, last };
+    const done = logs.filter((l) => !l.extra).reduce((a, l) => a + (l.status === 'done' ? 1 : l.status === 'partial' ? 0.5 : 0), 0);
+    const last = [...logs].sort((a, b) => (b.loggedAt || '').localeCompare(a.loggedAt || ''))[0];
+    // acute:chronic workload: the last 7 days against the average week of the 4 weeks before (independent of the weekday)
+    const now = Date.now(), ago = (l) => (now - Date.parse(l.loggedAt || 0)) / 864e5;
+    const counted = all.filter((l) => !garminTwin(l, all.filter((o) => o.weekId === l.weekId)));
+    const acute = counted.filter((l) => ago(l) < 7).reduce((a, l) => a + loadOfLog(l), 0);
+    const chronic = counted.filter((l) => ago(l) >= 7 && ago(l) < 35).reduce((a, l) => a + loadOfLog(l), 0) / 4;
+    const ratio = chronic > 0 ? Math.round((acute / chronic) * 10) / 10 : null;
+    return { m, plan, logs, planned, done, adh: planned ? Math.round((done / planned) * 100) : null, last, ratio, load: acute, usual: chronic, rec, note: plan?.weekNote || '' };
   }));
   el.className = ''; el.innerHTML = '';
-  rows.sort((a, b) => a.m.name.localeCompare(b.m.name)).forEach((r) => {
+  // team at a glance
+  const active = rows.filter((r) => r.done >= 1).length, spikes = rows.filter((r) => r.ratio != null && r.ratio >= 1.5).length, notes = rows.filter((r) => r.note).length, low = rows.filter((r) => r.rec && ((r.rec.readiness != null && r.rec.readiness < 40) || (r.rec.sleepH != null && r.rec.sleepH < 6))).length;
+  const sum = document.createElement('div'); sum.className = 'team-sum';
+  sum.innerHTML = `<div><b>${active}<small>/${rows.length}</small></b><span>${T('trained this week')}</span></div><div><b class="${spikes ? 'g-low' : ''}">${spikes}</b><span>${T('load spikes')}</span></div><div><b class="${notes ? 'g-low' : ''}">${notes}</b><span>${T('injury or notes')}</span></div><div><b class="${low ? 'g-low' : ''}">${low}</b><span>${T('poor recovery')}</span></div>`;
+  el.append(sum);
+  const rank = (r) => (r.note ? 0 : 1) + (r.ratio >= 1.5 ? 0 : 1) + (r.rec && r.rec.readiness != null && r.rec.readiness < 40 ? 0 : 1);
+  rows.sort((a, b) => rank(a) - rank(b) || a.m.name.localeCompare(b.m.name)).forEach((r) => {
     const row = document.createElement('button'); row.type = 'button'; row.className = 'member'; row.style.width = '100%'; row.style.textAlign = 'left';
-    row.innerHTML = `<div class="who"><b>${esc(r.m.name)}</b><span>${r.plan ? `${r.done}/${r.planned} ${T('sessions')}` : T('No plan this week')}${r.last ? ' · ' + esc(r.last.title) + (r.last.sessionRpe ? ' RPE ' + r.last.sessionRpe : '') : ''}</span></div>${r.adh != null ? `<div class="adh"><i style="width:${r.adh}%"></i></div><span class="small muted" style="width:36px;text-align:right">${r.adh}%</span>` : ''}<span class="chev">›</span>`;
+    const chips = [
+      r.ratio != null && r.ratio >= 1.5 ? `<span class="chip-s bad">${T('load')} ×${r.ratio}</span>` : r.ratio != null && r.ratio < 0.5 ? `<span class="chip-s">${T('low load')}</span>` : '',
+      r.note ? `<span class="chip-s bad" title="${esc(r.note)}">⚠ ${esc(r.note.slice(0, 28))}${r.note.length > 28 ? '…' : ''}</span>` : '',
+      r.rec && r.rec.readiness != null ? `<span class="chip-s ${r.rec.readiness < 40 ? 'bad' : r.rec.readiness >= 70 ? 'good' : ''}">${T('readiness')} ${r.rec.readiness}</span>` : r.rec && r.rec.sleepH ? `<span class="chip-s ${r.rec.sleepH < 6 ? 'bad' : ''}">${r.rec.sleepH} h ${T('sleep')}</span>` : '',
+    ].filter(Boolean).join('');
+    row.innerHTML = `<div class="who"><b>${esc(r.m.name)}</b><span>${r.plan ? `${r.done}/${r.planned} ${T('sessions')}` : T('No plan this week')}${r.last ? ' · ' + esc(r.last.title) + (r.last.sessionRpe ? ' RPE ' + r.last.sessionRpe : '') : ''}</span>${chips ? `<span class="chips-s">${chips}</span>` : ''}</div>${r.adh != null ? `<div class="adh"><i style="width:${r.adh}%"></i></div><span class="small muted" style="width:36px;text-align:right">${r.adh}%</span>` : ''}<span class="chev">›</span>`;
     row.onclick = () => openMember(c, r);
     el.append(row);
   });
@@ -2842,6 +2868,8 @@ async function openMember(c, r) {
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${esc(r.m.name)}</h2></div>
     <h1>${T('This week')}</h1>
+    ${r.note ? `<div class="src-note">⚠ ${esc(r.note)}</div>` : ''}
+    <div class="card"><div class="ga-tiles">${r.usual ? `<div><b class="${r.ratio >= 1.5 ? 'g-low' : ''}">${Math.round(r.load)}</b><span>${T('last 7 days')}</span></div><div><b>${Math.round(r.usual)}</b><span>${T('usual week')}</span></div>` : `<div><b>${Math.round(r.load)}</b><span>${T('last 7 days')}</span></div>`}${r.rec ? [r.rec.readiness != null ? `<div><b class="${r.rec.readiness < 40 ? 'g-low' : ''}">${r.rec.readiness}</b><span>${T('readiness')}</span></div>` : '', r.rec.sleepH ? `<div><b>${r.rec.sleepH}<small>h</small></b><span>${T('sleep')}</span></div>` : '', r.rec.hrv ? `<div><b>${r.rec.hrv}</b><span>HRV</span></div>` : ''].join('') : ''}</div>${r.ratio != null && r.ratio >= 1.5 ? `<p class="muted small" style="margin-top:8px">${T('Training a lot more than usual. Sudden jumps in load are linked to injuries; consider a lighter session.')}</p>` : ''}</div>
     ${r.plan ? `<p class="muted small"><span class="badge">${esc(r.plan.phase)}</span> &nbsp;${esc(r.plan.focus)}</p><div class="card">${[...r.plan.sessions].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0)).map((s) => { const l = logBy.get(s.day + '-' + (s.slot || 0)); const isRest = s.type === 'rest'; return `<div class="session-row ${s.day === t ? 'today' : ''}" style="cursor:default"><span class="dow">${T(DAYS[s.day])}</span><span class="main"><strong>${esc(s.title)}</strong><span>${isRest ? esc(s.intent || '') : esc(T(s.type)) + ' · ' + s.durationMin + ' ' + T('min') + (l?.sessionRpe ? ' · RPE ' + l.sessionRpe : '') + (l?.note ? ' · ' + esc(l.note) : '')}</span></span>${l ? statusHtml(l) : ''}</div>`; }).join('')}</div>` : `<div class="card"><p class="muted">${T('No plan this week')}</p></div>`}
     ${review ? `<div class="card sage"><h3>${T('Last review')} · ${esc(review.weekId)}</h3><p class="muted" style="margin-top:6px">${esc(review.summary)}</p>${review.adjustments?.length ? `<ul class="review-list">${review.adjustments.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</div>` : ''}
     <div class="card"><h3>${T('Coach note')}</h3><p class="muted small" style="margin:4px 0 10px">${T('Goes into this player\'s next weekly review as an instruction. They can read it too.')}</p><textarea class="input" id="coachNote" placeholder="${T('e.g. Add one extra throwing session, keep sprints short, knee is still sensitive')}">${esc(note)}</textarea><button class="btn" id="btnSaveNote" style="margin-top:10px">${T('Save note')}</button></div>
@@ -2927,6 +2955,7 @@ async function showInboxIfAdmin(el) {
   paintGarminCard($('#inboxCard'));
 }
 
+
 /* ---------- backup weeks: quietly ask the AI again, at most every 40 minutes ---------- */
 async function upgradeBackupSoon() {
   if (state.plan?.source !== 'template' || !planIsCurrent()) return;
@@ -3008,9 +3037,11 @@ async function paintGarminCard(host) {
     ? `<div style="flex:1;min-width:0"><div>Garmin${g.displayName ? ' · ' + esc(g.displayName) : ''}</div><span class="muted">Synced ${garminAgo(g.lastSync)}${g.lastError ? '' : ' · runs by itself every morning'}</span>${g.lastError ? `<span class="error" style="display:block">${esc(g.lastError)}</span>` : ''}
       <label class="g-push"><input type="checkbox" id="gPushOn" ${g.pushPlan !== false ? 'checked' : ''}> Put my sessions on my watch</label>
       ${g.pushPlan !== false ? '<button type="button" class="btn sm ghost" id="btnGResend" style="margin-top:6px;padding-left:0">Resend workouts to watch</button>' : ''}
+      ${(state.clubIds || []).length ? `<label class="g-push"><input type="checkbox" id="gShareRec" ${state.shareRecovery ? 'checked' : ''}> ${T('Share my recovery (sleep, HRV, readiness) with my coach')}</label>` : ''}
       ${g.pushPlan !== false && state.garminPush ? `<span class="muted small" style="display:block">${state.garminPush.pushed || 0} sent, ${state.garminPush.kept || 0} already there${state.garminPush.errors?.length ? ` · <span class="error">${esc(state.garminPush.errors[0])}</span>` : ''}</span>` : ''}</div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm secondary" id="btnGSync">Sync</button><button class="btn sm ghost" id="btnGOff" aria-label="Disconnect Garmin">✕</button></div>`
     : `<div><div>Garmin</div><span class="muted">Bring in your watch activities, sleep, HRV and readiness. Only you see this.</span></div><button class="btn sm secondary" id="btnGOn">Connect</button>`;
   if ($('#btnGOn')) $('#btnGOn').onclick = openGarminConnect;
+  if ($('#gShareRec')) $('#gShareRec').onchange = async (ev) => { const on = ev.currentTarget.checked; try { await db.doc('users/' + state.user.uid).set({ shareRecovery: on }, { merge: true }); state.shareRecovery = on; toast(on ? T('Your coach can now see your recovery') : T('Recovery is private again')); } catch (_) { ev.currentTarget.checked = !on; toast(T('Could not save.')); } };
   if ($('#btnGResend')) $('#btnGResend').onclick = (ev) => { ev.currentTarget.disabled = true; ev.currentTarget.textContent = 'Sending…'; garminPushSoon(true, { resend: true, report: true }); };
   if ($('#gPushOn')) $('#gPushOn').onchange = async (ev) => {
     const on = ev.currentTarget.checked;

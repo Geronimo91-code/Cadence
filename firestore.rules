@@ -25,6 +25,8 @@ service cloud.firestore {
       match /plans/{doc}   { allow read: if isOwner(uid) || isCoachOfAnyClub(uid); allow write: if isOwner(uid); }
       match /logs/{doc}    { allow read: if isOwner(uid) || isCoachOfAnyClub(uid); allow write: if isOwner(uid); }
       match /reviews/{doc} { allow read: if isOwner(uid) || isCoachOfAnyClub(uid); allow write: if isOwner(uid); }
+      // Garmin recovery (sleep, HRV, readiness): coaches see it only when the player switched on sharing
+      match /garmin/{doc}  { allow read: if isOwner(uid) || (isCoachOfAnyClub(uid) && get(/databases/$(database)/documents/users/$(uid)).data.shareRecovery == true); allow write: if isOwner(uid); }
       match /{document=**} { allow read, write: if isOwner(uid); }
     }
 
