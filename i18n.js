@@ -271,6 +271,9 @@ es: {
 (function () {
   const add = {
     fr: {
+    "Trying…": "Essai…",
+    "Your AI plan is ready. It replaced the backup week from today on.": "Ton plan IA est prêt. Il remplace la semaine de secours à partir d’aujourd’hui.",
+    "The AI was busy, so these are standard sessions. Cadence keeps trying in the background.": "L’IA était occupée : ce sont des séances standard. Cadence réessaie en arrière-plan.",
     "Recovery": "Récupération",
     "left": "restantes",
     "Fully recovered": "Complètement récupéré",
@@ -398,6 +401,9 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "Trying…": "Bezig…",
+    "Your AI plan is ready. It replaced the backup week from today on.": "Je AI-plan is klaar. Het vervangt de reserveweek vanaf vandaag.",
+    "The AI was busy, so these are standard sessions. Cadence keeps trying in the background.": "De AI was bezet, dit zijn standaardsessies. Cadence blijft het op de achtergrond proberen.",
     "Recovery": "Herstel",
     "left": "te gaan",
     "Fully recovered": "Volledig hersteld",
@@ -525,6 +531,9 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "Trying…": "Deneniyor…",
+    "Your AI plan is ready. It replaced the backup week from today on.": "Yapay zekâ planın hazır. Bugünden itibaren yedek haftanın yerini aldı.",
+    "The AI was busy, so these are standard sessions. Cadence keeps trying in the background.": "Yapay zekâ meşguldü; bunlar standart seanslar. Cadence arka planda denemeye devam ediyor.",
     "Recovery": "Toparlanma",
     "left": "kaldı",
     "Fully recovered": "Tamamen toparlandın",
@@ -652,6 +661,9 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "Trying…": "Intentando…",
+    "Your AI plan is ready. It replaced the backup week from today on.": "Tu plan de IA está listo. Sustituye la semana de reserva desde hoy.",
+    "The AI was busy, so these are standard sessions. Cadence keeps trying in the background.": "La IA estaba ocupada: son sesiones estándar. Cadence sigue intentándolo en segundo plano.",
     "Recovery": "Recuperación",
     "left": "restantes",
     "Fully recovered": "Totalmente recuperado",

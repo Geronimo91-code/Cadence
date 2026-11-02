@@ -1046,7 +1046,7 @@ async function api(path, body, { timeoutMs = 150000, slowMsg = T('Still working 
   const token = await auth.currentUser.getIdToken();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  const slow = setTimeout(() => toast(slowMsg), 20000);
+  const slow = slowMsg ? setTimeout(() => toast(slowMsg), 20000) : null;
   let r;
   try { r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(body || {}), signal: ctrl.signal }); }
   catch (e) { clearTimeout(slow); clearTimeout(timer); throw new Error(e.name === 'AbortError' ? T('This took too long. Try again in a minute.') : T('No connection. Check your network and try again.')); }
@@ -1185,6 +1185,7 @@ auth.onAuthStateChanged(async (user) => {
   await loadPlan();
   enterApp();
   garminBoot();
+  upgradeBackupSoon();
 });
 $('#btnObSignOut').onclick = () => auth.signOut();
 $('#btnObCancel').onclick = () => enterApp();
@@ -1729,7 +1730,7 @@ async function viewToday(el) {
   // ---- backup week: say so plainly, with a retry ----
   if (state.plan.source === 'template' && planIsCurrent()) {
     const c = document.createElement('div'); c.className = 'card todaycard amber src-card';
-    c.innerHTML = `<div style="flex:1;min-width:0"><strong>${T('Backup week')}</strong><div class="muted small">${T('The AI was busy, so these are standard sessions, not your plan.')}</div></div><button class="btn sm" id="btnSrcRetry">${T('Try again')}</button>`;
+    c.innerHTML = `<div style="flex:1;min-width:0"><strong>${T('Backup week')}</strong><div class="muted small">${T('The AI was busy, so these are standard sessions. Cadence keeps trying in the background.')}</div></div><button class="btn sm" id="btnSrcRetry">${T('Try again')}</button>`;
     el.append(c);
     $('#btnSrcRetry').onclick = () => openRebuild();
   }
@@ -2880,6 +2881,24 @@ async function showInboxIfAdmin(el) {
   el.insertAdjacentHTML('afterbegin', `<div class="card" id="inboxCard"><div class="list"><div class="li"><div><div>Admin panel</div><span class="muted">Users, activity, AI use and tester feedback.</span></div><button class="btn sm secondary" id="btnInbox">Open</button></div></div></div>`);
   $('#btnInbox').onclick = openInbox;
   paintGarminCard($('#inboxCard'));
+}
+
+/* ---------- backup weeks: quietly ask the AI again, at most every 40 minutes ---------- */
+async function upgradeBackupSoon() {
+  if (state.plan?.source !== 'template' || !planIsCurrent()) return;
+  let last = 0; try { last = Number(localStorage.getItem('cadence.upgradeTry') || 0); } catch (_) {}
+  if (Date.now() - last < 40 * 60000) return;
+  try { localStorage.setItem('cadence.upgradeTry', String(Date.now())); } catch (_) {}
+  const card = $('#btnSrcRetry'); if (card) { card.disabled = true; card.textContent = T('Trying…'); }
+  try {
+    const r = await api('/api/generate-plan', { upgrade: true }, { slowMsg: null, timeoutMs: 70000 });
+    if (r.upgraded) {
+      await loadPlan(); toast(T('Your AI plan is ready. It replaced the backup week from today on.'));
+      if (!document.querySelector('.sheet')) navigate(state.view);
+      return;
+    }
+  } catch (_) {}
+  if ($('#btnSrcRetry')) { $('#btnSrcRetry').disabled = false; $('#btnSrcRetry').textContent = T('Try again'); }
 }
 
 /* ---------- Garmin: personal link through the unofficial API, admin only ---------- */

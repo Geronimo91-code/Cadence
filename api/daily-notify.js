@@ -2,12 +2,24 @@
 import webpush from 'web-push';
 import { requireCron, db, weekId } from './_lib.js';
 import { garminSyncAll } from './_garmin.js';
+import { upgradeBackupWeek } from './generate-plan.js';
 
 export default async function handler(req, res) {
   if (!requireCron(req, res)) return;
   // Garmin first: overnight sleep and yesterday's activities are ready by now
   let garmin = null;
   try { garmin = await garminSyncAll(); } catch (e) { garmin = String(e.message || e).slice(0, 120); }
+  // Backup weeks: one quiet AI retry per morning (the function has 60 s; keep the push notifications safe)
+  const t0 = Date.now(); let upgraded = null;
+  try {
+    const wk = weekId();
+    const us = await db().collection('users').limit(200).get();
+    for (const u of us.docs) {
+      if (Date.now() - t0 > 4000) break;
+      const p = await db().doc(`users/${u.id}/plans/${wk}`).get();
+      if (p.exists && p.data().source === 'template') { const r = await upgradeBackupWeek(u.id, { deadlineMs: 25000 }); upgraded = { uid: u.id.slice(0, 6), ok: r.upgraded, reason: r.reason || null }; break; }
+    }
+  } catch (e) { upgraded = String(e.message || e).slice(0, 120); }
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_SUBJECT) {
     console.error('daily-notify: VAPID keys missing');
     return res.status(503).json({ error: 'VAPID keys missing', sent: 0 });
@@ -15,7 +27,7 @@ export default async function handler(req, res) {
   webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
 
   const users = await db().collectionGroup('push').get();
-  const run = { at: new Date().toISOString(), subscribers: users.size, sent: 0, nudged: 0, rest: 0, skipped: 0, removed: 0, failed: 0, garmin };
+  const run = { at: new Date().toISOString(), subscribers: users.size, sent: 0, nudged: 0, rest: 0, skipped: 0, removed: 0, failed: 0, garmin, upgraded };
 
   for (const subDoc of users.docs) {
     const uid = subDoc.ref.parent.parent.id;

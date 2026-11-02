@@ -11,10 +11,15 @@ export default async function handler(req, res) {
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
   if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Plan generation is not configured yet' });
 
+  const body = req.body || {};
+  // Quiet retry of a backup week: never saves a template, never counts against rebuilds
+  if (body.upgrade) {
+    if (!(await checkLimit(user.uid, 'upgrade', 30, 60))) return res.status(200).json({ upgraded: false, reason: 'limit' });
+    return res.status(200).json(await upgradeBackupWeek(user.uid, { deadlineMs: 50000 }));
+  }
   if (!(await checkLimit(user.uid, 'plan', 12, 30))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const started = Date.now();
   // one-off overrides for this rebuild; the stored profile is untouched unless the client saved it
-  const body = req.body || {};
   const id = weekId();
   // The athlete's note for this week (injury, travel...) is kept on the plan, so rebuilding the week never silently drops it.
   // An explicit empty string clears it; no note field at all keeps the one already on this week's plan.
@@ -76,4 +81,39 @@ ${planShape(id)}`;
       return res.status(busy ? 503 : 500).json({ error: busy ? 'The model is busy right now. Try again in a minute.' : 'Could not generate a plan right now', detail: String(e && e.message || e).slice(0, 300) });
     }
   }
+}
+
+
+// The current week is a backup (template) week: ask the AI again. On success, the AI's sessions replace the backup
+// from today on; days already past, and any session already logged, stay as they were. On failure nothing changes.
+export async function upgradeBackupWeek(uid, { deadlineMs = 50000 } = {}) {
+  const started = Date.now();
+  const id = weekId();
+  const ref = db().doc(`users/${uid}/plans/${id}`);
+  const cur = await ref.get();
+  if (!cur.exists || cur.data().source !== 'template') return { upgraded: false, reason: 'not a backup week' };
+  const profile = (await db().doc(`users/${uid}`).get()).data()?.profile;
+  if (!profile) return { upgraded: false, reason: 'no profile' };
+  if (cur.data().weekNote) profile.weekNote = cur.data().weekNote;
+  profile.weekNumber = (await db().collection(`users/${uid}/plans`).get()).size;
+  const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads as a percentage of effort or bodyweight/RPE (never guess kilograms unless the athlete gave a number), rest times, and short coaching cues an athlete can read on a phone at the gym or field.
+
+${PLAN_RULES}
+
+Return ONLY a JSON object with exactly this shape:
+${planShape(id)}`;
+  const history = await trainingHistoryBlock(uid);
+  let fresh;
+  try {
+    fresh = validatePlan(await callModel({ system, user: athleteBlock(profile, id) + (history ? '\n' + history : ''), maxTokens: 9000, retries: 0, deadline: started + deadlineMs }));
+  } catch (e) { return { upgraded: false, reason: String(e.message || e).slice(0, 120) }; }
+  const today = (new Date(new Date().toLocaleString('en-US', { timeZone: profile.timezone || 'Europe/Brussels' })).getDay() + 6) % 7;
+  const logs = await db().collection(`users/${uid}/logs`).where('weekId', '==', id).get();
+  const loggedDays = new Set(logs.docs.map((d) => d.data()).filter((l) => !l.extra).map((l) => l.day));
+  const keep = (d) => d < today || loggedDays.has(d);
+  const old = cur.data();
+  const sessions = [...(old.sessions || []).filter((s) => keep(s.day)), ...(fresh.sessions || []).filter((s) => !keep(s.day))].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0));
+  const plan = { ...fresh, sessions, weekId: id, createdAt: old.createdAt || new Date().toISOString(), upgradedAt: new Date().toISOString(), source: 'profile', weekNote: old.weekNote || null };
+  await ref.set(plan);
+  return { upgraded: true, fromDay: today, plan };
 }
