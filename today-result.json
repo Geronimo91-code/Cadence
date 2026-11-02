@@ -9,14 +9,14 @@
   ],
   "tabsDiag": [
     {
-      "at": "2026-11-02T14:41:57.492Z",
+      "at": "2026-11-02T14:45:37.258Z",
       "step": "done",
       "errors": [],
       "console": []
     }
   ],
   "rulesStatus": {
-    "at": "2026-11-02T14:42:07.343Z",
+    "at": "2026-11-02T14:45:45.650Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
