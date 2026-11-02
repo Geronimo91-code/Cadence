@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-10-13T12:05:13.621Z",
+    "started": "2026-11-02T14:48:49.277Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -110,25 +110,25 @@
       "first plan generated": {
         "pass": true,
         "detail": {
-          "source": "profile",
+          "source": "template",
           "sessions": 7,
           "real": 3,
           "days": 7,
-          "rationale": "As week 1 of a new block focused on speed, the priority is learning proper acceleration mechanics and sprint posture while building a strength foundation. Sessions are kept tight to 30 minutes with low movement volume so you can focus on quality and power output without excess fatigue. Strength work",
+          "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
           "titles": [
-            "0:speed:Acceleration & Speed Mechanics",
-            "1:rest:Rest & Recovery",
-            "2:strength:Lower Power & Core Support",
-            "3:rest:Rest & Recovery",
-            "4:speed:Elastic Power & Sprint Top Speed",
-            "5:rest:Rest & Recovery",
-            "6:rest:Rest & Recovery"
+            "0:speed:Speed and acceleration",
+            "1:rest:Rest",
+            "2:strength:Full-body strength",
+            "3:rest:Rest",
+            "4:conditioning:Conditioning",
+            "5:rest:Rest",
+            "6:rest:Rest"
           ]
         }
       },
       "first plan is AI-made (not template)": {
-        "pass": true,
-        "detail": "profile"
+        "pass": false,
+        "detail": "template"
       },
       "plan covers 7 days": {
         "pass": true,
@@ -143,9 +143,8 @@
             "DIV",
             "card",
             "card todaycard",
+            "card todaycard amber src-card",
             "card todaycard nextup",
-            "card todaycard",
-            "quick",
             "card todaycard"
           ]
         }
@@ -157,12 +156,14 @@
       "how-to with photos and muscle map": {
         "pass": true,
         "detail": {
-          "exercises": 4,
+          "exercises": 6,
           "withPhotos": 2,
           "withMap": 2,
           "missing": [
+            "Leg swings",
             "Sprint 10 m",
-            "Sprint 20 m"
+            "Sprint 20 m",
+            "Sprint 30 m"
           ]
         }
       },
@@ -196,11 +197,11 @@
       },
       "nutrition meal added": {
         "pass": true,
-        "detail": null
+        "detail": "nutrition off (default for new users)"
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeXE4CGNCopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite code5QUX98CopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -254,18 +255,15 @@
       }
     },
     "timings": {
-      "landing load": 220,
-      "sign-up": 1914,
-      "save setup": 869,
-      "first plan": 11932,
-      "save session": 420,
-      "rebuild": 10933
+      "landing load": 252,
+      "sign-up": 1917,
+      "save setup": 866,
+      "first plan": 42989,
+      "save session": 441,
+      "rebuild": 28972
     },
     "errors": [],
-    "console": [
-      "Failed to load resource: the server responded with a status of 404 ()",
-      "Failed to load resource: the server responded with a status of 400 ()"
-    ],
+    "console": [],
     "notes": [],
     "onboardingSteps": [
       "Let's start with you",
@@ -278,56 +276,58 @@
       "Here is your setup"
     ],
     "firstPlan": {
-      "source": "profile",
+      "source": "template",
       "sessions": 7,
       "real": 3,
       "days": 7,
-      "rationale": "As week 1 of a new block focused on speed, the priority is learning proper acceleration mechanics and sprint posture while building a strength foundation. Sessions are kept tight to 30 minutes with low movement volume so you can focus on quality and power output without excess fatigue. Strength work",
+      "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
       "titles": [
-        "0:speed:Acceleration & Speed Mechanics",
-        "1:rest:Rest & Recovery",
-        "2:strength:Lower Power & Core Support",
-        "3:rest:Rest & Recovery",
-        "4:speed:Elastic Power & Sprint Top Speed",
-        "5:rest:Rest & Recovery",
-        "6:rest:Rest & Recovery"
+        "0:speed:Speed and acceleration",
+        "1:rest:Rest",
+        "2:strength:Full-body strength",
+        "3:rest:Rest",
+        "4:conditioning:Conditioning",
+        "5:rest:Rest",
+        "6:rest:Rest"
       ]
     },
     "howto": {
-      "exercises": 4,
+      "exercises": 6,
       "withPhotos": 2,
       "withMap": 2,
       "missing": [
+        "Leg swings",
         "Sprint 10 m",
-        "Sprint 20 m"
+        "Sprint 20 m",
+        "Sprint 30 m"
       ]
     },
     "rebuiltPlan": {
       "source": "profile",
       "note": "Left ankle sprain, no jumping this week",
-      "rationale": "Due to your left ankle sprain, all jumps (broad jumps, pogo hops) and dynamic sprinting are completely removed this week to protect the joint. We focus on low-impact acceleration wall drills, stationary strength movements, and stationary bike intervals to keep your speed base and conditioning strong safely. Work sessions fit your 30-minute target on Monday, Wednesday, and Friday.",
+      "rationale": "Per your explicit instructions, all jumping, dynamic bounds, and running drills have been removed this week to protect your left ankle sprain. We are focusing on sprint posture wall drills, impact-free bike conditioning, and solid seated/controlled strength work to keep building your athletic base safely within 30-minute sessions. As a beginner, keeping movements stable and controlled will maintai",
       "titles": [
-        "0:speed:Speed Mechanics & Lower Strength",
-        "1:rest:Rest Day",
-        "2:strength:Upper Body Push & Pull",
-        "3:rest:Rest Day",
-        "4:conditioning:Posterior Chain & Conditioning",
-        "5:rest:Rest Day",
-        "6:rest:Rest Day"
+        "0:speed:Speed Drive & Ankle-Safe Lower",
+        "1:rest:Rest",
+        "2:conditioning:Upper Body & Conditioning",
+        "3:rest:Rest",
+        "4:strength:Posterior Chain & Core",
+        "5:rest:Rest",
+        "6:rest:Rest"
       ],
       "exercises": [
         "Acceleration wall drill",
         "Goblet squat",
-        "Single-leg RDL",
+        "Romanian deadlift",
         "Pallof press",
         "Dumbbell shoulder press",
-        "Seated cable row",
+        "Dumbbell row",
+        "Assault bike sprints",
+        "Plank",
+        "Glute bridge",
         "Push-up",
-        "Dead bug",
-        "Bike intervals",
-        "Romanian deadlift",
         "Lat pulldown",
-        "Plank"
+        "Dead bug"
       ]
     },
     "club": {
@@ -338,6 +338,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-10-13T12:06:25.405Z"
+    "finished": "2026-11-02T14:50:50.626Z"
   }
 }
