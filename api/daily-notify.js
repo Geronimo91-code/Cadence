@@ -50,7 +50,8 @@ export default async function handler(req, res) {
           if (sub.skipRestDays) outcome = 'skipped: rest day';
           else { payload = { title: 'Rest day', body: 'Recover well. Tomorrow is coming.', url: '/' }; outcome = 'sent: rest day'; }
         } else if (real.length === 1) {
-          payload = { title: `Today: ${real[0].title}`, body: `${real[0].durationMin} min · ${(real[0].exercises || []).length} exercises`, url: `/?session=${plan.weekId}-${real[0].day}-${real[0].slot || 0}` };
+          const ez = real[0].eased && String(real[0].eased.at || '').slice(0, 10) === new Date().toISOString().slice(0, 10) ? real[0].eased : null;
+          payload = { title: `Today: ${real[0].title}`, body: ez ? `Your watch says: ${ez.reason}. Today is lighter (${real[0].durationMin} min). Tap to keep the original instead.` : `${real[0].durationMin} min · ${(real[0].exercises || []).length} exercises`, url: `/?session=${plan.weekId}-${real[0].day}-${real[0].slot || 0}` };
           outcome = 'sent: ' + real[0].title;
         } else {
           payload = { title: `Today: ${real.length} sessions`, body: real.map((x) => `${x.timeOfDay || ''} ${x.title}`.trim()).join(' · '), url: '/' };

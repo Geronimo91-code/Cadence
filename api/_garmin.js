@@ -260,6 +260,7 @@ export async function garminSync(uid, { force = false, days = 3 } = {}) {
     const since = ymd(new Date(Date.now() - days * 86400000));
     result.activities = await syncActivities(tok, uid, since);
     for (let i = Math.min(days, 7) - 1; i >= 0; i--) { await syncDay(tok, uid, ymd(new Date(Date.now() - i * 86400000))); result.days++; }
+    try { result.eased = await easeToday(uid); } catch (e) { console.error('easeToday', e.message); }
     const lastSync = new Date().toISOString();
     await saveTok(uid, tok, { lastSync, lastError: null });
     return { ...publicStatus({ ...d, lastSync, lastError: null }), ...result };
@@ -448,3 +449,65 @@ export async function garminPushPlan(uid, { force = false } = {}) {
 }
 
 export async function garminSetPush(uid, on) { await authRef(uid).set({ pushPlan: !!on }, { merge: true }); return { pushPlan: !!on }; }
+
+// ---------------- Morning check: ease today's hard session when the watch says recovery is poor ----------------
+const EASE_TEXT = {
+  en: { prefix: 'Easy', why: (r) => `Eased this morning: ${r}`, easy: 'easy, zone 2, you can talk', light: '~10% lighter, RPE 6' },
+  fr: { prefix: 'Léger', why: (r) => `Allégé ce matin : ${r}`, easy: 'facile, zone 2, tu peux parler', light: '~10 % plus léger, RPE 6' },
+  nl: { prefix: 'Rustig', why: (r) => `Vanochtend lichter gemaakt: ${r}`, easy: 'rustig, zone 2, je kunt praten', light: '~10% lichter, RPE 6' },
+  tr: { prefix: 'Hafif', why: (r) => `Bu sabah hafifletildi: ${r}`, easy: 'hafif, bölge 2, konuşabilirsin', light: '~%10 daha hafif, RPE 6' },
+  es: { prefix: 'Suave', why: (r) => `Aligerada esta mañana: ${r}`, easy: 'suave, zona 2, puedes hablar', light: '~10 % más ligero, RPE 6' },
+};
+export function recoveryVerdict(g, now = Date.now()) {
+  if (!g) return null;
+  const recH = g.recoveryMin != null ? Math.max(0, Math.round(g.recoveryMin / 60 - (g.recoveryAt ? (now - Date.parse(g.recoveryAt)) / 3600000 : 0))) : null;
+  const bits = [];
+  if (g.readiness != null && g.readiness < 40) bits.push(`readiness ${g.readiness}`);
+  if (recH != null && recH >= 24) bits.push(`${recH} h recovery left`);
+  if (g.readiness == null && g.sleepH != null && g.sleepH < 5.5) bits.push(`${g.sleepH} h sleep`);
+  return bits.length ? { reason: bits.join(', '), recH } : null;
+}
+export function easedVersion(s, lang = 'en', reason = '') {
+  const tx = EASE_TEXT[lang] || EASE_TEXT.en;
+  const original = { title: s.title, exercises: s.exercises, durationMin: s.durationMin, intent: s.intent, type: s.type };
+  let exercises;
+  if (s.type === 'strength') {
+    exercises = (s.exercises || []).map((e) => {
+      const kg = String(e.load || '').match(/(\d+(?:[.,]\d+)?)\s*kg/i);
+      return { ...e, sets: Math.max(2, (Number(e.sets) || 3) - 1), load: kg ? `${Math.round((Number(kg[1].replace(',', '.')) * 0.9) / 2.5) * 2.5} kg` : tx.light };
+    });
+  } else {
+    exercises = [
+      { name: 'Easy run', sets: 1, reps: `${Math.max(20, Math.round((s.durationMin || 45) * 0.5))} min`, load: tx.easy, restSec: 0, cues: '' },
+      ...['Hip flexor stretch', "World's greatest stretch", 'Hamstring stretch'].map((name) => ({ name, sets: 2, reps: '45 s', load: tx.easy, restSec: 15, cues: '' })),
+    ];
+  }
+  return {
+    ...s, title: `${tx.prefix}: ${s.title}`.slice(0, 80), type: s.type === 'strength' ? 'strength' : 'conditioning',
+    durationMin: Math.max(30, Math.round((s.durationMin || 45) * 0.7)), intent: tx.why(reason), exercises,
+    eased: { reason, at: new Date().toISOString(), original },
+  };
+}
+export async function easeToday(uid) {
+  const tz = 'Europe/Brussels';
+  const date = new Date().toLocaleDateString('sv-SE', { timeZone: tz });
+  const wk = weekId(new Date(date + 'T12:00:00'));
+  const day = dayIndex(date);
+  const g = (await db().doc(`users/${uid}/garmin/${date}`).get()).data();
+  const v = recoveryVerdict(g);
+  if (!v) return null;
+  const ref = db().doc(`users/${uid}/plans/${wk}`);
+  const p = await ref.get(); if (!p.exists) return null;
+  const plan = p.data();
+  const lang = (await db().doc(`users/${uid}`).get()).data()?.profile?.lang || 'en';
+  let changed = null;
+  for (let i = 0; i < (plan.sessions || []).length; i++) {
+    const s = plan.sessions[i];
+    if (s.day !== day || s.fixed || s.eased || s.keepOriginal || !['strength', 'speed', 'conditioning'].includes(s.type)) continue;
+    if ((await db().doc(`users/${uid}/logs/${sessionKey(wk, day, s.slot || 0)}`).get()).exists) continue;
+    plan.sessions[i] = easedVersion(s, lang, v.reason);
+    changed = { title: plan.sessions[i].title, reason: v.reason };
+  }
+  if (changed) await ref.set(plan);
+  return changed;
+}

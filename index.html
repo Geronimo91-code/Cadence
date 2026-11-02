@@ -2084,6 +2084,7 @@ function openSession(raw, weekIdOverride, logOverride) {
 
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T(DAYS[sess.day])}${wk !== isoWeekId() ? ' · ' + weekLabel(wk) : ''}</h2></div>
+    ${sess.eased && !existing ? `<button type="button" class="btn sm secondary" id="btnUnease" style="margin:0 0 12px">↺ ${T('Use the original session')}</button>` : ''}
     ${existing?.garmin?.id && state.isAdmin ? `<button type="button" class="btn secondary sm" id="btnWatchData" style="margin:0 0 12px">♥ ${T('Watch data')}</button>` : ''}
     ${(state.plans || []).find((x) => x.weekId === wk)?.source === 'template' ? `<div class="src-note">${T('Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.')}</div>` : ''}
     <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(T(sess.type))}">${esc(T(sess.type))}${sess.fixed ? ' · fixed' : ''}</span><span id="sheetStatus">${statusHtml(existing)}</span></div>
@@ -2111,6 +2112,17 @@ function openSession(raw, weekIdOverride, logOverride) {
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') history.back(); });
   registerSheet(close);
+  if ($('#btnUnease', sheet)) $('#btnUnease', sheet).onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true;
+    try {
+      const plan = state.plans.find((x) => x.weekId === wk) || state.plan;
+      const i = plan.sessions.findIndex((x) => x.day === sess.day && (x.slot || 0) === (sess.slot || 0));
+      const orig = plan.sessions[i].eased.original;
+      plan.sessions[i] = { ...plan.sessions[i], ...orig, eased: null, keepOriginal: true };
+      await db.doc('users/' + state.user.uid + '/plans/' + wk).set(plan);
+      history.back(); await loadPlan(wk); toast(T('Back to the original session')); navigate(state.view);
+    } catch (e) { b.disabled = false; toast(T('Could not send. Check your connection and try again.')); }
+  };
   if ($('#btnWatchData', sheet)) $('#btnWatchData', sheet).onclick = () => openGarminActivity(null, existing);
 
   // ---- exercise rows with set inputs (editable: swap, add, remove) ----
@@ -2174,7 +2186,7 @@ function openSession(raw, weekIdOverride, logOverride) {
 
   const save = async (btn, skipped) => {
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
-    const rec = { weekId: wk, day: sess.day, slot: sess.slot || 0, readiness: draft.readiness || null, title: sess.title, type: sess.type, loggedAt: existing?.loggedAt || new Date().toISOString(), updatedAt: new Date().toISOString(), note: $('#logNote', sheet).value.trim() };
+    const rec = { weekId: wk, day: sess.day, slot: sess.slot || 0, readiness: draft.readiness || null, title: sess.title, type: sess.type, eased: !!sess.eased, loggedAt: existing?.loggedAt || new Date().toISOString(), updatedAt: new Date().toISOString(), note: $('#logNote', sheet).value.trim() };
     if (skipped) { Object.assign(rec, { status: 'skipped', exercises: null, durationMin: 0, sessionRpe: null, setsDone: 0, setsTotal: 0 }); }
     else {
       const total = draft.exercises.reduce((a, x) => a + x.sets.length, 0);
