@@ -1737,11 +1737,13 @@ async function viewToday(el) {
   // ---- last night, from the Garmin watch (only when linked) ----
   if (state.garminDay && planIsCurrent()) {
     const g = state.garminDay;
+    const recH = g.recoveryMin != null ? Math.max(0, Math.round(g.recoveryMin / 60 - (g.recoveryAt ? (Date.now() - Date.parse(g.recoveryAt)) / 3600000 : 0))) : null;
+    const nice = (v) => String(v || '').toLowerCase().replace(/_/g, ' ');
     const bits = [g.sleepH ? `<div><b>${g.sleepH}<small>h</small></b><span>${T('sleep')}${g.sleepScore ? ' · ' + g.sleepScore : ''}</span></div>` : '', g.hrv ? `<div><b>${g.hrv}</b><span>HRV</span></div>` : '', g.restingHr ? `<div><b>${g.restingHr}</b><span>${T('resting HR')}</span></div>` : '', g.readiness != null ? `<div><b class="${g.readiness < 40 ? 'g-low' : g.readiness >= 70 ? 'g-high' : ''}">${g.readiness}</b><span>${T('readiness')}</span></div>` : g.bodyBattery != null ? `<div><b class="${g.bodyBattery < 30 ? 'g-low' : g.bodyBattery >= 70 ? 'g-high' : ''}">${g.bodyBattery}</b><span>${T('body battery')}</span></div>` : ''].filter(Boolean).slice(0, 4);
     if (bits.length) {
       const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '5';
-      const low = (g.readiness != null && g.readiness < 40) || (g.sleepH && g.sleepH < 6) || (g.readiness == null && g.bodyBattery != null && g.bodyBattery < 30);
-      c.innerHTML = `<div class="muted small" style="font-weight:600;margin-bottom:6px">${g.isToday ? T('Last night') : T('Night before')} · Garmin</div><div class="wk-stats" style="grid-template-columns:repeat(${bits.length},minmax(0,1fr))">${bits.join('')}</div>${low && realToday.length ? `<div class="muted small" style="margin-top:8px">${T('Low recovery: keep today easy, or drop a set or two.')}</div>` : ''}`;
+      const low = (g.readiness != null && g.readiness < 40) || (g.sleepH && g.sleepH < 6) || (recH != null && recH >= 24) || (g.readiness == null && g.bodyBattery != null && g.bodyBattery < 30);
+      c.innerHTML = `<div class="muted small" style="font-weight:600;margin-bottom:6px">${g.isToday ? T('Last night') : T('Night before')} · Garmin</div><div class="wk-stats" style="grid-template-columns:repeat(${bits.length},minmax(0,1fr))">${bits.join('')}</div>${recH != null || g.readinessNote ? `<div class="muted small" style="margin-top:8px">${recH != null ? (recH ? `${T('Recovery')}: ${recH} h ${T('left')}` : T('Fully recovered')) : ''}${recH != null && g.readinessNote ? ' · ' : ''}${g.readinessNote ? esc(nice(g.readinessNote)) : ''}</div>` : ''}${low && realToday.length ? `<div class="muted small" style="margin-top:8px">${T('Low recovery: keep today easy, or drop a set or two.')}</div>` : ''}`;
       el.append(c);
     }
   }

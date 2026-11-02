@@ -204,7 +204,8 @@ async function syncDay(tok, uid, date) {
     safe(call(tok, `/metrics-service/metrics/trainingreadiness/${date}`)),
   ]);
   const s = sleep?.dailySleepDTO || {};
-  const r = Array.isArray(ready) ? ready[0] : ready;
+  // several snapshots a day (wake-up, after activities): the latest one is current
+  const r = Array.isArray(ready) ? [...ready].sort((x, y) => String(y.timestamp || '').localeCompare(String(x.timestamp || '')))[0] : ready;
   const out = {
     date,
     sleepH: s.sleepTimeSeconds ? round1(s.sleepTimeSeconds / 3600) : null,
@@ -214,7 +215,11 @@ async function syncDay(tok, uid, date) {
     hrvStatus: hrv?.hrvSummary?.status ?? sleep?.hrvStatus ?? null,
     bodyBattery: sum?.bodyBatteryHighestValue ?? null,
     stress: sum?.averageStressLevel > 0 ? sum.averageStressLevel : null,
-    readiness: r?.score ?? null, readinessLevel: r?.level ?? null,
+    readiness: r?.score ?? null, readinessLevel: r?.level ?? null, readinessNote: r?.feedbackShort ?? null,
+    // recovery time is in minutes as of the snapshot; Garmin keeps the old number once it has run down (REACHED_ZERO)
+    recoveryMin: r ? (r.recoveryTimeChangePhrase === 'REACHED_ZERO' ? 0 : r.recoveryTime ?? null) : null,
+    recoveryAt: r?.timestamp ? String(r.timestamp).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(r.timestamp) ? '' : 'Z') : null,
+    readinessFactors: r ? { sleep: r.sleepScoreFactorFeedback || null, recovery: r.recoveryTimeFactorFeedback || null, hrv: r.hrvFactorFeedback || null, load: r.acwrFactorFeedback || null, stress: r.stressHistoryFactorFeedback || null } : null,
     steps: sum?.totalSteps ?? null,
     syncedAt: new Date().toISOString(),
   };

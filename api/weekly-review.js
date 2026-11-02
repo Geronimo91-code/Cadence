@@ -135,6 +135,8 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
       const parts = [avg('sleepH') != null && `sleep ${avg('sleepH')} h/night`, avg('sleepScore') != null && `sleep score ${avg('sleepScore')}`, avg('restingHr') != null && `resting HR ${avg('restingHr')}`, avg('hrv') != null && `overnight HRV ${avg('hrv')} ms`, avg('readiness') != null && `training readiness ${avg('readiness')}/100`].filter(Boolean);
       const low = gd.filter((x) => (x.readiness != null && x.readiness < 40) || (x.sleepH != null && x.sleepH < 6)).map((x) => DAY_NAMES[(new Date(x.date + 'T00:00:00Z').getUTCDay() + 6) % 7]);
       const status = gd.map((x) => x.hrvStatus).filter(Boolean).pop();
+      const rec = gd.filter((x) => typeof x.recoveryMin === 'number').map((x) => Math.round(x.recoveryMin / 60));
+      if (rec.length) parts.push(`Garmin recovery time at wake-up ${rec.join(', ')} h (Mon→Sun, of the days with data)`);
       if (parts.length) recoveryLine = `Recovery from the athlete's Garmin watch (${gd.length} of 7 nights): ${parts.join(', ')}${status ? `; latest HRV status ${status}` : ''}${low.length ? `; poor recovery on ${low.join(', ')}` : ''}. Use it with the RPEs: poor sleep or low readiness with high RPE means ease off.`;
     }
   } catch (_) {}

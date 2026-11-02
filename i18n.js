@@ -271,6 +271,9 @@ es: {
 (function () {
   const add = {
     fr: {
+    "Recovery": "Récupération",
+    "left": "restantes",
+    "Fully recovered": "Complètement récupéré",
     "body battery": "body battery",
     "Details": "Détails",
     "Watch data": "Données de la montre",
@@ -395,6 +398,9 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "Recovery": "Herstel",
+    "left": "te gaan",
+    "Fully recovered": "Volledig hersteld",
     "body battery": "body battery",
     "Details": "Details",
     "Watch data": "Horlogedata",
@@ -519,6 +525,9 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "Recovery": "Toparlanma",
+    "left": "kaldı",
+    "Fully recovered": "Tamamen toparlandın",
     "body battery": "body battery",
     "Details": "Detaylar",
     "Watch data": "Saat verileri",
@@ -643,6 +652,9 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "Recovery": "Recuperación",
+    "left": "restantes",
+    "Fully recovered": "Totalmente recuperado",
     "body battery": "body battery",
     "Details": "Detalles",
     "Watch data": "Datos del reloj",
