@@ -9,14 +9,23 @@
   ],
   "tabsDiag": [
     {
-      "at": "2026-11-02T14:11:55.007Z",
+      "at": "2026-11-02T14:16:07.606Z",
+      "step": "sign in",
+      "errors": [],
+      "console": [
+        "Failed to load resource: the server responded with a status of 503 ()"
+      ],
+      "failure": "\u001b[31mTimed out 30000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#app:not(.hidden), #onboarding:not(.hidden)').first()\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n  \u001b[2m- expect.toBeVisible with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for locator('#app:not(.hidden), #onboarding:not(.hidden)').first()\u001b[22m\n"
+    },
+    {
+      "at": "2026-11-02T14:16:38.778Z",
       "step": "done",
       "errors": [],
       "console": []
     }
   ],
   "rulesStatus": {
-    "at": "2026-11-02T14:12:07.851Z",
+    "at": "2026-11-02T14:16:50.735Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
