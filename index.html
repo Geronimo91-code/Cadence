@@ -2960,6 +2960,7 @@ async function garminBoot() {
     if (!r.connected) return;
     await loadGarminDay();
     if (r.activities > 0) await reloadWeekLogs();
+    if (r.eased) { await loadPlan(state.plan?.weekId); toast(T('Today is lighter: ') + r.eased.reason); }
     garminPushSoon();
     if (['today', 'plan'].includes(state.view) && !document.querySelector('.sheet')) navigate(state.view);
     else if (state.view === 'profile') paintGarminCard($('#inboxCard'));

@@ -271,6 +271,7 @@ es: {
 (function () {
   const add = {
     fr: {
+    "Today is lighter: ": "Séance allégée aujourd’hui : ",
     "Use the original session": "Garder la séance d’origine",
     "Back to the original session": "Retour à la séance d’origine",
     "Trying…": "Essai…",
@@ -403,6 +404,7 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "Today is lighter: ": "Vandaag lichter: ",
     "Use the original session": "Originele sessie gebruiken",
     "Back to the original session": "Terug naar de originele sessie",
     "Trying…": "Bezig…",
@@ -535,6 +537,7 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "Today is lighter: ": "Bugün daha hafif: ",
     "Use the original session": "Orijinal seansı kullan",
     "Back to the original session": "Orijinal seansa dönüldü",
     "Trying…": "Deneniyor…",
@@ -667,6 +670,7 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "Today is lighter: ": "Hoy más ligero: ",
     "Use the original session": "Usar la sesión original",
     "Back to the original session": "Vuelta a la sesión original",
     "Trying…": "Intentando…",
