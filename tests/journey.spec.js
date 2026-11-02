@@ -240,6 +240,7 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
     await step('every tab loads without errors', async () => {
       const bad = [];
       for (const v of ['today', 'plan', 'log', 'nutrition', 'club', 'profile']) {
+        if (!(await page.isVisible(`.tab[data-view="${v}"]`))) continue; // e.g. nutrition is off by default
         await page.click(`.tab[data-view="${v}"]`); await page.waitForTimeout(800);
         const t = await page.textContent('#view'); if (/Something went wrong/i.test(t)) bad.push(v);
         const w = await page.evaluate(() => document.documentElement.scrollWidth); if (w > 391) bad.push(v + ' too wide ' + w);

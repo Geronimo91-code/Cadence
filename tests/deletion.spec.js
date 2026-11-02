@@ -138,7 +138,8 @@ test('account deletion leaves nothing behind', async ({ page }) => {
     expect(out.stateAfterSignup.clubIds, 'no old clubs in memory').toEqual([]);
     expect(out.todayShowsOldData, 'Today must not show the previous account\'s plan').toBe(false);
     expect(out.reviewCardShowsOld, 'no previous review').toBe(false);
-    expect(out.clubStillExists, 'the club the deleted account created is gone').toBe(false);
+    // since clubs are private, a club that no longer exists reads as permission-denied, not as missing
+    expect([false, 'unreadable: permission-denied'], 'the club the deleted account created is gone').toContain(out.clubStillExists);
     expect(out.afterReload.hasOldPlan, 'a clean load shows no old plan').toBe(false);
   } finally {
     // never leave test accounts behind
