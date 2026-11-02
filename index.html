@@ -757,6 +757,11 @@ a.btn { text-decoration: none; }
 .g-wait{text-align:center;margin-top:16px}
 .g-push{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.9rem}.g-push input{width:18px;height:18px;accent-color:var(--accent,currentColor)}
 .src-card{display:flex;align-items:center;gap:12px}.src-note{font-size:.85rem;padding:8px 12px;border-radius:10px;background:rgba(232,160,32,.16);margin:0 0 12px}
+.ga-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 8px;text-align:center}.ga-tiles b{display:block;font:700 1.35rem var(--font-display);color:var(--ink)}.ga-tiles b small{font-size:.8rem;color:var(--ink-3)}.ga-tiles span{font-size:.75rem;color:var(--ink-2)}
+.ga-te{display:grid;gap:12px;margin-top:8px}.ga-te>div{display:grid;grid-template-columns:90px 36px 1fr;align-items:center;gap:8px;position:relative}.ga-te span{font-size:.85rem;color:var(--ink-2)}.ga-te b{font:700 1.1rem var(--font-display)}.ga-te i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,#4a90d9,#3aa76d,#e8a020,#d9534f)}.ga-te small{grid-column:3;font-size:.75rem;color:var(--ink-3);margin-top:-6px}
+.ga-chart{display:block;margin-top:8px;overflow:visible}.ga-chart text{font-size:10px;fill:var(--ink-3)}
+.ga-zone{display:grid;grid-template-columns:62px 1fr 54px;align-items:center;gap:8px;margin-top:8px;font-size:.85rem}.ga-zone>div{height:10px;border-radius:5px;background:rgba(127,127,127,.15);overflow:hidden}.ga-zone i{display:block;height:100%;border-radius:5px}.ga-zone b{text-align:right;font-weight:600}.ga-zone small{color:var(--ink-3)}
+.ga-laps{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:6px}.ga-laps th{text-align:left;color:var(--ink-3);font-weight:600;padding:4px}.ga-laps td{padding:5px 4px;border-top:1px solid var(--line,rgba(127,127,127,.2))}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1555,8 +1560,10 @@ let exHistory = null;
 let streakCache = null;
 // A Garmin recording on the same day and of the same kind as a logged planned session is that session: count it once (mirrors weekly-review)
 function garminTwin(l, all) {
-  if (l.source !== 'garmin') return false;
-  const same = (a, b) => a === b || (['conditioning', 'speed'].includes(a) && ['conditioning', 'speed'].includes(b));
+  if (l.linkedTo) return true;
+  if (l.source !== 'garmin' || !l.extra) return false;
+  const fam = (t) => (['conditioning', 'speed'].includes(t) ? 'run' : ['skills', 'match'].includes(t) ? 'team' : t);
+  const same = (a, b) => fam(a) === fam(b);
   return all.some((o) => !o.extra && o.weekId === l.weekId && o.day === l.day && o.status && o.status !== 'skipped' && same(o.type, l.type));
 }
 async function getStreak() {
@@ -1919,14 +1926,15 @@ function viewPlan(el) {
   }
   el.append(card);
   if (!planIsFuture()) {
-    const extras = Object.entries(state.logs).filter(([, l]) => l.extra && l.weekId === p.weekId && !l.hidden).sort((a, b) => (a[1].day || 0) - (b[1].day || 0));
+    const extras = Object.entries(state.logs).filter(([, l]) => l.extra && l.weekId === p.weekId && !l.hidden && !l.linkedTo).sort((a, b) => (a[1].day || 0) - (b[1].day || 0));
     const box = document.createElement('div'); box.className = 'card';
     box.innerHTML = `<h3 style="margin-bottom:4px">${T('Extra this week')}</h3>` + (extras.length
-      ? extras.map(([k, l]) => `<div class="extra-row"><div><strong>${esc(l.title)}</strong>${l.source === 'garmin' ? ' <span class="g-tag">Garmin</span>' : ''}<div class="muted small">${T(DAYS[l.day])} · ${l.durationMin} ${T('min')}${l.garmin?.distanceKm ? ' · ' + l.garmin.distanceKm + ' km' : ''}${l.garmin?.avgHr ? ' · ♥ ' + l.garmin.avgHr : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}</div></div><button type="button" class="btn ghost sm" data-del="${esc(k)}">${T('Remove')}</button></div>`).join('')
+      ? extras.map(([k, l]) => `<div class="extra-row"><div><strong>${esc(l.title)}</strong>${l.source === 'garmin' ? ' <span class="g-tag">Garmin</span>' : ''}<div class="muted small">${T(DAYS[l.day])} · ${l.durationMin} ${T('min')}${l.garmin?.distanceKm ? ' · ' + l.garmin.distanceKm + ' km' : ''}${l.garmin?.avgHr ? ' · ♥ ' + l.garmin.avgHr : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}</div></div>${l.source === 'garmin' ? `<button type="button" class="btn ghost sm" data-gact="${esc(k)}">${T('Details')}</button>` : ''}<button type="button" class="btn ghost sm" data-del="${esc(k)}">${T('Remove')}</button></div>`).join('')
       : `<p class="muted small">${T("Games, tournaments, pick-up or a run that wasn't in the plan. Logging them keeps next week's plan honest.")}</p>`) +
       `<button class="btn secondary" id="btnExtra" style="margin-top:10px">+ ${T('Log something extra')}</button>`;
     el.append(box);
     $('#btnExtra').onclick = () => openExtra();
+    $$('[data-gact]', box).forEach((b) => { b.onclick = () => openGarminActivity(b.dataset.gact, state.logs[b.dataset.gact]); });
     $$('[data-del]', box).forEach((b) => { b.onclick = async () => {
       if (!confirm(T('Remove') + '?')) return;
       try {
@@ -2073,6 +2081,7 @@ function openSession(raw, weekIdOverride, logOverride) {
 
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T(DAYS[sess.day])}${wk !== isoWeekId() ? ' · ' + weekLabel(wk) : ''}</h2></div>
+    ${existing?.garmin?.id && state.isAdmin ? `<button type="button" class="btn secondary sm" id="btnWatchData" style="margin:0 0 12px">♥ ${T('Watch data')}</button>` : ''}
     ${(state.plans || []).find((x) => x.weekId === wk)?.source === 'template' ? `<div class="src-note">${T('Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.')}</div>` : ''}
     <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(T(sess.type))}">${esc(T(sess.type))}${sess.fixed ? ' · fixed' : ''}</span><span id="sheetStatus">${statusHtml(existing)}</span></div>
     <h1>${esc(sess.title)}</h1>
@@ -2099,6 +2108,7 @@ function openSession(raw, weekIdOverride, logOverride) {
   $('#btnCloseSheet', sheet).onclick = () => history.back();
   sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') history.back(); });
   registerSheet(close);
+  if ($('#btnWatchData', sheet)) $('#btnWatchData', sheet).onclick = () => openGarminActivity(null, existing);
 
   // ---- exercise rows with set inputs (editable: swap, add, remove) ----
   // readiness: adjusts today's session on the spot and goes into the weekly review
@@ -2495,15 +2505,16 @@ async function viewLog(el) {
   };
   try {
     const lq = await db.collection('users/' + state.user.uid + '/logs').orderBy('loggedAt', 'desc').limit(40).get();
-    const logs = lq.docs.map((d) => d.data());
+    const logs = lq.docs.map((d) => ({ ...d.data(), _id: d.id })).filter((l) => !l.linkedTo && !l.hidden);
     if (!logs.length) { hist.innerHTML = `<div class="empty"><h3>${T('Nothing logged yet')}</h3><p>${T('Open today\'s session and tap Log this session when you\'re done.')}</p></div>`; return; }
     const weeksDone = logs.filter((l) => l.status !== 'skipped').length;
     hist.innerHTML = `<h3>${T('Sessions')}</h3><div class="muted small">${weeksDone} completed · ${logs.length - weeksDone} skipped (last ${logs.length})</div>`;
     logs.forEach((l) => {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'log-item';
       const d = new Date(l.loggedAt);
-      row.innerHTML = `<span class="d">${T(DAYS[l.day])}<br>${d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })}</span><span class="m"><strong>${esc(l.title)}</strong><span>${l.replacedWith ? '↷ ' + esc(l.replacedWith) + ' · ' : ''}${esc(T(l.type))}${l.setsTotal ? ' · ' + l.setsDone + '/' + l.setsTotal + ' sets' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}${l.note ? ' · ' + esc(l.note) : ''}</span></span>${statusHtml(l)}`;
+      row.innerHTML = `<span class="d">${T(DAYS[l.day])}<br>${d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })}</span><span class="m"><strong>${esc(l.title)}${l.source === 'garmin' ? ' <span class="g-tag">Garmin</span>' : ''}</strong><span>${l.garmin?.avgHr ? '♥ ' + l.garmin.avgHr + ' · ' : ''}${l.replacedWith ? '↷ ' + esc(l.replacedWith) + ' · ' : ''}${esc(T(l.type))}${l.setsTotal ? ' · ' + l.setsDone + '/' + l.setsTotal + ' sets' : ''}${l.sessionRpe ? ' · RPE ' + l.sessionRpe : ''}${l.note ? ' · ' + esc(l.note) : ''}</span></span>${statusHtml(l)}`;
       row.onclick = async () => {
+        if (l.extra && l.source === 'garmin') { openGarminActivity(l._id, l); return; }
         let plan = state.plans.find((x) => x.weekId === l.weekId);
         if (!plan) { try { const d = await db.doc('users/' + state.user.uid + '/plans/' + l.weekId).get(); plan = d.exists ? d.data() : null; } catch (_) {} }
         const sess = plan?.sessions?.find((x) => x.day === l.day && (x.slot || 0) === (l.slot || 0));
@@ -3003,6 +3014,80 @@ function openGarminConnect() {
       if (r.error) throw new Error(r.error);
       done(r);
     } catch (e) { err.textContent = e.message || 'Could not connect.'; b.disabled = false; b.textContent = 'Connect and sync'; }
+  };
+}
+
+/* ---------- one Garmin activity, in detail ---------- */
+const ZONE_COLORS = ['#9aa5b1', '#4a90d9', '#3aa76d', '#e8a020', '#d9534f'];
+function fmtDur(sec) { sec = Math.round(sec || 0); const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(s2).padStart(2, '0')}` : `${m}:${String(s2).padStart(2, '0')}`; }
+function paceOf(mps) { if (!mps || mps < 0.5) return null; const s2 = 1000 / mps; return `${Math.floor(s2 / 60)}:${String(Math.round(s2 % 60)).padStart(2, '0')} /km`; }
+function hrChartSvg(a) {
+  const pts = a.series.t.map((t, i) => [t, a.series.hr[i]]).filter(([, h]) => h > 30);
+  if (pts.length < 5) return '';
+  const W = 340, H = 140, T0 = pts[0][0], T1 = pts[pts.length - 1][0] || 1;
+  const lo = Math.max(40, Math.min(...pts.map((p) => p[1])) - 10), hi = Math.max(...pts.map((p) => p[1])) + 5;
+  const x = (t) => ((t - T0) / (T1 - T0 || 1)) * W, y = (h) => H - ((h - lo) / (hi - lo || 1)) * H;
+  const bounds = (a.zones || []).map((z) => z.from).filter((v) => v);
+  const bands = bounds.map((from, i) => { const to = bounds[i + 1] || hi; if (to <= lo || from >= hi) return ''; const y1 = y(Math.min(to, hi)), y2 = y(Math.max(from, lo)); return `<rect x="0" y="${y1.toFixed(1)}" width="${W}" height="${Math.max(0, y2 - y1).toFixed(1)}" fill="${ZONE_COLORS[i] || '#999'}" opacity=".12"/>`; }).join('');
+  const d = pts.map(([t, h], i) => `${i ? 'L' : 'M'}${x(t).toFixed(1)},${y(h).toFixed(1)}`).join('');
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => `<text x="${(f * W).toFixed(0)}" y="${H + 14}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${Math.round((T0 + f * (T1 - T0)) / 60)}′</text>`).join('');
+  return `<svg class="ga-chart" viewBox="0 -4 ${W} ${H + 20}" width="100%" role="img" aria-label="${T('Heart rate over time')}">${bands}<path d="${d}" fill="none" stroke="var(--bad,#d9534f)" stroke-width="1.6" stroke-linejoin="round"/><text x="2" y="10">${hi}</text><text x="2" y="${H - 2}">${lo}</text>${ticks}</svg>`;
+}
+async function openGarminActivity(key, log) {
+  const id = log?.garmin?.id; if (!id) return;
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', log.title || 'Activity');
+  sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${esc(log.title || 'Activity')}</h2></div><div id="gaBody"><p class="muted">${T('Loading…')}</p></div></div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  const body = $('#gaBody', sheet);
+  let a;
+  try { a = await api('/api/report', { action: 'garmin-activity', id }); } catch (e) { body.innerHTML = `<p class="error">${esc(e.message || T('Could not load'))}</p>`; return; }
+  if (!sheet.isConnected) return;
+  const tile = (v, l) => (v == null || v === '' ? '' : `<div><b>${v}</b><span>${l}</span></div>`);
+  const zTot = (a.zones || []).reduce((x, z) => x + (z.secs || 0), 0);
+  const hard = (a.zones || []).filter((z) => z.zone >= 4).reduce((x, z) => x + (z.secs || 0), 0);
+  const when = a.start ? new Date(a.start.replace(' ', 'T')).toLocaleString(localeTag(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const teText = (v) => (v == null ? '' : v < 1 ? T('none') : v < 2 ? T('minor') : v < 3 ? T('maintaining') : v < 4 ? T('improving') : v < 5 ? T('highly improving') : T('overreaching'));
+  const fast = a.laps.length > 1 && a.laps.some((l) => l.m > 0);
+  body.innerHTML = `
+    <p class="muted small" style="margin-top:-4px">${esc(when)}${a.typeKey ? ' · ' + esc(a.typeKey.replace(/_/g, ' ')) : ''} · Garmin</p>
+    <div class="card"><div class="ga-tiles">
+      ${tile(fmtDur(a.durationS), T('time'))}${tile(a.distanceM > 50 ? (a.distanceM / 1000).toFixed(2) + '<small> km</small>' : null, T('distance'))}${tile(a.distanceM > 50 ? paceOf(a.avgSpeed) : null, T('avg pace'))}
+      ${tile(a.avgHr, T('avg HR'))}${tile(a.maxHr, T('max HR'))}${tile(a.calories, 'kcal')}
+      ${tile(a.load, T('training load'))}${tile(a.intensityMin && (a.intensityMin.moderate || a.intensityMin.vigorous) != null ? (a.intensityMin.moderate || 0) + 2 * (a.intensityMin.vigorous || 0) : null, T('intensity min'))}${tile(a.steps, T('steps'))}
+    </div></div>
+    ${a.aerobicTE != null || a.anaerobicTE != null ? `<div class="card"><h3>${T('Training effect')}</h3><div class="ga-te">
+      <div><span>${T('Aerobic')}</span><b>${a.aerobicTE ?? '–'}</b><i style="width:${Math.min(100, (a.aerobicTE || 0) * 20)}%"></i><small>${teText(a.aerobicTE)}</small></div>
+      <div><span>${T('Anaerobic')}</span><b>${a.anaerobicTE ?? '–'}</b><i style="width:${Math.min(100, (a.anaerobicTE || 0) * 20)}%"></i><small>${teText(a.anaerobicTE)}</small></div>
+    </div>${a.teLabel ? `<p class="muted small" style="margin-top:8px">${esc(a.teLabel.replace(/_/g, ' ').toLowerCase())}</p>` : ''}</div>` : ''}
+    ${hrChartSvg(a) ? `<div class="card"><h3>${T('Heart rate')}</h3>${hrChartSvg(a)}</div>` : ''}
+    ${zTot ? `<div class="card"><h3>${T('Time in heart-rate zones')}</h3>${a.zones.map((z) => `<div class="ga-zone"><span>Z${z.zone}<small>${z.from ? ' ' + z.from + '+' : ''}</small></span><div><i style="width:${((z.secs || 0) / zTot * 100).toFixed(1)}%;background:${ZONE_COLORS[z.zone - 1] || '#999'}"></i></div><b>${fmtDur(z.secs)}</b></div>`).join('')}
+      <p class="muted small" style="margin-top:8px">${T('Hard work (zones 4–5)')}: ${fmtDur(hard)} · ${Math.round(hard / zTot * 100)}%</p></div>` : ''}
+    ${a.laps.length > 1 ? `<div class="card"><h3>${T('Laps')}</h3><table class="ga-laps"><thead><tr><th>#</th><th>${T('time')}</th>${fast ? `<th>km</th><th>${T('pace')}</th>` : ''}<th>♥</th><th>${T('max')}</th></tr></thead><tbody>${a.laps.map((l, i) => `<tr><td>${i + 1}</td><td>${fmtDur(l.s)}</td>${fast ? `<td>${l.m ? (l.m / 1000).toFixed(2) : '–'}</td><td>${paceOf(l.speed) || '–'}</td>` : ''}<td>${l.hr ?? '–'}</td><td>${l.maxHr ?? '–'}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${key && log.extra ? `<div class="card"><h3>${T('Adjust')}</h3>
+      <div class="field"><label for="gaTitle">${T('Name (optional)')}</label><input class="input" id="gaTitle" maxlength="60"></div>
+      <div class="block" style="margin-top:12px"><h3 style="font-size:.95rem">${T('What did you do?')}</h3><div id="gaKinds" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div></div>
+      <div class="block" style="margin-top:12px"><h3 style="font-size:.95rem">${T('How hard was it?')}</h3><div class="rpe" id="gaRpe"></div></div>
+      <div class="field" style="margin-top:12px"><label for="gaNote">${T('Note (optional)')}</label><textarea class="input" id="gaNote" rows="2" maxlength="300"></textarea></div>
+      <button class="btn" id="gaSave">${T('Save')}</button></div>` : ''}`;
+  if (!(key && log.extra)) return;
+  const kinds = [['match', 'Game or tournament'], ['skills', 'Team practice'], ['conditioning', 'Run or cardio'], ['strength', 'Gym'], ['mobility', 'Mobility or yoga']];
+  const draft = { type: log.type, rpe: log.sessionRpe || null };
+  $('#gaTitle', sheet).value = log.title || ''; $('#gaNote', sheet).value = log.note || '';
+  const paintK = () => { const w = $('#gaKinds', sheet); w.innerHTML = ''; kinds.forEach(([k, l]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = T(l); b.setAttribute('aria-pressed', String(draft.type === k)); b.onclick = () => { draft.type = k; paintK(); }; w.append(b); }); };
+  paintK();
+  const sr = $('#gaRpe', sheet);
+  for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', String(draft.rpe === i)); b.onclick = () => { draft.rpe = draft.rpe === i ? null : i; $$('button', sr).forEach((x) => x.setAttribute('aria-pressed', String(Number(x.textContent) === draft.rpe))); }; sr.append(b); }
+  $('#gaSave', sheet).onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true;
+    const upd = { title: $('#gaTitle', sheet).value.trim() || log.title, type: draft.type, sessionRpe: draft.rpe, note: $('#gaNote', sheet).value.trim(), edited: true, updatedAt: new Date().toISOString() };
+    try {
+      await db.doc('users/' + state.user.uid + '/logs/' + key).set(upd, { merge: true });
+      Object.assign(log, upd); if (state.logs[key]) Object.assign(state.logs[key], upd); streakCache = null;
+      history.back(); toast(T('Saved')); navigate(state.view);
+    } catch (e) { toast(T('Could not send. Check your connection and try again.')); b.disabled = false; }
   };
 }
 

@@ -3,7 +3,7 @@
 // protection); the resulting DI tokens are pasted into the app. From then on this module refreshes the
 // token itself and pulls activities and overnight wellness.
 // Tokens live in garminAuth/{uid}, which no client can read (no Firestore rule matches it).
-import { db, weekId, mondayOf } from './_lib.js';
+import { db, weekId, mondayOf, sessionKey } from './_lib.js';
 import GARMIN_EXERCISES from './_garmin-exercises.js';
 
 const API = 'https://connectapi.garmin.com';
@@ -86,10 +86,18 @@ function rpeOf(a) {
 }
 const round1 = (v) => (Number.isFinite(Number(v)) && v !== null ? Math.round(Number(v) * 10) / 10 : null);
 
+// Same kind of training, for matching a watch recording to a planned session
+export function sameKind(a, b) {
+  const fam = (t) => (['conditioning', 'speed'].includes(t) ? 'run' : ['skills', 'match'].includes(t) ? 'team' : t);
+  return fam(a) === fam(b);
+}
+
 async function syncActivities(tok, uid, since) {
   const list = await call(tok, '/activitylist-service/activities/search/activities', { startDate: since, endDate: ymd(new Date(Date.now() + 86400000)), start: '0', limit: '50' }) || [];
   let added = 0;
-  for (const a of list) {
+  const plans = new Map();
+  const planOf = async (wk) => { if (!plans.has(wk)) { const p = await db().doc(`users/${uid}/plans/${wk}`).get(); plans.set(wk, p.exists ? p.data() : null); } return plans.get(wk); };
+  for (const a of list.sort((x, y) => String(x.startTimeLocal).localeCompare(String(y.startTimeLocal)))) {
     if (!a || !a.activityId || !a.startTimeLocal) continue;
     const date = String(a.startTimeLocal).slice(0, 10);
     const wk = weekOf(date), day = dayIndex(date);
@@ -101,17 +109,89 @@ async function syncActivities(tok, uid, since) {
       distanceKm: a.distance ? round1(a.distance / 1000) : null, avgHr: a.averageHR ? Math.round(a.averageHR) : null, maxHr: a.maxHR ? Math.round(a.maxHR) : null,
       aerobicTE: round1(a.aerobicTrainingEffect), anaerobicTE: round1(a.anaerobicTrainingEffect), load: a.activityTrainingLoad ? Math.round(a.activityTrainingLoad) : null, kcal: a.calories ? Math.round(a.calories) : null,
     };
-    if (snap.exists) { await ref.set({ garmin }, { merge: true }); continue; } // keep the athlete's own edits
     const now = new Date().toISOString();
-    await ref.set({
+    const rec = snap.exists ? { ...snap.data(), garmin } : {
       weekId: wk, day, slot: 'g' + a.activityId, extra: true, source: 'garmin', garmin,
       title: String(a.activityName || 'Garmin activity').slice(0, 60), type: kindOf(garmin.typeKey), status: 'done',
       durationMin: Math.max(1, Math.round((a.duration || a.movingDuration || 0) / 60)), sessionRpe: rpeOf(a), note: '',
       exercises: null, setsDone: 0, setsTotal: 0, loggedAt: String(a.startTimeGMT || a.startTimeLocal).replace(' ', 'T') + 'Z', updatedAt: now,
-    });
-    added++;
+    };
+    // Recorded on the watch but not marked in Cadence: if a planned session that day is the same kind and still open, this IS that session
+    if (!rec.linkedTo && !rec.hidden && rec.status !== 'skipped') {
+      const plan = await planOf(wk);
+      const open = [];
+      for (const s of (plan?.sessions || []).filter((x) => x.day === day && x.type !== 'rest' && sameKind(x.type, rec.type))) {
+        const k = sessionKey(wk, day, s.slot || 0);
+        if (!(await db().doc(`users/${uid}/logs/${k}`).get()).exists) open.push([k, s]);
+      }
+      if (open.length) {
+        const [k, s] = open[0];
+        await db().doc(`users/${uid}/logs/${k}`).set({
+          weekId: wk, day, slot: s.slot || 0, title: s.title, type: s.type, status: 'done', source: 'garmin', garmin,
+          durationMin: rec.durationMin, sessionRpe: rec.sessionRpe, note: '', readiness: null, exercises: null, setsDone: 0, setsTotal: 0,
+          loggedAt: rec.loggedAt, updatedAt: now,
+        });
+        rec.linkedTo = k;
+      }
+    }
+    await ref.set(rec);
+    if (!snap.exists) added++;
   }
   return added;
+}
+
+// Everything Garmin knows about one activity, for the detail screen. Kept in Firestore once fetched (activities don't change).
+export async function garminActivity(uid, id) {
+  if (!/^\d{5,15}$/.test(String(id))) throw new GarminError('Unknown activity.', 'input');
+  const cacheRef = db().doc(`users/${uid}/garminActivities/${id}`);
+  const cached = await cacheRef.get();
+  if (cached.exists && cached.data().v === 1) return cached.data();
+  const snap = await authRef(uid).get();
+  if (!snap.exists) throw new GarminError('Garmin is not connected.', 'auth');
+  const d = snap.data();
+  const tok = { di_token: d.di_token, di_refresh_token: d.di_refresh_token, di_client_id: d.di_client_id, displayName: d.displayName };
+  const soft = (p) => p.catch((e) => { if (e.code === 'auth') throw e; return null; });
+  try {
+    const [act, zones, details, splits] = await Promise.all([
+      call(tok, `/activity-service/activity/${id}`),
+      soft(call(tok, `/activity-service/activity/${id}/hrTimeInZones`)),
+      soft(call(tok, `/activity-service/activity/${id}/details`, { maxChartSize: '400', maxPolylineSize: '0' })),
+      soft(call(tok, `/activity-service/activity/${id}/splits`)),
+    ]);
+    const sm = act?.summaryDTO || {};
+    const num = (v, k = 1) => (Number.isFinite(Number(v)) && v !== null ? Math.round(Number(v) * k) / k : null);
+    // time series: heart rate and speed against elapsed seconds
+    const series = { t: [], hr: [], speed: [] };
+    if (details?.metricDescriptors && details?.activityDetailMetrics) {
+      const idx = Object.fromEntries(details.metricDescriptors.map((m) => [m.key, m.metricsIndex]));
+      const t0 = details.activityDetailMetrics[0]?.metrics?.[idx.directTimestamp];
+      for (const row of details.activityDetailMetrics) {
+        const m = row.metrics || [];
+        const t = idx.sumElapsedDuration != null ? m[idx.sumElapsedDuration] : idx.sumDuration != null ? m[idx.sumDuration] : (m[idx.directTimestamp] - t0) / 1000;
+        if (!Number.isFinite(t)) continue;
+        series.t.push(Math.round(t)); series.hr.push(num(m[idx.directHeartRate])); series.speed.push(num(m[idx.directSpeed], 100));
+      }
+    }
+    const out = {
+      v: 1, id: String(id),
+      name: act?.activityName || null, typeKey: act?.activityTypeDTO?.typeKey || null, start: sm.startTimeLocal || null,
+      durationS: num(sm.duration), movingS: num(sm.movingDuration), distanceM: num(sm.distance), calories: num(sm.calories),
+      avgHr: num(sm.averageHR), maxHr: num(sm.maxHR), minHr: num(sm.minHR),
+      avgSpeed: num(sm.averageSpeed, 100), maxSpeed: num(sm.maxSpeed, 100),
+      aerobicTE: num(sm.trainingEffect, 10), anaerobicTE: num(sm.anaerobicTrainingEffect, 10), teLabel: sm.trainingEffectLabel || null,
+      load: num(sm.activityTrainingLoad), intensityMin: { moderate: num(sm.moderateIntensityMinutes), vigorous: num(sm.vigorousIntensityMinutes) },
+      steps: num(sm.steps), elevGain: num(sm.elevationGain), recoveryHr: num(sm.recoveryHeartRate),
+      bodyBatteryDelta: num(sm.differenceBodyBattery), sweatMl: num(sm.waterEstimated),
+      zones: Array.isArray(zones) ? zones.map((z) => ({ zone: z.zoneNumber, secs: num(z.secsInZone), from: z.zoneLowBoundary })) : [],
+      laps: (splits?.lapDTOs || []).slice(0, 60).map((l) => ({ s: num(l.duration), m: num(l.distance), hr: num(l.averageHR), maxHr: num(l.maxHR), speed: num(l.averageSpeed, 100) })),
+      series,
+      fetchedAt: new Date().toISOString(),
+    };
+    await cacheRef.set(out).catch(() => {});
+    return out;
+  } finally {
+    if (tok.dirty) await saveTok(uid, tok, {});
+  }
 }
 
 async function syncDay(tok, uid, date) {

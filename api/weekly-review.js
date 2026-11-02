@@ -1,4 +1,5 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
+import { sameKind } from './_garmin.js';
 import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, logProblem } from './_lib.js';
 
 export { reviewWeek };
@@ -47,8 +48,7 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
   const DEFAULT_RPE = { match: 8, skills: 6, conditioning: 7, speed: 7, strength: 6, mobility: 3 };
   const loadOf = (l) => (l.status === 'skipped' || !l.status ? 0 : (l.sessionRpe || DEFAULT_RPE[l.type] || 6) * (l.durationMin || 0));
   // A Garmin recording on the same day and of the same kind as a logged planned session is that session, recorded by the watch: count it once
-  const sameKind = (a, b) => a === b || (['conditioning', 'speed'].includes(a) && ['conditioning', 'speed'].includes(b));
-  const twinOf = (l, all) => (l.source === 'garmin' ? all.find((o) => !o.extra && o.status && o.status !== 'skipped' && o.day === l.day && sameKind(o.type, l.type)) : null);
+  const twinOf = (l, all) => (l.linkedTo ? all.find((o) => !o.extra && sessionKey(o.weekId, o.day, o.slot || 0) === l.linkedTo) || { day: l.day, slot: -1 } : l.source === 'garmin' && l.extra ? all.find((o) => !o.extra && o.status && o.status !== 'skipped' && o.day === l.day && sameKind(o.type, l.type)) : null);
   const weekLoads = loadSnaps.map((snap) => { const all = snap.docs.map((d) => d.data()); return all.reduce((a, l) => a + (twinOf(l, all) ? 0 : loadOf(l)), 0); });
   const garminLine = (g) => (g ? [g.distanceKm ? `${g.distanceKm} km` : '', g.avgHr ? `avg HR ${g.avgHr}` : '', g.maxHr ? `max HR ${g.maxHr}` : '', g.aerobicTE ? `aerobic TE ${g.aerobicTE}` : '', g.load ? `Garmin load ${g.load}` : ''].filter(Boolean).join(', ') : '');
   const acute = weekLoads[0];
