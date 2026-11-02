@@ -9,19 +9,14 @@
   ],
   "tabsDiag": [
     {
-      "at": "2026-11-02T13:58:00.207Z",
+      "at": "2026-11-02T14:01:32.097Z",
       "step": "done",
       "errors": [],
-      "console": [
-        "Failed to load resource: the server responded with a status of 404 ()",
-        "Failed to load resource: the server responded with a status of 400 ()",
-        "Failed to load resource: the server responded with a status of 400 ()",
-        "Failed to load resource: the server responded with a status of 400 ()"
-      ]
+      "console": []
     }
   ],
   "rulesStatus": {
-    "at": "2026-11-02T13:58:08.662Z",
+    "at": "2026-11-02T14:02:00.435Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
