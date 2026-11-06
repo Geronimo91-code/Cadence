@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-11-02T14:48:49.277Z",
+    "started": "2026-11-06T13:58:54.351Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -110,29 +110,36 @@
       "first plan generated": {
         "pass": true,
         "detail": {
-          "source": "template",
+          "source": "profile",
           "sessions": 7,
           "real": 3,
           "days": 7,
-          "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
+          "rationale": "As week 1 of a new speed block, this program prioritizes foundational sprint mechanics, maximal acceleration, and supportive strength within your 30-minute training window. Monday focuses on acceleration and upright posture, Wednesday builds lower-body force output to power your sprints, and Friday ",
           "titles": [
-            "0:speed:Speed and acceleration",
-            "1:rest:Rest",
-            "2:strength:Full-body strength",
-            "3:rest:Rest",
-            "4:conditioning:Conditioning",
-            "5:rest:Rest",
-            "6:rest:Rest"
+            "0:speed:Acceleration & Sprint Mechanics",
+            "1:rest:Rest & Recovery",
+            "2:strength:Lower-Body Power & Strength",
+            "3:rest:Rest & Recovery",
+            "4:speed:Max Speed & Change of Direction",
+            "5:rest:Rest & Recovery",
+            "6:rest:Rest & Recovery"
           ]
         }
       },
       "first plan is AI-made (not template)": {
-        "pass": false,
-        "detail": "template"
+        "pass": true,
+        "detail": "profile"
       },
       "plan covers 7 days": {
         "pass": true,
         "detail": 7
+      },
+      "weekly fitness test block in the plan": {
+        "pass": true,
+        "detail": [
+          "4:agility",
+          "4:yoyo"
+        ]
       },
       "today fits one screen": {
         "pass": true,
@@ -143,9 +150,9 @@
             "DIV",
             "card",
             "card todaycard",
-            "card todaycard amber src-card",
-            "card todaycard nextup",
-            "card todaycard"
+            "card todaycard",
+            "quick",
+            "card todaycard focus"
           ]
         }
       },
@@ -156,14 +163,12 @@
       "how-to with photos and muscle map": {
         "pass": true,
         "detail": {
-          "exercises": 6,
+          "exercises": 4,
           "withPhotos": 2,
           "withMap": 2,
           "missing": [
-            "Leg swings",
             "Sprint 10 m",
-            "Sprint 20 m",
-            "Sprint 30 m"
+            "Sprint 20 m"
           ]
         }
       },
@@ -201,7 +206,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite code5QUX98CopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codePXKXPVCopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -255,12 +260,12 @@
       }
     },
     "timings": {
-      "landing load": 252,
-      "sign-up": 1917,
-      "save setup": 866,
-      "first plan": 42989,
-      "save session": 441,
-      "rebuild": 28972
+      "landing load": 346,
+      "sign-up": 1925,
+      "save setup": 872,
+      "first plan": 19941,
+      "save session": 422,
+      "rebuild": 12935
     },
     "errors": [],
     "console": [],
@@ -276,58 +281,62 @@
       "Here is your setup"
     ],
     "firstPlan": {
-      "source": "template",
+      "source": "profile",
       "sessions": 7,
       "real": 3,
       "days": 7,
-      "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
+      "rationale": "As week 1 of a new speed block, this program prioritizes foundational sprint mechanics, maximal acceleration, and supportive strength within your 30-minute training window. Monday focuses on acceleration and upright posture, Wednesday builds lower-body force output to power your sprints, and Friday ",
       "titles": [
-        "0:speed:Speed and acceleration",
-        "1:rest:Rest",
-        "2:strength:Full-body strength",
-        "3:rest:Rest",
-        "4:conditioning:Conditioning",
-        "5:rest:Rest",
-        "6:rest:Rest"
+        "0:speed:Acceleration & Sprint Mechanics",
+        "1:rest:Rest & Recovery",
+        "2:strength:Lower-Body Power & Strength",
+        "3:rest:Rest & Recovery",
+        "4:speed:Max Speed & Change of Direction",
+        "5:rest:Rest & Recovery",
+        "6:rest:Rest & Recovery"
       ]
     },
     "howto": {
-      "exercises": 6,
+      "exercises": 4,
       "withPhotos": 2,
       "withMap": 2,
       "missing": [
-        "Leg swings",
         "Sprint 10 m",
-        "Sprint 20 m",
-        "Sprint 30 m"
+        "Sprint 20 m"
       ]
     },
     "rebuiltPlan": {
       "source": "profile",
       "note": "Left ankle sprain, no jumping this week",
-      "rationale": "Per your explicit instructions, all jumping, dynamic bounds, and running drills have been removed this week to protect your left ankle sprain. We are focusing on sprint posture wall drills, impact-free bike conditioning, and solid seated/controlled strength work to keep building your athletic base safely within 30-minute sessions. As a beginner, keeping movements stable and controlled will maintai",
+      "rationale": "Because of your left ankle sprain, all jumping and high-impact lower body work have been completely removed this week to allow the joint to heal. We adapted your speed focus to low-impact wall drills and walking A-skips, while keeping workout density high with upper body strength and bike conditioning. Sessions are strictly kept to your 30-minute target on Monday, Wednesday, and Friday.",
       "titles": [
-        "0:speed:Speed Drive & Ankle-Safe Lower",
-        "1:rest:Rest",
-        "2:conditioning:Upper Body & Conditioning",
-        "3:rest:Rest",
-        "4:strength:Posterior Chain & Core",
-        "5:rest:Rest",
-        "6:rest:Rest"
+        "0:speed:Low-Impact Speed & Upper Body",
+        "1:rest:Rest & Active Recovery",
+        "2:strength:Upper Body & Non-Impact Conditioning",
+        "3:rest:Rest & Active Recovery",
+        "4:speed:Posture & Trunk Control",
+        "5:rest:Rest & Active Recovery",
+        "6:mobility:Rest & Mobility"
       ],
       "exercises": [
         "Acceleration wall drill",
-        "Goblet squat",
-        "Romanian deadlift",
+        "Bench press",
+        "Seated cable row",
         "Pallof press",
-        "Dumbbell shoulder press",
-        "Dumbbell row",
-        "Assault bike sprints",
-        "Plank",
-        "Glute bridge",
-        "Push-up",
+        "Overhead press",
         "Lat pulldown",
-        "Dead bug"
+        "Assault bike sprints",
+        "Dead bug",
+        "5-10-5 agility test",
+        "A-skip",
+        "Dumbbell row",
+        "Push-up",
+        "Side plank",
+        "Yo-Yo IR1 test",
+        "Ankle dorsiflexion drill",
+        "Thoracic rotation",
+        "Foam roll upper back",
+        "Hamstring stretch"
       ]
     },
     "club": {
@@ -338,6 +347,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-11-02T14:50:50.626Z"
+    "finished": "2026-11-06T14:00:14.515Z"
   }
 }
