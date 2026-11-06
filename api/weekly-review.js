@@ -1,6 +1,6 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
 import { sameKind } from './_garmin.js';
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, logProblem } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, testSummary, logProblem } from './_lib.js';
 
 export { reviewWeek };
 
@@ -140,6 +140,7 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
       if (parts.length) recoveryLine = `Recovery from the athlete's Garmin watch (${gd.length} of 7 nights): ${parts.join(', ')}${status ? `; latest HRV status ${status}` : ''}${low.length ? `; poor recovery on ${low.join(', ')}` : ''}. Use it with the RPEs: poor sleep or low readiness with high RPE means ease off.`;
     }
   } catch (_) {}
+  const testsLine = await testSummary(uid);
   const loadLine = acute
     ? `Training load (session RPE × minutes): this week ${acute}${chronic ? `, four-week average ${Math.round(chronic)}, acute:chronic ratio ${acwr}` : ' (no history yet)'}.`
     : 'Training load: nothing with both RPE and duration logged this week.';
@@ -184,6 +185,7 @@ Adherence: ${stats.adherence}% — ${stats.done} done, ${stats.partial} partial,
 ${weightLine}
 ${loadLine}
 ${recoveryLine}
+${testsLine}
 ${nutritionLine}
 ${prevReview.exists ? `Previous week's adjustments were: ${(prevReview.data().adjustments || []).join('; ')}` : 'This is the first review.'}
 Plan's own hint for next week: ${plan.nextWeekHint || 'none'}
@@ -223,6 +225,7 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
     const batch = db().batch();
     batch.set(db().doc(`users/${uid}/reviews/${reviewWeek}`), review);
     applyProgression(next, await liftHistory(uid));
+    applyTests(next, profile);
     batch.set(db().doc(`users/${uid}/plans/${nextId}`), next);
     const adj = Number(out.nutritionKcalAdjust) || 0;
     if (profile.nutrition && (adj === 100 || adj === -100)) {

@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, trainingHistoryBlock, logProblem } from './_lib.js';
+import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, trainingHistoryBlock, logProblem } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -64,6 +64,7 @@ ${planShape(id)}`;
     plan.source = 'profile';
     plan.weekNote = profile.weekNote || null;
     applyProgression(plan, await liftHistory(user.uid));
+    applyTests(plan, profile, { fromDay: todayIdx() });
     await db().doc(`users/${user.uid}/plans/${id}`).set(plan);
     return res.status(200).json(plan);
   } catch (e) {
@@ -75,6 +76,7 @@ ${planShape(id)}`;
       const plan = templatePlan(profile, id);
       plan.weekNote = profile.weekNote || null;
       applyProgression(plan, await liftHistory(user.uid));
+      applyTests(plan, profile, { fromDay: todayIdx() });
       await db().doc(`users/${user.uid}/plans/${id}`).set(plan);
       return res.status(200).json({ ...plan, fallback: true, detail: String(e && e.message || e).slice(0, 200) });
     } catch (inner) {
@@ -117,6 +119,9 @@ ${planShape(id)}`;
   const sessions = [...(old.sessions || []).filter((s) => keep(s.day)), ...(fresh.sessions || []).filter((s) => !keep(s.day))].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0));
   const plan = { ...fresh, sessions, weekId: id, createdAt: old.createdAt || new Date().toISOString(), upgradedAt: new Date().toISOString(), source: 'profile', weekNote: old.weekNote || null };
   applyProgression(plan, await liftHistory(uid));
+  applyTests(plan, profile, { fromDay: today });
   await ref.set(plan);
   return { upgraded: true, fromDay: today, plan };
 }
+
+function todayIdx(tz = 'Europe/Brussels') { return (new Date(new Date().toLocaleString('en-US', { timeZone: tz })).getDay() + 6) % 7; }

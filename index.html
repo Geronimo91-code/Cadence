@@ -767,6 +767,7 @@ a.btn { text-decoration: none; }
 .tips{margin:8px 0 0 18px;padding:0;font-size:.9rem;line-height:1.45}.tips li{margin-top:4px}
 .team-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;text-align:center;padding:10px 0 14px;border-bottom:1px solid var(--line,rgba(127,127,127,.2));margin-bottom:6px}.team-sum b{display:block;font:700 1.3rem var(--font-display);color:var(--ink)}.team-sum b small{font-size:.8rem;color:var(--ink-3)}.team-sum span{font-size:.72rem;color:var(--ink-2);line-height:1.2;display:block}.team-sum b.g-low{color:var(--bad,#c0392b)}
 .chips-s{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.chip-s{font-size:.72rem;padding:2px 7px;border-radius:999px;background:rgba(127,127,127,.14);color:var(--ink-2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.chip-s.bad{background:rgba(217,83,79,.15);color:var(--bad,#c0392b)}.chip-s.good{background:rgba(46,139,87,.15);color:var(--ok,#2e8b57)}
+.test-ex{border-left:3px solid var(--accent,#1f6b4a);padding-left:12px}.test-in{display:grid;gap:6px;margin-top:10px}.test-in label{font-size:.85rem;font-weight:600}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1192,6 +1193,7 @@ auth.onAuthStateChanged(async (user) => {
   enterApp();
   garminBoot();
   upgradeBackupSoon();
+  loadTests();
 });
 $('#btnObSignOut').onclick = () => auth.signOut();
 $('#btnObCancel').onclick = () => enterApp();
@@ -2123,6 +2125,7 @@ function openSession(raw, weekIdOverride, logOverride) {
       const hist = exHistory?.get((x.name || '').trim().toLowerCase());
       const lastSet = hist?.sets?.[hist.sets.length - 1];
       const load = lastSet?.load ?? loadFromPrescription(x.load, state.profile?.weightKg, x.name);
+      if (x.test) return { name: x.name, test: x.test, result: null, prescribed: x.reps || '', rpe: null, swapped: false, sets: [{ reps: null, load: null, done: false }] };
       return { name: x.name, prescribed: `${x.sets}×${x.reps}${x.load ? ' · ' + x.load : ''}`, rpe: null, swapped: false,
         sets: Array.from({ length: Math.max(1, x.sets || 1) }, () => ({ reps: repsFromPrescription(x.reps), load: load ?? null, done: false })) };
     }),
@@ -2193,6 +2196,17 @@ function openSession(raw, weekIdOverride, logOverride) {
     exWrap.innerHTML = '';
     draft.exercises.forEach((ex, ei) => {
       const px = sess.exercises[ei] || {};
+      if (ex.test && TESTS[ex.test]) {
+        const t = TESTS[ex.test];
+        const prev = (testHistory || []).filter((r) => r.key === ex.test).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
+        const tc = document.createElement('div'); tc.className = 'ex test-ex';
+        tc.innerHTML = `<div class="name"><span>📏 ${esc(T(t.name))}</span><span class="rx">${esc(T(t.attempts))}</span></div>
+          <div class="cues">${esc(T(t.protocol))}</div>
+          <div class="test-in"><label for="test-${ei}">${T('Your best')}</label><div class="unit-input"><input class="input" id="test-${ei}" type="number" inputmode="decimal" step="${t.unit === 's' ? '0.01' : '1'}" min="0" value="${ex.result ?? ''}"><span>${t.unit}</span></div>${prev ? `<span class="muted small">${T('Last time')}: ${prev.value} ${t.unit}</span>` : `<span class="muted small">${T('First time: this is your baseline.')}</span>`}</div>`;
+        $('input', tc).oninput = (e) => { const v = parseFloat(String(e.target.value).replace(',', '.')); ex.result = Number.isFinite(v) && v > 0 ? v : null; ex.sets[0].done = ex.result != null; };
+        exWrap.append(tc);
+        return;
+      }
       const card = document.createElement('div'); card.className = 'ex' + (ex.swapped ? ' swapped' : '');
       card.innerHTML = `<div class="name"><span>${esc(ex.name)}</span><span class="rx">${ex.swapped ? '' : (px.sets ? px.sets + '×' : '') + esc(px.reps || '')}</span></div>
         <div class="meta">${ex.swapped ? T('your change') : [px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}${!ex.swapped && px.progression ? ` <span class="prog prog-${px.progression}">${px.progression === 'up' ? '↑ ' + T('up from last time') : px.progression === 'deload' ? '↓ ' + T('deload after 3 misses') : '= ' + T('same weight, finish all sets')}</span>` : ''}</div>
@@ -2244,6 +2258,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     try {
       const key = sessionKey(wk, sess.day, sess.slot || 0);
       const write = db.doc('users/' + state.user.uid + '/logs/' + key).set(rec);
+      saveTestResults(key, wk, rec.exercises || []).catch((e) => console.error('test results', e));
       if (!navigator.onLine || (await settle(write)) === 'queued') {
         // Firestore keeps the write queued locally and sends it on reconnect
         state.logs[key] = rec; exHistory = null; streakCache = null;
@@ -2483,13 +2498,16 @@ let progMonths = 3;
 function svgLine(points, { w = 340, h = 110, unit = '' } = {}) {
   if (points.length < 2) return '';
   const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys) - 0.5, y1 = Math.max(...ys) + 0.5;
+  // pad the value range in proportion to the data, so a 0.04 s change in a sprint is as visible as 2 kg on a lift
+  const span = Math.max(...ys) - Math.min(...ys), pad = span > 0 ? Math.max(span * 0.25, Math.abs(Math.max(...ys)) * 0.002) : Math.max(0.05, Math.abs(ys[0]) * 0.02);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
   const px = (x) => 28 + ((x - x0) / ((x1 - x0) || 1)) * (w - 36), py = (y) => 8 + (1 - (y - y0) / ((y1 - y0) || 1)) * (h - 26);
   const d = points.map((p, i) => (i ? 'L' : 'M') + px(p.x).toFixed(1) + ' ' + py(p.y).toFixed(1)).join(' ');
   const area = d + ` L${px(x1).toFixed(1)} ${h - 18} L${px(x0).toFixed(1)} ${h - 18} Z`;
-  const ticks = [y0 + 0.5, (y0 + y1) / 2, y1 - 0.5];
+  const ticks = [Math.min(...ys), (Math.min(...ys) + Math.max(...ys)) / 2, Math.max(...ys)].filter((v, i, arr) => i === 0 || v !== arr[0]);
+  const dec = span >= 10 ? 0 : span >= 1 ? 1 : 2;
   const f = (d) => new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' });
-  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${ticks.map((t) => `<line class="grid" x1="28" x2="${w - 8}" y1="${py(t).toFixed(1)}" y2="${py(t).toFixed(1)}"/><text x="0" y="${(py(t) + 3).toFixed(1)}">${t.toFixed(1)}</text>`).join('')}<path class="area" d="${area}"/><path class="line" d="${d}"/><circle class="dot" r="3" cx="${px(x1).toFixed(1)}" cy="${py(ys[ys.length - 1]).toFixed(1)}"/><text x="28" y="${h - 4}">${f(x0)}</text><text x="${w - 8}" y="${h - 4}" text-anchor="end">${f(x1)}</text></svg>`;
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${ticks.map((t) => `<line class="grid" x1="28" x2="${w - 8}" y1="${py(t).toFixed(1)}" y2="${py(t).toFixed(1)}"/><text x="0" y="${(py(t) + 3).toFixed(1)}">${t.toFixed(dec)}</text>`).join('')}<path class="area" d="${area}"/><path class="line" d="${d}"/><circle class="dot" r="3" cx="${px(x1).toFixed(1)}" cy="${py(ys[ys.length - 1]).toFixed(1)}"/><text x="28" y="${h - 4}">${f(x0)}</text><text x="${w - 8}" y="${h - 4}" text-anchor="end">${f(x1)}</text></svg>`;
 }
 function svgBars(items, { w = 340, h = 110, max = 100, lo = 50, suffix = '' } = {}) {
   if (!items.length) return '';
@@ -2561,6 +2579,10 @@ async function viewLog(el) {
   wc.innerHTML = `<h3>${T('Weight')}</h3><div class="muted small" id="wLatest">${T('Loading…')}</div><div class="wchart" id="wChart"></div>
     <div class="row" style="margin-top:12px;align-items:stretch"><div class="unit-input" style="min-width:0"><input class="input" id="wIn" type="number" inputmode="decimal" step="0.1" placeholder="${p.weightKg}"><span>kg</span></div><button class="btn sm" id="wAdd" style="flex:0 0 auto">${T('Add today')}</button></div>`;
   el.append(wc);
+  const tcard = document.createElement('div'); tcard.className = 'card'; tcard.id = 'testsCard'; el.append(tcard);
+  const paintTests = () => { if (!tcard.isConnected) return; tcard.innerHTML = testsCardHtml(); $('#btnAddTest', tcard).onclick = () => openAddTest(paintTests); };
+  tcard.innerHTML = `<h3>${T('Fitness tests')}</h3><p class="muted small">${T('Loading…')}</p>`;
+  loadTests().then(paintTests);
   const prog = document.createElement('div'); prog.className = 'card'; prog.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>${T('Progress')}</h3><div class="seg" style="margin:0"><button type="button" data-m="3" aria-pressed="${progMonths === 3}">3</button><button type="button" data-m="6" aria-pressed="${progMonths === 6}">6</button><button type="button" data-m="12" aria-pressed="${progMonths === 12}">12</button></div></div><div id="progBody" class="muted small" style="margin-top:8px">${T('Loading…')}</div>`; el.append(prog);
   $$('.seg button', prog).forEach((b) => { b.onclick = () => { progMonths = Number(b.dataset.m); navigate('log'); }; });
   const hist = document.createElement('div'); hist.className = 'card'; hist.innerHTML = `<h3>${T('Sessions')}</h3><div class="muted small">${T('Loading…')}</div>`; el.append(hist);
@@ -2991,6 +3013,70 @@ async function showInboxIfAdmin(el) {
 }
 
 
+/* ---------- fitness tests ---------- */
+const TESTS = {
+  sprint10: { name: '10 m sprint test', short: '10 m sprint', unit: 's', better: 'lower', attempts: 'best of 3', protocol: 'Standing start, a partner times 10 m from your first move. 2–3 min rest between tries.' },
+  sprint30: { name: '30 m sprint test', short: '30 m sprint', unit: 's', better: 'lower', attempts: 'best of 3', protocol: 'Standing start, a partner times 30 m. Full rest (3 min) between tries.' },
+  broad: { name: 'Standing broad jump test', short: 'Broad jump', unit: 'cm', better: 'higher', attempts: 'best of 3', protocol: 'Feet together, jump forward and stick the landing. Measure from the line to your back heel.' },
+  agility: { name: '5-10-5 agility test', short: '5-10-5 agility', unit: 's', better: 'lower', attempts: 'best of 2 each way', protocol: 'Start on a line, run 5 m to one side and touch the line, 10 m back, then 5 m through the start. A partner times it.' },
+  yoyo: { name: 'Yo-Yo IR1 test', short: 'Yo-Yo IR1', unit: 'm', better: 'higher', attempts: 'once', protocol: 'Play a Yo-Yo IR1 audio track (free apps have it). 2×20 m shuttles on the beeps, 10 s easy jog between. Stop after the second miss and enter the total distance.' },
+};
+let testHistory = null;
+async function loadTests() {
+  try { const q = await db.collection('users/' + state.user.uid + '/tests').orderBy('at').limit(300).get(); testHistory = q.docs.map((d) => ({ id: d.id, ...d.data() })); } catch (_) { testHistory = testHistory || []; }
+  return testHistory;
+}
+async function saveTestResults(logKey, wk, exercises) {
+  const writes = exercises.filter((x) => x.test && x.result != null && TESTS[x.test]).map((x) => {
+    const doc = { key: x.test, value: x.result, unit: TESTS[x.test].unit, at: new Date().toISOString(), weekId: wk, logKey };
+    const id = `${logKey}-${x.test}`;
+    testHistory = [...(testHistory || []).filter((r) => r.id !== id), { id, ...doc }];
+    return db.doc('users/' + state.user.uid + '/tests/' + id).set(doc);
+  });
+  if (writes.length) track('test_result');
+  return Promise.all(writes);
+}
+function testsCardHtml() {
+  const rows = Object.entries(TESTS).map(([k, t]) => {
+    const arr = (testHistory || []).filter((r) => r.key === k).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    if (!arr.length) return '';
+    const last = arr[arr.length - 1], first = arr[0];
+    const best = arr.reduce((b, x) => (t.better === 'lower' ? Math.min(b, x.value) : Math.max(b, x.value)), arr[0].value);
+    const diff = Math.round((last.value - first.value) * 100) / 100;
+    const good = t.better === 'lower' ? diff < 0 : diff > 0;
+    return `<div style="margin-top:12px"><div class="lbl" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(T(t.short))}</span><span class="muted">${last.value} ${t.unit}${arr.length > 1 && diff ? ` · <span class="${good ? 'prog-up' : 'prog-deload'}" style="font-weight:600">${diff > 0 ? '+' : ''}${diff} ${t.unit}</span>` : ''} · ${T('best')} ${best}</span></div>${arr.length > 1 ? svgLine(arr.map((r) => ({ x: Date.parse(r.at), y: r.value })), { h: 70 }) : ''}</div>`;
+  }).join('');
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>${T('Fitness tests')}</h3><button type="button" class="btn sm secondary" id="btnAddTest">+ ${T('Add a result')}</button></div>${rows || `<p class="muted small" style="margin-top:6px">${T('A short test block appears in one session each week: sprints and broad jump one week, agility and the Yo-Yo test the next. Your results show up here.')}</p>`}`;
+}
+function openAddTest(onDone) {
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Add a result'));
+  sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Add a result')}</h2></div>
+    <div id="atKinds" style="display:flex;flex-wrap:wrap;gap:8px"></div><p class="muted small" id="atProto" style="margin-top:10px"></p>
+    <div class="field" style="margin-top:8px"><label for="atVal">${T('Your best')}</label><div class="unit-input"><input class="input" id="atVal" type="number" inputmode="decimal" min="0" step="0.01"><span id="atUnit"></span></div></div>
+    <div class="field"><label for="atDate">${T('Date')}</label><input class="input" id="atDate" type="date"></div>
+    <div class="error" id="atErr"></div><button class="btn" id="atSave">${T('Save')}</button></div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  let key = 'sprint10';
+  $('#atDate', sheet).value = dateKey(); $('#atDate', sheet).max = dateKey();
+  const paint = () => { const w = $('#atKinds', sheet); w.innerHTML = ''; Object.entries(TESTS).forEach(([k, t]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = T(t.short); b.setAttribute('aria-pressed', String(k === key)); b.onclick = () => { key = k; paint(); }; w.append(b); }); $('#atProto', sheet).textContent = T(TESTS[key].protocol); $('#atUnit', sheet).textContent = TESTS[key].unit; };
+  paint();
+  $('#atSave', sheet).onclick = async (ev) => {
+    const v = parseFloat(String($('#atVal', sheet).value).replace(',', '.'));
+    if (!(v > 0)) { $('#atErr', sheet).textContent = T('Enter your result.'); return; }
+    const b = ev.currentTarget; b.disabled = true;
+    const at = new Date($('#atDate', sheet).value + 'T12:00:00').toISOString();
+    const id = 'manual-' + Date.now().toString(36) + '-' + key;
+    try {
+      await settle(db.doc('users/' + state.user.uid + '/tests/' + id).set({ key, value: v, unit: TESTS[key].unit, at, weekId: isoWeekId(new Date(at)), manual: true }));
+      testHistory = [...(testHistory || []), { id, key, value: v, unit: TESTS[key].unit, at }]; track('test_result');
+      history.back(); toast(T('Saved')); if (onDone) onDone();
+    } catch (_) { b.disabled = false; toast(T('Could not save.')); }
+  };
+}
+
 /* ---------- backup weeks: quietly ask the AI again, at most every 40 minutes ---------- */
 async function upgradeBackupSoon() {
   if (state.plan?.source !== 'template' || !planIsCurrent()) return;
@@ -3368,6 +3454,7 @@ function viewProfile(el) {
       <button type="button" class="set-row" data-edit>${ico(I.goal)}<span class="set-main"><span>${T('Goals')}</span><small>${esc(goals || '—')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.days)}<span class="set-main"><span>${T('Training days')}</span><small>${p.days.map((i) => T(DAYS[i])).join(', ')}${p.doubles && p.doubles !== 'no' ? ' · ' + T('doubles') : ''}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.flag)}<span class="set-main"><span>${T('Deadline')}</span><small>${p.deadline ? esc(p.deadline.name) : T('None')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnTestsToggle">${ico(I.goal)}<span class="set-main"><span>${T('Fitness tests')}</span><small>${p.testsOff ? T('Off') : T('One short test block a week')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" id="btnEvents">${ico(I.flag)}<span class="set-main"><span>${T('Tournaments')}</span><small>${(p.events || []).filter((e) => e.start >= dateKey()).length ? (p.events || []).filter((e) => e.start >= dateKey()).map((e) => esc(e.name)).join(', ') : T('None')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.food)}<span class="set-main"><span>${T('Nutrition')}</span><small>${p.nutrition ? esc(T(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1] || '')) : T('Off')}</small></span><span class="chev">›</span></button>
       <div class="set-foot"><button class="btn secondary" id="btnEdit">${T('Edit setup')}</button></div>
@@ -3419,6 +3506,11 @@ function viewProfile(el) {
   setupInstall();
   $('#btnFeedback').onclick = openFeedback;
   if ($('#btnEvents')) $('#btnEvents').onclick = openEvents;
+  if ($('#btnTestsToggle')) $('#btnTestsToggle').onclick = async () => {
+    const off = !p.testsOff;
+    if (!confirm(off ? T('Turn off the weekly fitness tests? Your results stay.') : T('Turn the weekly fitness tests back on? They start with your next plan.'))) return;
+    try { await db.doc('users/' + state.user.uid).set({ profile: { testsOff: off } }, { merge: true }); state.profile.testsOff = off; navigate('profile'); } catch (_) { toast(T('Could not save.')); }
+  };
   showInboxIfAdmin(el);
   $('#btnExport').onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true;

@@ -621,6 +621,52 @@ export function applyProgression(plan, hist) {
   return plan;
 }
 
+// ---------------- Weekly fitness tests: a short benchmark block, rotating between two sets ----------------
+export const FITNESS_TESTS = {
+  sprint10: { name: '10 m sprint test', unit: 's', better: 'lower', sets: 3, reps: 'best of 3', restSec: 150, set: 'A' },
+  sprint30: { name: '30 m sprint test', unit: 's', better: 'lower', sets: 3, reps: 'best of 3', restSec: 180, set: 'A' },
+  broad: { name: 'Standing broad jump test', unit: 'cm', better: 'higher', sets: 3, reps: 'best of 3', restSec: 60, set: 'A' },
+  agility: { name: '5-10-5 agility test', unit: 's', better: 'lower', sets: 4, reps: 'best of 2 each way', restSec: 90, set: 'B' },
+  yoyo: { name: 'Yo-Yo IR1 test', unit: 'm', better: 'higher', sets: 1, reps: 'until you miss twice', restSec: 0, set: 'B' },
+};
+const weekNo = (id) => Number(String(id).split('-W')[1]) || 0;
+// Puts this week's tests at the start of the right sessions (after the warm-up, when fresh). Idempotent.
+export function applyTests(plan, profile = {}, { fromDay = 0 } = {}) {
+  for (const s of plan.sessions || []) if (Array.isArray(s.exercises)) s.exercises = s.exercises.filter((e) => !e.test);
+  if (profile.testsOff) return plan;
+  // no tests in a tournament week
+  const mon = mondayOf(plan.weekId);
+  const days = [0, 1, 2, 3, 4, 5, 6].map((d) => new Date(mon.getTime() + d * 864e5).toISOString().slice(0, 10));
+  if (upcomingEvents(profile, new Date(mon.getTime() - 864e5), 8).some((e) => days.some((d) => d >= e.start && d <= e.end))) return plan;
+  const set = weekNo(plan.weekId) % 2 === 0 ? 'A' : 'B';
+  const open = (types) => (plan.sessions || []).filter((s) => s.day >= fromDay && !s.fixed && !s.eased && types.includes(s.type)).sort((a, b) => a.day - b.day)[0];
+  const host = open(['speed']) || open(['skills', 'conditioning']) || open(['strength']);
+  if (!host) return plan;
+  const mk = (key) => { const t = FITNESS_TESTS[key]; return { name: t.name, sets: t.sets, reps: t.reps, load: 'full effort, timed', restSec: t.restSec, cues: '', test: key }; };
+  if (set === 'A') host.exercises = [mk('sprint10'), mk('sprint30'), mk('broad'), ...(host.exercises || [])];
+  else {
+    host.exercises = [mk('agility'), ...(host.exercises || [])];
+    // the Yo-Yo is exhausting: a conditioning session of its own if there is one, otherwise last in the same session
+    const cond = (plan.sessions || []).filter((s) => s !== host && s.day >= fromDay && !s.fixed && !s.eased && s.type === 'conditioning').sort((a, b) => a.day - b.day)[0];
+    if (cond) cond.exercises = [mk('yoyo'), ...(cond.exercises || [])];
+    else host.exercises.push(mk('yoyo'));
+  }
+  return plan;
+}
+// Latest results per test with the previous one, for the weekly review
+export async function testSummary(uid) {
+  try {
+    const q = await db().collection(`users/${uid}/tests`).orderBy('at', 'desc').limit(60).get();
+    const by = {};
+    for (const d of q.docs) { const t = d.data(); (by[t.key] = by[t.key] || []).push(t); }
+    const lines = Object.entries(by).filter(([k]) => FITNESS_TESTS[k]).map(([k, arr]) => {
+      const T = FITNESS_TESTS[k]; const [last, prev] = arr; const best = arr.reduce((b, x) => (T.better === 'lower' ? (x.value < b ? x.value : b) : (x.value > b ? x.value : b)), arr[0].value);
+      return `${T.name.replace(' test', '')}: ${last.value} ${T.unit} on ${String(last.at).slice(0, 10)}${prev ? ` (previous ${prev.value} ${T.unit} on ${String(prev.at).slice(0, 10)})` : ''}, best ${best} ${T.unit}, ${T.better} is better`;
+    });
+    return lines.length ? `Fitness test results (use them to judge whether the plan is working; if a test is getting worse, say so and adjust):\n- ${lines.join('\n- ')}` : '';
+  } catch (_) { return ''; }
+}
+
 // ---------------- What the athlete has actually lifted ----------------
 // Gives the model real numbers to progress from, instead of guessing loads every week.
 export async function trainingHistoryBlock(uid, { weeks = 16, maxExercises = 40, maxChars = 4000 } = {}) {
