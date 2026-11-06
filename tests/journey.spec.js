@@ -95,6 +95,9 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
       ok('first plan generated', plan.sessions > 0, plan);
       ok('first plan is AI-made (not template)', plan.source !== 'template', plan.source);
       ok('plan covers 7 days', plan.days === 7, plan.days);
+      const tests = await page.evaluate(() => (state.plan?.sessions || []).flatMap((s) => (s.exercises || []).filter((e) => e.test).map((e) => `${s.day}:${e.test}`)));
+      const left = await page.evaluate(() => (state.plan?.sessions || []).some((s) => s.day >= todayIndex() && !s.fixed && ['speed', 'skills', 'conditioning', 'strength'].includes(s.type)));
+      ok('weekly fitness test block in the plan', tests.length > 0 || !left, tests.length ? tests : 'no training day left this week');
     });
     await step('today fits one screen', async () => {
       await page.click('.tab[data-view="today"]'); await page.waitForTimeout(1500);
