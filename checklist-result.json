@@ -1,87 +1,9 @@
 {
-  "step": "done",
-  "checks": {
-    "every exercise has a How to button": {
-      "pass": true,
-      "detail": 3
-    },
-    "back squat: 2 photos load": {
-      "pass": true,
-      "detail": {
-        "photos": 2,
-        "steps": 6,
-        "muscles": 6,
-        "href": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
-      }
-    },
-    "back squat: steps and muscles shown": {
-      "pass": true,
-      "detail": {
-        "photos": 2,
-        "steps": 6,
-        "muscles": 6,
-        "href": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
-      }
-    },
-    "back squat: lift video search": {
-      "pass": true,
-      "detail": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
-    },
-    "Back (phone back button) closes only the how-to sheet": {
-      "pass": true,
-      "detail": 1
-    },
-    "push jerk: 2 photos load": {
-      "pass": true,
-      "detail": 2
-    },
-    "unknown exercise: still gets a video link and the no-photo note": {
-      "pass": true,
-      "detail": {
-        "video": "https://www.youtube.com/results?search_query=Zottman%20curl%20exercise%20proper%20form",
-        "note": "No photos for this movement yet — the video search below will show you how it is done."
-      }
-    },
-    "swap: How to follows the new exercise": {
-      "pass": true,
-      "detail": {
-        "title": "Goblet squat",
-        "photos": 2
-      }
-    },
-    "sprint: no photos, shows the note": {
-      "pass": true,
-      "detail": {
-        "photos": 0,
-        "note": "No photos for this movement yet — the video search below will show you how it is done.",
-        "href": "https://www.youtube.com/results?search_query=Sprint%2020%20m%20drill%20technique%20how%20to"
-      }
-    },
-    "sprint: video search asks for drill technique": {
-      "pass": true,
-      "detail": "https://www.youtube.com/results?search_query=Sprint%2020%20m%20drill%20technique%20how%20to"
-    },
-    "Turkish: how-to labels are translated": {
-      "pass": true,
-      "detail": {
-        "tr": {
-          "how": "Nasıl yapılır",
-          "yt": "YouTube'da izle"
-        },
-        "trText": {
-          "h2": "Nasıl yapılır",
-          "yt": "▶ YouTube'da izle"
-        }
-      }
-    },
-    "French: labels are translated": {
-      "pass": true,
-      "detail": "Comment faire"
-    }
-  },
+  "step": "seed",
+  "checks": {},
   "errors": [],
   "journey": {
-    "started": "2026-11-09T15:26:42.246Z",
+    "started": "2026-11-09T15:58:23.608Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -208,7 +130,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeMB3GSCCopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite code6BTW95CopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -262,12 +184,12 @@
       }
     },
     "timings": {
-      "landing load": 223,
-      "sign-up": 1933,
-      "save setup": 874,
-      "first plan": 51028,
-      "save session": 453,
-      "rebuild": 37011
+      "landing load": 279,
+      "sign-up": 2964,
+      "save setup": 370,
+      "first plan": 51003,
+      "save session": 437,
+      "rebuild": 41995
     },
     "errors": [],
     "console": [],
@@ -306,31 +228,35 @@
       ]
     },
     "rebuiltPlan": {
-      "source": "profile",
+      "source": "template",
       "note": "Left ankle sprain, no jumping this week",
-      "rationale": "Given your left ankle sprain and strict rule against jumping this week, all plyometrics, bounding, and high-impact sprint drills were completely removed. We kept your sacred Monday evening skills session focused on static control, and filled Wednesday and Friday with ankle-safe strength and acceleration posture work (like wall drills) to keep building your primary goal of speed. RPE loads were pre",
+      "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
       "titles": [
-        "0:skills:Monday Practice & Ankle-Safe Throwing",
-        "1:rest:Rest & Active Recovery",
-        "2:strength:Lower Body Strength & Drive",
-        "3:rest:Rest & Regeneration",
-        "4:speed:Speed Drive Mechanics & Upper Pull",
-        "5:rest:Weekend Recovery",
-        "6:rest:Sunday Mobility & Reset"
+        "0:skills:Skills and agility",
+        "1:rest:Rest",
+        "2:speed:Speed and acceleration",
+        "3:rest:Rest",
+        "4:strength:Full-body strength",
+        "5:rest:Rest",
+        "6:rest:Rest"
       ],
       "exercises": [
-        "Pallof press",
-        "Side plank",
-        "Goblet squat",
-        "Romanian deadlift",
-        "Single-leg RDL",
-        "Bench press",
-        "Dumbbell row",
-        "Acceleration wall drill",
-        "Lat pulldown",
-        "Overhead press",
+        "Leg swings",
+        "Hip circles",
+        "5-10-5 shuttle",
+        "T-drill",
+        "L-drill",
+        "Leg swings",
+        "Hip circles",
+        "Sprint 10 m",
+        "Sprint 20 m",
+        "Sprint 30 m",
         "Plank",
-        "Dead bug"
+        "Back squat",
+        "Deadlift",
+        "Bench press",
+        "Pull-up",
+        "Plank"
       ]
     },
     "club": {
@@ -341,6 +267,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-11-09T15:28:56.636Z"
+    "finished": "2026-11-09T16:00:48.394Z"
   }
 }
