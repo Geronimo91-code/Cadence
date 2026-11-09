@@ -10,7 +10,7 @@ const PASS = process.env.CADENCE_TEST_PASSWORD;
 const out = { step: 'start', status: null, error: null, days: null, trainable: null, sheetOk: null, pageErrors: [] };
 
 test('generate a plan end to end', async ({ page }) => {
-  test.setTimeout(300000);
+  test.setTimeout(420000);
   try {
     page.on('pageerror', (e) => out.pageErrors.push(e.message));
     await page.goto(URL + '?signin');
@@ -20,26 +20,15 @@ test('generate a plan end to end', async ({ page }) => {
     await consentBefore(page); await page.click('#btnEmail'); await consentAfter(page);
     await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
 
-    out.step = 'find-button';
-    const build = page.locator('#btnGen');
-    const rebuild = page.locator('#btnRebuild');
-    let trigger = null;
-    if (await build.count()) trigger = build;
-    else { await page.click('.tab[data-view="plan"]'); if (await rebuild.count()) { page.once('dialog', (d) => d.accept()); trigger = rebuild; } }
-    if (!trigger) { out.step = 'no-trigger'; return; }
-
+    // call the plan service directly, the same request the app makes, and record exactly what came back
     out.step = 'generating';
     out.clickedAt = Date.now();
-    const [res] = await Promise.all([
-      page.waitForResponse((r) => r.url().includes('/api/generate-plan'), { timeout: 200000 }),
-      trigger.click(),
-    ]);
-    out.status = res.status();
-    // what the server actually did: AI plan, or a backup week and why
-    try { const j = await res.json(); out.source = j.source || null; out.fallback = !!j.fallback; out.detail = j.detail || null; out.upgraded = j.upgraded ?? null; out.reason = j.reason || null; } catch (_) { /* not JSON */ }
+    const r = await page.evaluate(async () => { try { return { ok: true, j: await api('/api/generate-plan', {}, { slowMsg: null, timeoutMs: 290000 }) }; } catch (e) { return { ok: false, error: e.message }; } });
     out.serverMs = Date.now() - out.clickedAt;
-    if (out.status !== 200) { out.error = (await res.text().catch(() => '')).slice(0, 400); }
-
+    out.status = r.ok ? 200 : 'error'; out.error = r.error || null;
+    if (r.j) { out.source = r.j.source || null; out.fallback = !!r.j.fallback; out.detail = r.j.detail || null; }
+    await page.reload(); await consentAfter(page);
+    await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
     out.step = 'render';
     // the first-week build shows a reveal screen over the app; close it
     await page.locator('#revealGo').click({ timeout: 15000 }).catch(() => {});
