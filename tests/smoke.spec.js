@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
+import { consentBefore, consentAfter } from './_consent.js';
 
 const URL = process.env.CADENCE_URL;
 const EMAIL = process.env.CADENCE_TEST_EMAIL;
@@ -10,7 +11,7 @@ async function signIn(page) {
   await expect(page.locator('#auth')).toBeVisible({ timeout: 20000 });
   await page.fill('#authEmail', EMAIL);
   await page.fill('#authPass', PASS);
-  await page.click('#btnEmail');
+  await consentBefore(page); await page.click('#btnEmail'); await consentAfter(page);
   await expect(page.locator('#app:not(.hidden), #onboarding:not(.hidden)').first()).toBeVisible({ timeout: 30000 });
   if (await page.locator('#onboarding').isVisible()) throw new Error('Test account has no profile — complete onboarding once with it');
 }

@@ -2,6 +2,7 @@
 // Covers: photo how-to, drill video search, unknown exercise, swap, Back closes only the top sheet, translated labels.
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
+import { consentBefore, consentAfter } from './_consent.js';
 
 const URL = process.env.CADENCE_URL;
 
@@ -18,7 +19,7 @@ test('phase 1 checklist: exercise how-to', async ({ page }) => {
     await page.click('#btnToggleMode');
     await page.fill('#authEmail', email);
     await page.fill('#authPass', pass);
-    await page.click('#btnEmail');
+    await consentBefore(page); await page.click('#btnEmail'); await consentAfter(page);
     await expect(page.locator('#onboarding:not(.hidden)')).toBeVisible({ timeout: 30000 });
 
     out.step = 'seed';

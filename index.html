@@ -774,6 +774,7 @@ a.btn { text-decoration: none; }
 .coachline{margin:4px 0 0;font-size:.95rem;color:var(--ink-2);line-height:1.4}.coachline b{color:var(--ink)}
 .mp-head{display:flex;gap:12px;align-items:center}.mp-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;gap:8px;align-items:center;width:100%;text-align:left;padding:10px 0;border:0;border-bottom:1px solid var(--line,rgba(127,127,127,.2));background:none;color:inherit;font:inherit}.mp-row span:nth-child(2){font-weight:600}
 .mp-list{margin:8px 0 0 18px;padding:0;line-height:1.5}.mp-list li{margin-top:4px}#profHead{cursor:pointer}.mp-link{font-size:.85rem;font-weight:600;color:var(--accent,#1f6b4a)}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:.85rem;line-height:1.45;color:var(--ink-2);margin:4px 0 10px;text-align:left}.consent input{width:20px;height:20px;flex:0 0 auto;margin-top:1px;accent-color:var(--accent,#1f6b4a)}.consent a{color:var(--ink);text-decoration:underline}.consent.shake{animation:cshake .4s}@keyframes cshake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}.consent-sheet{z-index:200}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -901,6 +902,7 @@ a.btn { text-decoration: none; }
     <div class="field"><input class="input" id="authEmail" type="email" placeholder="Email" data-i18n-ph="Email" autocomplete="email"></div>
     <div class="field"><input class="input" id="authPass" type="password" placeholder="Password (8+ characters)" data-i18n-ph="Password (8+ characters)" autocomplete="current-password"></div>
     <button type="button" class="auth-forgot" id="btnForgot" data-i18n="Forgot password?">Forgot password?</button>
+    <label class="consent hidden" id="consentRow"><input type="checkbox" id="consentBox"><span id="consentText"></span></label>
     <button class="btn" id="btnEmail" data-i18n="Sign in">Sign in</button>
     <div class="error" id="authError"></div>
     <div class="auth-info hidden" id="authInfo"></div>
@@ -1095,6 +1097,39 @@ function weekStrip(activeDays, { small = false, readonly = true, onToggle, slots
    Auth
    ============================================================ */
 let signUpMode = false;
+const CONSENT_VERSION = '2026-11';
+function consentHtml() {
+  return `${T('I agree to the')} <a href="/privacy.html" target="_blank" rel="noopener">${T('Privacy policy')}</a> ${T('and the')} <a href="/terms.html" target="_blank" rel="noopener">${T('Terms')}</a>, ${T('and to Cadence storing my training and health data (like injuries, sleep and weight) and having AI use it to build my plans.')}`;
+}
+// Consent: ticked at sign-up, or asked once of accounts made before it existed. Stored with its date and version.
+async function ensureConsent(user) {
+  if (state.consent?.version) return true;
+  let pending = null; try { pending = localStorage.getItem('cadence.consent'); } catch (_) {}
+  const write = async (via) => {
+    const consent = { version: CONSENT_VERSION, at: new Date().toISOString(), via };
+    await db.doc('users/' + user.uid).set({ consent }, { merge: true });
+    state.consent = consent; try { localStorage.removeItem('cadence.consent'); } catch (_) {}
+  };
+  if (pending) { try { await write('signup'); return true; } catch (_) { /* fall through to asking */ } }
+  return new Promise((resolve) => {
+    const sheet = document.createElement('div'); sheet.className = 'sheet consent-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Before you continue'));
+    sheet.innerHTML = `<div class="container"><h2 style="margin-top:24px">${T('Before you continue')}</h2>
+      <p class="muted">${T('Cadence stores your training and health data (like injuries, sleep and weight) and uses AI to write your plans. You can export or delete everything at any time in Profile.')}</p>
+      <label class="consent" style="margin-top:16px"><input type="checkbox" id="consentBox2"><span>${consentHtml()}</span></label>
+      <div class="error" id="consentErr"></div>
+      <button class="btn" id="consentAgree" style="margin-top:12px">${T('Agree and continue')}</button>
+      <button class="btn ghost" id="consentNo" style="margin-top:8px">${T('Sign out')}</button></div>`;
+    document.body.append(sheet); document.body.style.overflow = 'hidden';
+    $('#consentAgree', sheet).onclick = async (ev) => {
+      if (!$('#consentBox2', sheet).checked) { $('#consentErr', sheet).textContent = T('Tick the box to agree.'); return; }
+      ev.currentTarget.disabled = true;
+      try { await write('prompt'); sheet.remove(); document.body.style.overflow = ''; resolve(true); }
+      catch (_) { ev.currentTarget.disabled = false; $('#consentErr', sheet).textContent = T('Could not save. Check your connection and try again.'); }
+    };
+    $('#consentNo', sheet).onclick = () => { sheet.remove(); document.body.style.overflow = ''; resolve(false); auth.signOut(); };
+  });
+}
+function needConsentBox() { if (signUpMode && !$('#consentBox').checked) { $('#authError').textContent = T('Tick the box to agree before creating your account.'); $('#consentRow').classList.add('shake'); setTimeout(() => $('#consentRow').classList.remove('shake'), 500); return true; } return false; }
 function toggleAuthMode() {
   signUpMode = !signUpMode;
   const title = signUpMode ? 'Create your account' : 'Welcome back';
@@ -1105,10 +1140,13 @@ function toggleAuthMode() {
   $('#btnToggleMode').onclick = toggleAuthMode;
   $('#authPass').autocomplete = signUpMode ? 'new-password' : 'current-password';
   $('#btnForgot').classList.toggle('hidden', signUpMode);
+  $('#consentRow').classList.toggle('hidden', !signUpMode); $('#consentText').innerHTML = consentHtml();
   $('#authInfo').classList.add('hidden'); $('#authError').textContent = '';
 }
 $('#btnToggleMode').onclick = toggleAuthMode;
 
+// An invite link (?ref=<inviter>) is remembered until the account is made
+try { const ref = new URLSearchParams(location.search).get('ref'); if (ref && /^[A-Za-z0-9]{10,40}$/.test(ref)) localStorage.setItem('cadence.ref', ref); } catch (_) {}
 // Everyone who is signed out sees the landing page first; a link with ?signin goes straight to the sign-in form.
 function signedOutScreen() { return new URLSearchParams(location.search).has('signin') ? 'auth' : 'landing'; }
 let authFromLanding = false;
@@ -1152,6 +1190,8 @@ window.addEventListener('error', (e) => reportClientError(e.message, e.error && 
 window.addEventListener('unhandledrejection', (e) => reportClientError((e.reason && e.reason.message) || e.reason, e.reason && e.reason.stack));
 $('#btnGoogle').onclick = async () => {
   $('#authError').textContent = '';
+  if (needConsentBox()) return;
+  if (signUpMode) { try { localStorage.setItem('cadence.consent', CONSENT_VERSION); } catch (_) {} }
   try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
   catch (e) { if (e.code === 'auth/popup-blocked') auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()); else $('#authError').textContent = friendlyAuthError(e); }
 };
@@ -1159,6 +1199,8 @@ $('#btnEmail').onclick = async () => {
   const email = $('#authEmail').value.trim(), pass = $('#authPass').value;
   $('#authError').textContent = '';
   if (!email || pass.length < 8) { $('#authError').textContent = T('Enter your email and a password of at least 8 characters.'); return; }
+  if (needConsentBox()) return;
+  if (signUpMode) { try { localStorage.setItem('cadence.consent', CONSENT_VERSION); } catch (_) {} }
   try {
     if (signUpMode) await auth.createUserWithEmailAndPassword(email, pass);
     else await auth.signInWithEmailAndPassword(email, pass);
@@ -1189,11 +1231,13 @@ auth.onAuthStateChanged(async (user) => {
     const udata = snap.exists ? snap.data() : {};
     state.clubIds = Array.isArray(udata.clubIds) ? udata.clubIds : (udata.clubId ? [udata.clubId] : []);
     state.shareRecovery = !!udata.shareRecovery;
+    state.consent = udata.consent || null;
     state.clubId = state.clubIds[0] || null;
     if (!Array.isArray(udata.clubIds) && udata.clubId) { db.doc('users/' + user.uid).set({ clubIds: [udata.clubId] }, { merge: true }).catch(() => {}); }
     if (state.profile?.lang && LANGS[state.profile.lang]) setLang(state.profile.lang);
     if (state.profile?.theme && !localStorage.getItem('cadence.theme')) applyTheme(state.profile.theme);
   } catch (e) { console.error(e); state.profile = null; }
+  if (!(await ensureConsent(user))) return;
   if (!state.profile) { startOnboarding(); return; }
   await loadPlan();
   enterApp();
@@ -1540,6 +1584,7 @@ async function saveProfile() {
     const ref = db.doc('users/' + state.user.uid);
     const payload = { profile, email: state.user.email || null };
     if (!ob.editing) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    if (!ob.editing) { try { const ref = localStorage.getItem('cadence.ref'); if (ref && ref !== state.user.uid) payload.referredBy = ref; } catch (_) {} }
     await ref.set(payload, { merge: true });
     if (d.weightKg && (!ob.editing || state.profile?.weightKg !== d.weightKg)) await db.collection('users/' + state.user.uid + '/weights').add({ kg: d.weightKg, at: new Date().toISOString() });
     const wasEditing = ob.editing;
@@ -1852,6 +1897,18 @@ async function viewToday(el) {
     el.append(c);
     $('#btnSrcRetry').onclick = () => openRebuild();
   }
+
+  // ---- invite nudge: once someone has trained a few times, never for the first week; dismissed for good ----
+  { let seen = false; try { seen = !!localStorage.getItem('cadence.inviteNudge'); } catch (_) {}
+    const logged = Object.values(state.logs || {}).filter((l) => l.status && l.status !== 'skipped').length;
+    if (!seen && logged >= 2 && !(state.clubIds || []).length) {
+      const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '4.2';
+      c.innerHTML = `<div style="display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><strong>${T('Train with your team?')}</strong><div class="muted small">${T('Invite a teammate: you each get your own plan, and practices line up.')}</div></div><button class="btn sm" id="btnInvNudge">${T('Invite')}</button></div><button type="button" class="btn ghost sm" id="btnInvNo" style="margin-top:4px;padding-left:0">${T('Not now')}</button>`;
+      el.append(c);
+      const done = () => { try { localStorage.setItem('cadence.inviteNudge', '1'); } catch (_) {} c.remove(); };
+      $('#btnInvNudge').onclick = () => { done(); inviteTeammate(); };
+      $('#btnInvNo').onclick = done;
+    } }
 
   // ---- one question a day ----
   { const qc = questionCard(); if (qc) el.append(qc); }
@@ -3176,6 +3233,15 @@ function questionCard(forced, onDone) {
   return c;
 }
 
+/* ---------- invite a teammate ---------- */
+async function inviteTeammate() {
+  track('invite');
+  const url = `${location.origin}/?ref=${state.user.uid}`;
+  const text = T('I train with Cadence: a weekly plan that fits around team practice and gets smarter every week. Try it:');
+  try { if (navigator.share) { await navigator.share({ title: 'Cadence', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(`${text} ${url}`); toast(T('Invite link copied. Paste it in your team chat.')); } catch (_) { prompt(T('Copy this link'), url); }
+}
+
 /* ---------- My profile: everything Cadence has learned, in one place ---------- */
 async function openMyProfile() {
   track('my_profile');
@@ -3641,6 +3707,7 @@ async function openInbox() {
           ${tile('Meal days', t.mealDays7, 'logged this week')}
           ${tile('Problems', t.problems7, 'this week · ' + t.fallbacks7 + ' template fallbacks')}
           ${tile('Feedback', t.feedback7, 'this week · ' + t.feedbackAll + ' total')}
+          ${tile('Joined by invite', t.invited || 0, Object.entries(s.inviters || {}).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k, v]) => k + ' ' + v).join(' · ') || 'no invites yet')}
         </div>
         <div class="card"><h3>New accounts, last 14 days</h3><div class="adm-bars">${bars}</div></div>
         <div class="card"><h3>Languages</h3><div class="adm-tags">${chips(s.languages)}</div><h3 style="margin-top:14px">Main sport</h3><div class="adm-tags">${chips(s.sports)}</div><div class="muted small" style="margin-top:12px">${t.clubs} club${t.clubs === 1 ? '' : 's'} · ${t.signedIn7} people opened the app this week</div></div>
@@ -3717,6 +3784,7 @@ function viewProfile(el) {
 
     <h4 class="set-title">${T('Help')}</h4>
     <div class="card set-group">
+      <button type="button" class="set-row" id="btnInvite">${ico(I.chat)}<span class="set-main"><span>${T('Invite a teammate')}</span><small>${T('Send your link to the team chat. Training is easier together.')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" id="btnFeedback">${ico(I.chat)}<span class="set-main"><span>${T('Send feedback')}</span><small>${T('Something broken, confusing or missing? Tell us.')}</small></span><span class="chev">›</span></button>
       <a class="set-row" href="/privacy.html">${ico(I.shield)}<span class="set-main"><span>${T('Privacy')}</span></span><span class="chev">›</span></a>
       <a class="set-row" href="/terms.html">${ico(I.shield)}<span class="set-main"><span>${T('Terms')}</span></span><span class="chev">›</span></a>
@@ -3747,6 +3815,7 @@ function viewProfile(el) {
   };
   setupInstall();
   $('#btnFeedback').onclick = openFeedback;
+  if ($('#btnInvite')) $('#btnInvite').onclick = inviteTeammate;
   if ($('#btnEvents')) $('#btnEvents').onclick = openEvents;
   if ($('#profHead')) { $('#profHead').onclick = openMyProfile; $('#profHead').insertAdjacentHTML('beforeend', `<div class="mp-link">${T('My profile')} ›</div>`); }
   if ($('#btnTestsToggle')) $('#btnTestsToggle').onclick = async () => {

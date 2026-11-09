@@ -147,6 +147,7 @@ async function buildStats() {
       plans, reviews, meals7,
       aiToday: plan.day + review.day + estimate.day, aiWeek: plan.week + review.week + estimate.week,
       aiBreakdownWeek: { plan: plan.week, review: review.week, meal: estimate.week },
+      referredBy: d.referredBy || null, consent: !!d.consent,
     };
   });
 
@@ -172,8 +173,11 @@ async function buildStats() {
       sessions7: sum('logs7'), sessions30: sum('logs30'), sessionsAll: sum('logsAll'),
       plans: sum('plans'), reviews: sum('reviews'), mealDays7: sum('meals7'),
       aiToday: sum('aiToday'), aiWeek: sum('aiWeek'),
+      invited: users.filter((u) => u.referredBy).length,
       problems7: recentProblems.size, fallbacks7: recentProblems.docs.filter((x) => x.data().fallback).length, feedbackAll, feedback7, clubs,
     },
     languages: tally('lang'), sports: tally('sport'), signups, users,
+    // who brought in whom: name of the inviter → number of people who joined through their link
+    inviters: users.filter((u) => u.referredBy).reduce((m, u) => { const by = users.find((x) => x.uid === u.referredBy); const k = by?.name || by?.email || 'someone'; m[k] = (m[k] || 0) + 1; return m; }, {}),
   };
 }

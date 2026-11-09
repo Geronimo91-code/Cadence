@@ -1,6 +1,7 @@
 // Walks Edit setup to the availability screen and checks the per-day preference rows work.
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
+import { consentBefore, consentAfter } from './_consent.js';
 
 const URL = process.env.CADENCE_URL;
 const EMAIL = process.env.CADENCE_TEST_EMAIL;
@@ -20,7 +21,7 @@ test('per-day preferences render and save', async ({ page, request }) => {
     await page.goto(URL + '?signin');
     await page.fill('#authEmail', EMAIL);
     await page.fill('#authPass', PASS);
-    await page.click('#btnEmail');
+    await consentBefore(page); await page.click('#btnEmail'); await consentAfter(page);
     await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
 
     out.step = 'edit-setup';

@@ -2,6 +2,7 @@
 // seed data -> delete through the UI -> sign up again with the same email in the same session -> look for leftovers.
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
+import { consentBefore, consentAfter } from './_consent.js';
 
 const URL = process.env.CADENCE_URL;
 
@@ -29,7 +30,7 @@ test('account deletion leaves nothing behind', async ({ page }) => {
     await page.click('#btnToggleMode');
     await page.fill('#authEmail', email);
     await page.fill('#authPass', pass);
-    await page.click('#btnEmail');
+    await consentBefore(page); await page.click('#btnEmail'); await consentAfter(page);
     await expect(page.locator('#onboarding:not(.hidden)')).toBeVisible({ timeout: 30000 });
 
     // ---- 2. seed recognisable data straight into Firestore ----
@@ -80,7 +81,7 @@ test('account deletion leaves nothing behind', async ({ page }) => {
     if (/sign in/i.test(label)) await page.click('#btnToggleMode');
     await page.fill('#authEmail', email);
     await page.fill('#authPass', pass);
-    await page.click('#btnEmail');
+    await consentBefore(page); await page.click('#btnEmail'); await consentAfter(page);
     for (let i = 0; i < 40; i++) {
       if (await page.locator('#onboarding:not(.hidden)').count()) { out.reSignup = 'onboarding'; break; }
       if (await page.locator('#app:not(.hidden)').count()) { out.reSignup = 'app (existing profile found!)'; break; }

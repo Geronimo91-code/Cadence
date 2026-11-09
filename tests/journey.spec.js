@@ -3,6 +3,7 @@
 // Runs with the checklist dispatch (title contains "phase 1 checklist"). Results go into checklist-result.json under "journey".
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
+import { consentBefore, consentAfter } from './_consent.js';
 
 const URL = process.env.CADENCE_URL;
 
@@ -45,7 +46,7 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
     });
     await step('account created', async () => {
       await page.fill('#authEmail', email); await page.fill('#authPass', pass);
-      await time('sign-up', async () => { await page.click('#btnEmail'); await expect(page.locator('#onboarding')).toBeVisible({ timeout: 30000 }); });
+      await time('sign-up', async () => { await consentBefore(page); await page.click('#btnEmail'); await consentAfter(page); await expect(page.locator('#onboarding')).toBeVisible({ timeout: 30000 }); });
       ok('account created', true);
     });
 
@@ -200,7 +201,7 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
       let joined = false;
       try {
         await p2.goto(URL + '?signin'); await expect(p2.locator('#auth')).toBeVisible({ timeout: 20000 });
-        await p2.click('#btnToggleMode'); await p2.fill('#authEmail', email2); await p2.fill('#authPass', pass); await p2.click('#btnEmail');
+        await p2.click('#btnToggleMode'); await p2.fill('#authEmail', email2); await p2.fill('#authPass', pass); await consentBefore(p2); await p2.click('#btnEmail'); await consentAfter(p2);
         await expect(p2.locator('#onboarding:not(.hidden)')).toBeVisible({ timeout: 30000 });
         r.outsiderList = await p2.evaluate(() => db.collection('clubs').limit(1).get().then(() => 'allowed').catch((e) => e.code));
         await p2.evaluate(async () => { await db.doc('users/' + auth.currentUser.uid).set({ profile: { name: 'Joiner', age: 30, sex: 'Male', heightCm: 180, weightKg: 75, sports: ['Ultimate Frisbee'], level: 'intermediate', goals: ['speed'], goal: 'speed', days: [1, 3], sessionMin: 60, doubles: 'no', equipment: ['Full gym'], lang: 'en' } }, { merge: true }); });
