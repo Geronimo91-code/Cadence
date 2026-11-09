@@ -1,9 +1,66 @@
 {
-  "step": "no-trigger",
-  "status": null,
+  "step": "done",
+  "status": 200,
   "error": null,
-  "days": null,
-  "trainable": null,
-  "sheetOk": null,
-  "pageErrors": []
+  "days": 7,
+  "trainable": 3,
+  "sheetOk": true,
+  "pageErrors": [],
+  "clickedAt": 1794247201512,
+  "serverMs": 170078,
+  "source": "template",
+  "fallback": true,
+  "detail": "gemini 429: [{\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.",
+  "sessionsPerDay": [
+    "Mon:0",
+    "Tue:1",
+    "Wed:0",
+    "Thu:1",
+    "Fri:0",
+    "Sat:1",
+    "Sun:0"
+  ],
+  "layout": {
+    "viewWidth": 350,
+    "days": [
+      {
+        "day": "Mon",
+        "slots": 1,
+        "rest": 1
+      },
+      {
+        "day": "Tue",
+        "slots": 1,
+        "rest": 0
+      },
+      {
+        "day": "Wed",
+        "slots": 1,
+        "rest": 1
+      },
+      {
+        "day": "Thu",
+        "slots": 1,
+        "rest": 0
+      },
+      {
+        "day": "Fri",
+        "slots": 1,
+        "rest": 1
+      },
+      {
+        "day": "Sat",
+        "slots": 1,
+        "rest": 0
+      },
+      {
+        "day": "Sun",
+        "slots": 1,
+        "rest": 1
+      }
+    ],
+    "overflow": [],
+    "overlaps": 0,
+    "daysShown": 7
+  }
 }
