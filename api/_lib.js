@@ -138,7 +138,7 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
 }
 
 // Free/open models wrap JSON in prose, and a truncated answer needs repairing before it parses.
-function extractJson(text) {
+export function extractJson(text) {
   const cleaned = text.replace(/```(?:json)?/gi, '').trim();
   const start = cleaned.indexOf('{');
   if (start === -1) throw new Error('Model did not return JSON');

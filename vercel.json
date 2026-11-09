@@ -7,6 +7,10 @@
     {
       "path": "/api/weekly-close",
       "schedule": "0 4 * * 1"
+    },
+    {
+      "path": "/api/cron-status?compare=run",
+      "schedule": "20 8 10 11 *"
     }
   ],
   "headers": [
