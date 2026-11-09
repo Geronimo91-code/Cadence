@@ -13,14 +13,14 @@
   ],
   "tabsDiag": [
     {
-      "at": "2026-11-09T22:16:52.730Z",
+      "at": "2026-11-09T22:35:16.411Z",
       "step": "today",
       "errors": [],
       "console": [],
       "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"Today\"\u001b[39m\nReceived string: \u001b[31m\"Monday 9 November\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Monday 9 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Monday 9 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Mo"
     },
     {
-      "at": "2026-11-09T22:17:02.378Z",
+      "at": "2026-11-09T22:35:26.908Z",
       "step": "today",
       "errors": [],
       "console": [],
@@ -28,7 +28,7 @@
     }
   ],
   "rulesStatus": {
-    "at": "2026-11-09T22:17:21.810Z",
+    "at": "2026-11-09T22:35:43.992Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
