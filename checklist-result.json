@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-11-09T15:11:44.680Z",
+    "started": "2026-11-09T15:26:42.246Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -143,16 +143,16 @@
         ]
       },
       "today fits one screen": {
-        "pass": false,
+        "pass": true,
         "detail": {
-          "h": 921,
+          "h": 844,
           "v": 844,
           "cards": [
             "DIV",
             "card",
             "card todaycard",
             "card todaycard amber src-card",
-            "card todaycard qod"
+            "card todaycard qod collapsed"
           ]
         }
       },
@@ -199,10 +199,8 @@
         }
       },
       "rebuilt plan avoids jumping": {
-        "pass": false,
-        "detail": [
-          "Standing broad jump test"
-        ]
+        "pass": true,
+        "detail": []
       },
       "nutrition meal added": {
         "pass": true,
@@ -210,7 +208,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeQ9DP3RCopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeMB3GSCCopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -264,12 +262,12 @@
       }
     },
     "timings": {
-      "landing load": 299,
-      "sign-up": 1901,
-      "save setup": 863,
-      "first plan": 50973,
-      "save session": 401,
-      "rebuild": 12934
+      "landing load": 223,
+      "sign-up": 1933,
+      "save setup": 874,
+      "first plan": 51028,
+      "save session": 453,
+      "rebuild": 37011
     },
     "errors": [],
     "console": [],
@@ -310,31 +308,29 @@
     "rebuiltPlan": {
       "source": "profile",
       "note": "Left ankle sprain, no jumping this week",
-      "rationale": "Given your left ankle sprain, all plyometrics, jumps, and high-impact speed work have been removed for this week. We kept your Monday skills commitment fixed and scheduled strength sessions on Wednesday and Friday to build handler acceleration power safely using stable trunk and posterior chain lifts. Loads remain controlled at RPE 6-7 to support healing while keeping you moving.",
+      "rationale": "Given your left ankle sprain and strict rule against jumping this week, all plyometrics, bounding, and high-impact sprint drills were completely removed. We kept your sacred Monday evening skills session focused on static control, and filled Wednesday and Friday with ankle-safe strength and acceleration posture work (like wall drills) to keep building your primary goal of speed. RPE loads were pre",
       "titles": [
-        "0:skills:Handler Skills & Throwing",
+        "0:skills:Monday Practice & Ankle-Safe Throwing",
         "1:rest:Rest & Active Recovery",
-        "2:strength:Gym Lower Push & Acceleration",
-        "3:rest:Rest & Upper Mobility",
-        "4:strength:Gym Lower Pull & Upper Body",
-        "5:rest:Rest & Recovery",
-        "6:rest:Rest & Mobility"
+        "2:strength:Lower Body Strength & Drive",
+        "3:rest:Rest & Regeneration",
+        "4:speed:Speed Drive Mechanics & Upper Pull",
+        "5:rest:Weekend Recovery",
+        "6:rest:Sunday Mobility & Reset"
       ],
       "exercises": [
-        "Thoracic rotation",
         "Pallof press",
-        "10 m sprint test",
-        "30 m sprint test",
-        "Standing broad jump test",
+        "Side plank",
         "Goblet squat",
-        "Acceleration wall drill",
-        "Dumbbell row",
-        "Glute bridge",
-        "Plank",
         "Romanian deadlift",
+        "Single-leg RDL",
         "Bench press",
+        "Dumbbell row",
+        "Acceleration wall drill",
         "Lat pulldown",
-        "Side plank"
+        "Overhead press",
+        "Plank",
+        "Dead bug"
       ]
     },
     "club": {
@@ -345,6 +341,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-11-09T15:13:33.837Z"
+    "finished": "2026-11-09T15:28:56.636Z"
   }
 }
