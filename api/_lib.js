@@ -60,7 +60,7 @@ function providers() {
   const list = [];
   if (process.env.GEMINI_API_KEY) {
     const models = [...new Set([process.env.GEMINI_MODEL || 'gemini-3.6-flash', ...GEMINI_FALLBACKS])];
-    for (const model of models) list.push({ name: 'gemini', model, url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, extra: { reasoning_effort: 'none' } });
+    for (const model of models) list.push({ name: 'gemini', model, url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, extra: { reasoning_effort: 'none', response_format: { type: 'json_object' } } });
   }
   if (process.env.OPENROUTER_API_KEY) list.push({ name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: process.env.OPENROUTER_API_KEY, model: process.env.OPENROUTER_MODEL || 'openrouter/free', headers: { 'HTTP-Referer': 'https://cadence.app', 'X-Title': 'Cadence' } });
   return list;
@@ -72,7 +72,8 @@ function markUsedUp(model) { try { quotaRef().set({ [model.replace(/[./]/g, '_')
 const quotaKey = (m) => m.replace(/[./]/g, '_');
 
 // think: let Gemini reason a little before answering (better plans, slower); the retry goes without it
-export async function callModel({ system, user, image, maxTokens = 4000, retries = 1, timeoutMs = 40000, deadline, think = false }) {
+// meta (optional object) is filled with which model answered, how long it took and the tokens used
+export async function callModel({ system, user, image, maxTokens = 4000, retries = 1, timeoutMs = 40000, deadline, think = false, meta }) {
   const all = providers();
   if (!all.length) throw new Error('No model provider configured (set GEMINI_API_KEY or OPENROUTER_API_KEY)');
   const skip = await usedUp();
@@ -87,6 +88,7 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
       if (left < 6000) throw new Error(failures.concat('Out of time before the model answered').join(' | '));
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), Math.min(timeoutMs, left - 1000));
+      const t0 = Date.now();
       try {
         const r = await fetch(prov.url, {
           method: 'POST',
@@ -99,7 +101,7 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
             max_tokens: think && attempt === 0 ? maxTokens + 6000 : maxTokens,
             temperature: 0.4,
             messages: [
-              { role: 'system', content: system + '\n\nRespond with a single JSON object and nothing else. No markdown, no commentary.' },
+              { role: 'system', content: system + '\n\nRespond with a single JSON object and nothing else. No markdown, no commentary. Write compact JSON on one line, with no indentation or line breaks.' },
               { role: 'user', content: image ? [{ type: 'text', text: user }, { type: 'image_url', image_url: { url: image } }] : user },
             ],
           }),
@@ -120,7 +122,9 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
         const data = await r.json();
         const content = data.choices?.[0]?.message?.content || '';
         if (!content.trim()) throw new Error(`${prov.name} returned an empty answer (finish_reason: ${data.choices?.[0]?.finish_reason || 'unknown'})`);
-        return extractJson(content);
+        const parsed = extractJson(content);
+        if (meta) Object.assign(meta, { provider: prov.name, model: prov.model, ms: Date.now() - t0, tokensIn: data.usage?.prompt_tokens ?? null, tokensOut: data.usage?.completion_tokens ?? null, cachedIn: data.usage?.prompt_tokens_details?.cached_tokens ?? null, reasoning: !!(think && attempt === 0), failures: failures.slice() });
+        return parsed;
       } catch (e) {
         lastErr = e.name === 'AbortError' ? new Error(`${prov.name} timed out`) : e;
         failures.push(lastErr.message);
@@ -206,7 +210,6 @@ export function phaseFor(profile, ref = new Date()) {
 
 export const PLAN_RULES = `Rules:
 - Only schedule sessions on the athlete's available days. Every other day is a "rest" session with a one-line recovery suggestion.
-- Each session has a "slot": 0 for the day's first session, 1 for a second one. Only give a day two sessions when the athlete allows doubles (see their profile) and it makes sense — typically a shorter gym or speed session in the morning and club practice or a longer session later. Never two hard high-intensity sessions on the same day, never doubles on consecutive days for a beginner, and keep at least one full rest day in the week.
 - Set "timeOfDay" to morning, afternoon or evening on every non-rest session; with two sessions the earlier one must come first.
 - Fixed commitments (club practice, matches) are sacred: put them on their day as a session of type "skills" or "match" with fixed=true, keep exercises to a short pre-practice activation, and do not stack a hard session on the same day.
 - Exercise names: use the exact names from the provided vocabulary wherever the movement exists there. Only invent a name for a sport-specific drill that has no equivalent in the list.
@@ -215,18 +218,19 @@ export const PLAN_RULES = `Rules:
 - Respect injuries and limits literally. If the athlete wrote a note about this week, it outranks every other rule: work around the pain, absence or constraint they describe, and mention in the rationale how you adapted.
 - Where the athlete fixed a day's focus or time, that is not a suggestion: schedule exactly that type at that time. Build the rest of the week around those anchors.
 - The FIRST goal leads the week; other goals get one focused slot or are woven into sessions.
-- If the athlete asks for a named program or a set/rep scheme (StrongLifts 5x5, "do 5x5", 3x10, a named routine), follow it exactly on its strength days and build the rest of the week around it. Write it as numbers: "5x5" means "sets": 5 and "reps": "5" on every main lift, never "reps": "5x5". StrongLifts 5x5 alternates workout A (Back squat 5x5, Bench press 5x5, Barbell row 5x5) and workout B (Back squat 5x5, Overhead press 5x5, Deadlift 1x5), 3 minutes rest; add at most one or two short accessories after the main lifts. A requested program overrides the exercise-count, session-length and deload rules below. Load: progress each lift 2.5 kg from the athlete's last logged load (deadlift 5 kg) when all sets were completed, otherwise repeat it.
 - Session length must match the athlete's typical session length (±10 min).
 - Beginners: fewer exercises, simpler patterns, more cues. Competitive athletes: periodised, sport-specific.
 - Deload: every fourth week of a block is a step back — same movements, roughly 60% of the usual volume, nothing near failure. The athlete's week number is given below; if it is a deload week, say so plainly in the rationale.
 - Warm-up 5–10 min and cool-down 3–5 min in every non-rest session (3–4 items each, a few words per item).
+- Be brief: cues under 12 words, intent one short sentence, 4–6 exercises per session. Brevity matters more than completeness.
+- Each session has a "slot": 0 for the day's first session, 1 for a second one. Only give a day two sessions when the athlete allows doubles (see their profile) and it makes sense — typically a shorter gym or speed session in the morning and club practice or a longer session later. Never two hard high-intensity sessions on the same day, never doubles on consecutive days for a beginner, and keep at least one full rest day in the week.
+- If the athlete asks for a named program or a set/rep scheme (StrongLifts 5x5, "do 5x5", 3x10, a named routine), follow it exactly on its strength days and build the rest of the week around it. Write it as numbers: "5x5" means "sets": 5 and "reps": "5" on every main lift, never "reps": "5x5". StrongLifts 5x5 alternates workout A (Back squat 5x5, Bench press 5x5, Barbell row 5x5) and workout B (Back squat 5x5, Overhead press 5x5, Deadlift 1x5), 3 minutes rest; add at most one or two short accessories after the main lifts. A requested program overrides the exercise-count, session-length and deload rules below. Load: progress each lift 2.5 kg from the athlete's last logged load (deadlift 5 kg) when all sets were completed, otherwise repeat it.
 - Tournaments listed above: each tournament day is a session of type "match", fixed=true, title "Tournament: <name>", with a short activation warm-up, no gym work, and an intent that covers between games: eat carbohydrates within 30 minutes after each game (banana, rice cakes, a sandwich), sip about 500 ml per hour with electrolytes, 5 minutes of easy mobility between games, stay warm. The two days before a tournament: nothing hard, only a short sharp activation or rest. The day after: easy mobility and recovery only. In the week leading in, cut volume by about 40% but keep some speed.
-- If the athlete "Often skips" a weekday, put only a short or easy session there (or rest), never the week's key session.
-- Be brief: cues under 12 words, intent one short sentence, 4–6 exercises per session. Brevity matters more than completeness.`;
+- If the athlete "Often skips" a weekday, put only a short or easy session there (or rest), never the week's key session.`;
 
 export function planShape(id) {
   return `{
- "weekId": "${id}",
+ "weekId": "the ISO week id given in the athlete block",
  "phase": "base|build|peak|taper|maintain",
  "focus": "one sentence on what this week is for",
  "sessions": [
@@ -299,7 +303,7 @@ function aboutLines(p) {
   const a = p.about && typeof p.about === 'object' ? Object.entries(p.about).filter(([, v]) => v != null && String(v).trim()) : [];
   return a.length ? '\n- What the athlete has told you (use it, and refer to it in each session\'s "why"): ' + a.map(([k, v]) => `${k}: ${String(v).slice(0, 120)}`).join('; ') : '';
 }
-export function athleteBlock(p, id, ref = new Date()) {
+export function athleteBlock(p, id, ref = new Date(), { menu = true } = {}) {
   const goals = (p.goals || [p.goal]).filter(Boolean);
   return `Athlete
 - Name: ${p.name}${[p.age && `age ${p.age}`, p.sex, p.heightCm && `${p.heightCm} cm`, p.weightKg && `${p.weightKg} kg`].filter(Boolean).map((x) => ', ' + x).join('') || ' (age, height and weight not given yet: keep loads to RPE)'}
@@ -316,9 +320,9 @@ ${dayPrefBlock(p)}
 - ${phaseFor(p, ref).text}
 ${tournamentLines(p, ref)}- Week ${p.weekNumber || 1} of the current block${((p.weekNumber || 1) % 4 === 0) ? ' — THIS IS A DELOAD WEEK' : ''}.
 - Today: ${DAY_NAMES[(ref.getDay() + 6) % 7]} ${ref.toISOString().slice(0, 10)}; the plan is for ISO week ${id}, Monday to Sunday.
-
+${menu ? `
 Exercise vocabulary (use these exact names where the movement fits):
-${exerciseMenu(p.equipment)}
+${exerciseMenu(p.equipment)}` : ''}
 - Language: write EVERY athlete-facing string (titles, intent, warm-up, cues, cool-down, rationale, review text) in ${LANG_NAMES[p.lang] || 'English'}. Keep JSON keys and the "type" values in English.`;
 }
 
@@ -889,4 +893,37 @@ export function planRules(p = {}, ref = new Date()) {
   if (!p.doubles || p.doubles === 'no') drop.push(/Each session has a "slot"/);
   if (!p.about?.['Often skips']) drop.push(/"Often skips"/);
   return PLAN_RULES.split('\n').filter((l) => !drop.some((re) => re.test(l))).join('\n');
+}
+
+// ---------- one plan request, built the same way everywhere ----------
+// Everything identical for most athletes comes first (role, output format, exercise list, the fixed rules), so
+// Gemini's automatic prompt cache can reuse it; the athlete's own data comes last.
+const PLAN_ROLE = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads from the athlete's own history or starting numbers when given, otherwise an RPE with a sensible kilogram range, rest times, and short coaching cues an athlete can read on a phone at the gym or field.`;
+export function planSystem(profile, { fromDay = 0 } = {}) {
+  return `${PLAN_ROLE}
+
+Return ONLY a JSON object with exactly this shape:
+${planShape('')}
+
+Exercise vocabulary (use these exact names where the movement fits):
+${exerciseMenu(profile.equipment)}
+
+${planRules(profile)}${fromDay > 0 ? `
+- ONLY write sessions for ${DAY_NAMES[fromDay]} to Sunday (day ${fromDay} to day 6). The earlier days of this week are already over: do not include them, and do not try to make up for them.` : ''}`;
+}
+export function planUser(profile, id, { history, recent, ref } = {}) {
+  return athleteBlock(profile, id, ref, { menu: false }) + (history ? '\n' + history : '') + (recent ? '\n' + recent : '');
+}
+// days already over keep what the athlete had (or become rest); the model only wrote the rest of the week
+export function keepPastDays(plan, fromDay, oldSessions) {
+  if (!fromDay) return plan;
+  const past = (oldSessions || []).filter((s) => s.day < fromDay);
+  const filler = [];
+  for (let d = 0; d < fromDay; d++) if (!past.some((s) => s.day === d)) filler.push({ day: d, slot: 0, timeOfDay: null, title: 'Rest', type: 'rest', fixed: false, durationMin: 0, intent: 'Before this plan started.', warmup: [], exercises: [], cooldown: [] });
+  plan.sessions = [...past, ...filler, ...(plan.sessions || []).filter((s) => s.day >= fromDay)].sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0));
+  return plan;
+}
+// what each AI call cost, for the admin panel
+export async function logAiCall(uid, route, meta, extra = {}) {
+  try { await db().collection('aiCalls').add({ uid: uid || null, route, ...meta, ...extra, at: new Date().toISOString() }); } catch (_) { /* never break the request */ }
 }

@@ -1,6 +1,6 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
 import { sameKind } from './_garmin.js';
-import { coachCheck } from './_lib.js';
+import { coachCheck, logAiCall } from './_lib.js';
 import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, planRules, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, testSummary, logProblem } from './_lib.js';
 
 export { reviewWeek };
@@ -201,7 +201,9 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
   {
     let out = null, next, modelFailed = null;
     try {
-      out = await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + 200000 });
+      const meta = {};
+      out = await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + 200000, meta });
+      logAiCall(uid, 'weekly-review', meta);
       next = validatePlan(out.nextWeek);
       next.source = 'review';
       coachCheck(next, profile);

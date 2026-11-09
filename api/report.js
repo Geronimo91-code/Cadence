@@ -178,6 +178,15 @@ async function buildStats() {
     },
     languages: tally('lang'), sports: tally('sport'), signups, users,
     // who brought in whom: name of the inviter → number of people who joined through their link
+    aiCalls: await recentAiCalls(),
     inviters: users.filter((u) => u.referredBy).reduce((m, u) => { const by = users.find((x) => x.uid === u.referredBy); const k = by?.name || by?.email || 'someone'; m[k] = (m[k] || 0) + 1; return m; }, {}),
   };
+}
+
+// the last 40 AI calls: which model answered, how long it took, tokens in and out
+async function recentAiCalls() {
+  try {
+    const q = await db().collection('aiCalls').orderBy('at', 'desc').limit(40).get();
+    return q.docs.map((d) => { const x = d.data(); return { at: x.at, route: x.route, model: x.model || null, ms: x.ms || null, tokensIn: x.tokensIn ?? null, tokensOut: x.tokensOut ?? null, cachedIn: x.cachedIn ?? null, reasoning: !!x.reasoning, fromDay: x.fromDay ?? null, failures: (x.failures || []).length }; });
+  } catch (_) { return []; }
 }

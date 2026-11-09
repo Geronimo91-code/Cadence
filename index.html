@@ -377,6 +377,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .sess-photo { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--sage-2); flex: 0 0 auto; }
 .sess-head { display: flex; gap: 12px; align-items: flex-start; } .sess-head > div { flex: 1; min-width: 0; }
 .top-date { font-size: 1rem !important; color: var(--ink-2); font-family: var(--font-body) !important; font-weight: 600 !important; }
+.ai-tbl { display: grid; gap: 6px; margin-top: 10px; font-size: .78rem; } .ai-tbl > div { display: grid; grid-template-columns: 1fr 1.2fr 1.6fr .6fr 1fr; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); } .ai-tbl span { min-width: 0; overflow-wrap: anywhere; color: var(--ink-2); }
 .obq { margin: 0 0 26px; } .obq h3 { margin: 0 0 2px; } .obq > p.muted { margin: 0 0 10px; }
 .build-ov { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: flex; align-items: center; justify-content: center; transition: opacity .25s; }
 .build-ov:has(.reveal) { align-items: flex-start; }
@@ -4035,6 +4036,13 @@ async function openInbox() {
         </div>
         <div class="card"><h3>New accounts, last 14 days</h3><div class="adm-bars">${bars}</div></div>
         <div class="card"><h3>Languages</h3><div class="adm-tags">${chips(s.languages)}</div><h3 style="margin-top:14px">Main sport</h3><div class="adm-tags">${chips(s.sports)}</div><div class="muted small" style="margin-top:12px">${t.clubs} club${t.clubs === 1 ? '' : 's'} · ${t.signedIn7} people opened the app this week</div></div>
+        <div class="card"><h3>AI calls (last ${(s.aiCalls || []).length})</h3>${(() => {
+          const a = s.aiCalls || []; if (!a.length) return '<p class="muted small">Nothing yet. Every plan build, retry and weekly review is listed here.</p>';
+          const ok = a.filter((x) => x.ms); const avg = (k) => (ok.length ? Math.round(ok.reduce((m, x) => m + (x[k] || 0), 0) / ok.length) : 0);
+          const models = a.reduce((m, x) => { const k = x.model || 'failed'; m[k] = (m[k] || 0) + 1; return m; }, {});
+          return `<p class="muted small">Average ${Math.round(avg('ms') / 100) / 10} s · ${avg('tokensIn')} tokens in · ${avg('tokensOut')} out</p><div class="adm-tags">${Object.entries(models).map(([k, v]) => `<span>${esc(k)} · ${v}</span>`).join('')}</div>
+            <div class="ai-tbl">${a.slice(0, 15).map((x) => `<div><span>${esc(when(x.at))}</span><span>${esc(x.route)}${x.fromDay ? ' · from ' + esc(DAYS[x.fromDay]) : ''}</span><span>${esc(x.model || '—')}${x.reasoning ? ' · thinking' : ''}</span><span>${x.ms ? Math.round(x.ms / 100) / 10 + ' s' : '—'}</span><span>${x.tokensIn ?? '—'} / ${x.tokensOut ?? '—'}${x.cachedIn ? ' (' + x.cachedIn + ' cached)' : ''}</span></div>`).join('')}</div>`;
+        })()}</div>
         <div class="card"><h3>What people use</h3><div id="admUsage" class="muted small">Loading…</div></div>
         <div class="card"><h3>People (${s.users.length})</h3>${users}</div>
         <div class="card"><h3>Feedback (${inbox.feedback.length})</h3>${fbHtml}</div>

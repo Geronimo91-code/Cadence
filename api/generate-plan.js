@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, planRules, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem, recentBlock, coachCheck } from './_lib.js';
+import { requireUser, db, callModel, weekId, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem, recentBlock, coachCheck, planSystem, planUser, keepPastDays, logAiCall } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -48,18 +48,19 @@ export default async function handler(req, res) {
   const priorPlans = await db().collection(`users/${user.uid}/plans`).get();
   profile.weekNumber = priorPlans.size + 1;
 
-  const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads from the athlete's own history or starting numbers when given, otherwise an RPE with a sensible kilogram range, rest times, and short coaching cues an athlete can read on a phone at the gym or field.
-
-${planRules(profile)}
-
-Return ONLY a JSON object with exactly this shape:
-${planShape(id)}`;
+  // only the rest of the week is written; days already over keep what was there
+  const fromDay = todayIdx(profile.timezone);
+  const existing = priorPlans.docs.find((d) => d.id === id)?.data();
+  const system = planSystem(profile, { fromDay });
   const [history, recent] = await Promise.all([trainingHistoryBlock(user.uid), recentBlock(user.uid)]);
-  const userMsg = athleteBlock(profile, id) + (history ? '\n' + history : '') + (recent ? '\n' + recent : '') + '\nDays already passed this week should still be filled in for reference.';
+  const userMsg = planUser(profile, id, { history, recent });
+  const meta = {};
 
   try {
-    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + 170000 }));
+    const plan = keepPastDays(validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + 170000, meta })), fromDay, existing?.sessions);
     plan.weekId = id;
+    plan.ai = { model: meta.model || null, ms: meta.ms || null, tokensOut: meta.tokensOut ?? null };
+    logAiCall(user.uid, 'generate-plan', meta, { fromDay });
     plan.createdAt = new Date().toISOString();
     plan.source = 'profile';
     coachCheck(plan, profile);
@@ -103,17 +104,15 @@ export async function upgradeBackupWeek(uid, { deadlineMs = 50000 } = {}) {
   if (!profile) return { upgraded: false, reason: 'no profile' };
   if (cur.data().weekNote) profile.weekNote = cur.data().weekNote;
   profile.weekNumber = (await db().collection(`users/${uid}/plans`).get()).size;
-  const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads from the athlete's own history or starting numbers when given, otherwise an RPE with a sensible kilogram range, rest times, and short coaching cues an athlete can read on a phone at the gym or field.
-
-${planRules(profile)}
-
-Return ONLY a JSON object with exactly this shape:
-${planShape(id)}`;
+  const fromDay = todayIdx(profile.timezone);
+  const system = planSystem(profile, { fromDay });
   const [history, recent] = await Promise.all([trainingHistoryBlock(uid), recentBlock(uid)]);
+  const meta = {};
   let fresh;
   try {
-    fresh = validatePlan(await callModel({ system, user: athleteBlock(profile, id) + (history ? '\n' + history : '') + (recent ? '\n' + recent : ''), maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + deadlineMs }));
+    fresh = validatePlan(await callModel({ system, user: planUser(profile, id, { history, recent }), maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + deadlineMs, meta }));
   } catch (e) { return { upgraded: false, reason: String(e.message || e).slice(0, 300) }; }
+  logAiCall(uid, 'upgrade', meta, { fromDay });
   coachCheck(fresh, profile);
   const today = (new Date(new Date().toLocaleString('en-US', { timeZone: profile.timezone || 'Europe/Brussels' })).getDay() + 6) % 7;
   const logs = await db().collection(`users/${uid}/logs`).where('weekId', '==', id).get();
