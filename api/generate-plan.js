@@ -80,7 +80,7 @@ ${planShape(id)}`;
       applyTests(plan, profile, { fromDay: todayIdx() });
       applyWhy(plan, profile);
       await db().doc(`users/${user.uid}/plans/${id}`).set(plan);
-      return res.status(200).json({ ...plan, fallback: true, detail: String(e && e.message || e).slice(0, 200) });
+      return res.status(200).json({ ...plan, fallback: true, detail: String(e && e.message || e).slice(0, 600) });
     } catch (inner) {
       console.error('template fallback failed', inner);
       const busy = /429|quota|rate|no free|unavailable|did not return JSON|missing sessions|timed out|Out of time/i.test(String(e && e.message || e));

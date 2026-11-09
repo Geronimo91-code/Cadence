@@ -53,17 +53,31 @@ export function requireCron(req, res) {
 }
 
 // Providers in order: Gemini (free tier, OpenAI-compatible endpoint) if GEMINI_API_KEY is set, then OpenRouter.
+// Free Gemini keys have a daily quota per model, so several Google models are tried in turn: when one is used up
+// (429 quota) the next one answers. Models known to be used up are skipped until the quota resets (midnight Pacific).
+const GEMINI_FALLBACKS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
 function providers() {
   const list = [];
-  if (process.env.GEMINI_API_KEY) list.push({ name: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, model: process.env.GEMINI_MODEL || 'gemini-3.6-flash', extra: { reasoning_effort: 'none' } });
+  if (process.env.GEMINI_API_KEY) {
+    const models = [...new Set([process.env.GEMINI_MODEL || 'gemini-3.6-flash', ...GEMINI_FALLBACKS])];
+    for (const model of models) list.push({ name: 'gemini', model, url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, extra: { reasoning_effort: 'none' } });
+  }
   if (process.env.OPENROUTER_API_KEY) list.push({ name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: process.env.OPENROUTER_API_KEY, model: process.env.OPENROUTER_MODEL || 'openrouter/free', headers: { 'HTTP-Referer': 'https://cadence.app', 'X-Title': 'Cadence' } });
   return list;
 }
+const quotaRef = () => db().doc('system/aiQuota');
+function nextQuotaReset() { const d = new Date(); d.setUTCHours(8, 10, 0, 0); if (d <= new Date()) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString(); }
+async function usedUp() { try { const snap = await quotaRef().get(); const now = new Date().toISOString(); return Object.fromEntries(Object.entries(snap.data() || {}).filter(([, until]) => until > now)); } catch (_) { return {}; } }
+function markUsedUp(model) { try { quotaRef().set({ [model.replace(/[./]/g, '_')]: nextQuotaReset() }, { merge: true }).catch(() => {}); } catch (_) { /* best effort */ } }
+const quotaKey = (m) => m.replace(/[./]/g, '_');
 
 // think: let Gemini reason a little before answering (better plans, slower); the retry goes without it
 export async function callModel({ system, user, image, maxTokens = 4000, retries = 1, timeoutMs = 40000, deadline, think = false }) {
-  const provs = providers();
-  if (!provs.length) throw new Error('No model provider configured (set GEMINI_API_KEY or OPENROUTER_API_KEY)');
+  const all = providers();
+  if (!all.length) throw new Error('No model provider configured (set GEMINI_API_KEY or OPENROUTER_API_KEY)');
+  const skip = await usedUp();
+  const provs = all.filter((p) => !skip[quotaKey(p.model)]);
+  if (!provs.length) provs.push(...all.slice(-1));
   const endBy = deadline || Date.now() + 50000; // callers that build plans pass a longer deadline (functions may run 300 s)
   const failures = [];
   let lastErr;
@@ -97,7 +111,11 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
           if (suggested && !prov.switched) { prov.model = suggested[1]; prov.switched = true; console.warn(`${prov.name}: model retired, switching to ${prov.model}`); attempt--; continue; }
           // A model that rejects our optional parameters: drop them and try once more
           if (r.status === 400 && prov.extra && !prov.stripped) { prov.stripped = true; prov.extra = null; console.warn(`${prov.name}: retrying without optional parameters`); attempt--; continue; }
-          throw new Error(`${prov.name} ${r.status}: ${body.slice(0, 200)}`);
+          // A model that does not exist for this key: move on to the next one straight away
+          if (r.status === 404 && prov.name === 'gemini') { failures.push(`${prov.model} not available`); break; }
+          // Daily quota used up: remember it until the reset and move on, a retry would only fail again
+          if (r.status === 429 && /quota|exhausted|limit/i.test(body)) { markUsedUp(prov.model); failures.push(`${prov.model} quota used up`); break; }
+          throw new Error(`${prov.name} ${prov.model} ${r.status}: ${body.replace(/\s+/g, ' ').slice(0, 200)}`);
         }
         const data = await r.json();
         const content = data.choices?.[0]?.message?.content || '';
