@@ -29,11 +29,15 @@ test('generate a plan end to end', async ({ page }) => {
     if (!trigger) { out.step = 'no-trigger'; return; }
 
     out.step = 'generating';
+    out.clickedAt = Date.now();
     const [res] = await Promise.all([
       page.waitForResponse((r) => r.url().includes('/api/generate-plan'), { timeout: 200000 }),
       trigger.click(),
     ]);
     out.status = res.status();
+    // what the server actually did: AI plan, or a backup week and why
+    try { const j = await res.json(); out.source = j.source || null; out.fallback = !!j.fallback; out.detail = j.detail || null; out.upgraded = j.upgraded ?? null; out.reason = j.reason || null; } catch (_) { /* not JSON */ }
+    out.serverMs = Date.now() - out.clickedAt;
     if (out.status !== 200) { out.error = (await res.text().catch(() => '')).slice(0, 400); }
 
     out.step = 'render';
