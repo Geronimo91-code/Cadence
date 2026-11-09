@@ -1,7 +1,7 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
 import { sameKind } from './_garmin.js';
 import { coachCheck } from './_lib.js';
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, testSummary, logProblem } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, planRules, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, testSummary, logProblem } from './_lib.js';
 
 export { reviewWeek };
 
@@ -83,7 +83,7 @@ async function reviewWeek(uid, profile, reviewWeek, started = Date.now()) {
     stats[l.status === 'done' ? 'done' : l.status === 'partial' ? 'partial' : 'skipped']++;
     if (l.sessionRpe) rpes.push(l.sessionRpe);
     stats.setsDone += l.setsDone || 0; stats.setsTotal += l.setsTotal || 0;
-    let line = `- ${when} · ${s.title} (${s.type}): ${String(l.status || 'logged').toUpperCase()}${l.durationMin ? `, ${l.durationMin} min` : ''}${l.sessionRpe ? `, session RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`;
+    let line = `- ${when} · ${s.title} (${s.type}): ${String(l.status || 'logged').toUpperCase()}${l.durationMin ? `, ${l.durationMin} min` : ''}${s.targetRpe ? `, planned effort RPE ${s.targetRpe}` : ''}${l.sessionRpe ? `, felt RPE ${l.sessionRpe}` : ''}${l.note ? `, note: "${l.note}"` : ''}`;
     if (l.readiness) line += `\n    · felt ${l.readiness} before starting`;
     if (l.replacedWith) line += `\n    · replaced the planned session with: "${l.replacedWith}"`;
     if (Array.isArray(l.exercises)) {
@@ -164,7 +164,7 @@ Review principles:
 - If a coach's note is given, treat it as an instruction from the athlete's coach and follow it, mentioning it in the adjustments.
 - Stay in the periodisation phase given for next week.
 
-${PLAN_RULES}
+${planRules(profile)}
 
 Return ONLY a JSON object with this shape:
 {

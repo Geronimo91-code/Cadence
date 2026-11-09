@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem, recentBlock, coachCheck } from './_lib.js';
+import { requireUser, db, callModel, weekId, planRules, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem, recentBlock, coachCheck } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -48,9 +48,9 @@ export default async function handler(req, res) {
   const priorPlans = await db().collection(`users/${user.uid}/plans`).get();
   profile.weekNumber = priorPlans.size + 1;
 
-  const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads as a percentage of effort or bodyweight/RPE (never guess kilograms unless the athlete gave a number), rest times, and short coaching cues an athlete can read on a phone at the gym or field.
+  const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads from the athlete's own history or starting numbers when given, otherwise an RPE with a sensible kilogram range, rest times, and short coaching cues an athlete can read on a phone at the gym or field.
 
-${PLAN_RULES}
+${planRules(profile)}
 
 Return ONLY a JSON object with exactly this shape:
 ${planShape(id)}`;
@@ -103,9 +103,9 @@ export async function upgradeBackupWeek(uid, { deadlineMs = 50000 } = {}) {
   if (!profile) return { upgraded: false, reason: 'no profile' };
   if (cur.data().weekNote) profile.weekNote = cur.data().weekNote;
   profile.weekNumber = (await db().collection(`users/${uid}/plans`).get()).size;
-  const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads as a percentage of effort or bodyweight/RPE (never guess kilograms unless the athlete gave a number), rest times, and short coaching cues an athlete can read on a phone at the gym or field.
+  const system = `You are an experienced strength & conditioning coach writing a one-week training plan for an athlete. Be specific and practical: real exercise names, sets, reps, loads from the athlete's own history or starting numbers when given, otherwise an RPE with a sensible kilogram range, rest times, and short coaching cues an athlete can read on a phone at the gym or field.
 
-${PLAN_RULES}
+${planRules(profile)}
 
 Return ONLY a JSON object with exactly this shape:
 ${planShape(id)}`;

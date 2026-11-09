@@ -192,6 +192,11 @@ export const LANG_NAMES = { en: 'English', fr: 'French', nl: 'Dutch', tr: 'Turki
 export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export function phaseFor(profile, ref = new Date()) {
+  if (!profile.deadline?.date) {
+    // no competition date set, but a tournament on the calendar within 12 weeks: that is the target
+    const ev = upcomingEvents(profile, ref, 84)[0];
+    if (ev) profile = { ...profile, deadline: { name: ev.name, date: ev.start } };
+  }
   if (!profile.deadline?.date) return { phase: 'base', text: 'No competition date. Use rolling 4-week blocks: three progressive weeks then a lighter week.' };
   const weeks = Math.round((new Date(profile.deadline.date) - ref) / (7 * 864e5));
   if (weeks < 0) return { phase: 'base', text: `The event "${profile.deadline.name}" is past. Treat this as a new base block.` };
@@ -233,6 +238,7 @@ export function planShape(id) {
      "type": "strength|speed|conditioning|skills|match|mobility|rest",
      "fixed": false,
      "durationMin": 45,
+     "targetRpe": 7,                 // how hard the whole session should feel, 1–10 (rest days: 0)
      "intent": "one sentence: what this session does for the athlete",
      "why": "one short sentence to the athlete about why THIS session suits THEM: refer to their position, what they want to improve, a recent test or lift, their recovery, an injury, or their next game/tournament. Concrete, never generic.",
      "warmup": ["item", "item"],
@@ -312,7 +318,7 @@ ${tournamentLines(p, ref)}- Week ${p.weekNumber || 1} of the current block${((p.
 - Today: ${DAY_NAMES[(ref.getDay() + 6) % 7]} ${ref.toISOString().slice(0, 10)}; the plan is for ISO week ${id}, Monday to Sunday.
 
 Exercise vocabulary (use these exact names where the movement fits):
-${exerciseMenu()}
+${exerciseMenu(p.equipment)}
 - Language: write EVERY athlete-facing string (titles, intent, warm-up, cues, cool-down, rationale, review text) in ${LANG_NAMES[p.lang] || 'English'}. Keep JSON keys and the "type" values in English.`;
 }
 
@@ -348,6 +354,7 @@ export function validatePlan(plan) {
     type: ['strength', 'speed', 'conditioning', 'skills', 'match', 'mobility', 'rest'].includes(s.type) ? s.type : 'conditioning',
     fixed: !!s.fixed,
     durationMin: Number(s.durationMin) || 0,
+    targetRpe: Math.max(0, Math.min(10, Math.round(Number(s.targetRpe) || 0))) || null,
     intent: String(s.intent || ''),
     why: String(s.why || '').slice(0, 220),
     warmup: Array.isArray(s.warmup) ? s.warmup.map(String) : [],
@@ -482,8 +489,16 @@ export function canonicalExercise(name) {
   return best || String(name || '').trim();
 }
 
-export function exerciseMenu() {
-  return Object.entries(EXERCISE_LIBRARY).map(([group, list]) => `${group}: ${list.join(', ')}`).join('\n');
+const NEEDS_GYM = /Back squat|Front squat|Leg press|^Deadlift|Trap bar|Bench press|Incline bench|Overhead press|Push press|Barbell row|Lat pulldown|Seated cable|Face pull|Cable|Power clean|Hang clean|Push jerk|Clean pull|Hamstring curl|Sled|Assault bike|Rowing intervals|Bike intervals|Back extension|Landmine/;
+const NEEDS_WEIGHTS = /Goblet|Dumbbell|Kettlebell|Medicine ball/;
+export function exerciseMenu(equipment) {
+  const eq = (equipment || []).join(' ');
+  const gym = !equipment || !equipment.length || /Full gym/i.test(eq);
+  const weights = gym || /Dumbbell|Kettlebell/i.test(eq);
+  return Object.entries(EXERCISE_LIBRARY).map(([group, list]) => {
+    const keep = list.filter((x) => (gym || !NEEDS_GYM.test(x)) && (weights || !NEEDS_WEIGHTS.test(x)));
+    return keep.length ? `${group}: ${keep.join(', ')}` : '';
+  }).filter(Boolean).join('\n');
 }
 
 // ---------------- Template week (used when no model is available) ----------------
@@ -865,3 +880,13 @@ export function coachCheck(plan, profile = {}) {
   return plan;
 }
 
+// The plan rules, minus the ones that cannot apply to this athlete this week (shorter prompt, fewer distractions)
+export function planRules(p = {}, ref = new Date()) {
+  const text = `${p.goalNote || ''} ${p.weekNote || ''} ${Object.values(p.about || {}).join(' ')}`;
+  const drop = [];
+  if (!/5\s*[x×]\s*5|stronglifts|\d\s*[x×]\s*\d|program/i.test(text)) drop.push(/named program or a set\/rep scheme/);
+  if (!upcomingEvents(p, ref).length) drop.push(/^- Tournaments listed above/);
+  if (!p.doubles || p.doubles === 'no') drop.push(/Each session has a "slot"/);
+  if (!p.about?.['Often skips']) drop.push(/"Often skips"/);
+  return PLAN_RULES.split('\n').filter((l) => !drop.some((re) => re.test(l))).join('\n');
+}
