@@ -369,6 +369,14 @@ textarea.input { min-height: 90px; resize: vertical; }
 @keyframes obback { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ob-step.ob-in, .ob-step.ob-back { animation: none; } }
 .lift-row { display: grid; grid-template-columns: 1fr 96px auto 96px; gap: 8px; align-items: center; margin-bottom: 10px; } .lift-row .unit-input input { padding-right: 34px; }
+.cc-list { margin: 4px 0 0; padding-left: 18px; } .cc-list li { margin: 2px 0; }
+.coachline { display: flex; align-items: center; gap: 10px; }
+.coach-mark { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: var(--white); }
+.coach-mark svg { width: 17px; height: 17px; }
+.ob-step h2 .coach-mark { width: 40px; height: 40px; margin-bottom: 12px; } .ob-step h2 .coach-mark svg { width: 22px; height: 22px; }
+.sess-photo { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--sage-2); flex: 0 0 auto; }
+.sess-head { display: flex; gap: 12px; align-items: flex-start; } .sess-head > div { flex: 1; min-width: 0; }
+.top-date { font-size: 1rem !important; color: var(--ink-2); font-family: var(--font-body) !important; font-weight: 600 !important; }
 .obq { margin: 0 0 26px; } .obq h3 { margin: 0 0 2px; } .obq > p.muted { margin: 0 0 10px; }
 .build-ov { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: flex; align-items: center; justify-content: center; transition: opacity .25s; }
 .build-ov:has(.reveal) { align-items: flex-start; }
@@ -1348,7 +1356,13 @@ const STEPS = [
 ];
 
 // First run: only what the first plan really needs. Everything else arrives later as one question a day.
-const POSITIONS = { 'Ultimate Frisbee': [['handler', 'Handler', 'Throws, resets, controls the disc'], ['cutter', 'Cutter', 'Runs deep and under, gets open'], ['hybrid', 'Both', 'Handles and cuts']] };
+const POSITIONS = {
+  'Ultimate Frisbee': [['handler', 'Handler', 'Throws, resets, controls the disc'], ['cutter', 'Cutter', 'Runs deep and under, gets open'], ['hybrid', 'Both', 'Handles and cuts']],
+  Football: [['goalkeeper', 'Goalkeeper', 'Short explosive saves, kicking'], ['defender', 'Defender', 'Duels, headers, recovery runs'], ['midfielder', 'Midfielder', 'Covers the most ground'], ['forward', 'Forward', 'Sprints in behind, finishing']],
+  Basketball: [['guard', 'Guard', 'Handles the ball, quick and agile'], ['wing', 'Forward', 'Drives, defends, rebounds'], ['center', 'Center', 'Strong in the paint, jumps a lot']],
+  Volleyball: [['setter', 'Setter', 'Runs the play, quick feet'], ['outside', 'Outside hitter', 'Attacks and passes, jumps a lot'], ['middle', 'Middle blocker', 'Blocks and quick attacks'], ['libero', 'Libero', 'Defence and passing, low and fast']],
+};
+const TEAM_SPORTS = ['Ultimate Frisbee', 'Football', 'Basketball', 'Volleyball'];
 const PLACES = [['gym', 'A gym', ['Full gym', 'Field or track']], ['field', 'A field or park', ['Field or track', 'Bodyweight only']], ['home', 'At home, some weights', ['Dumbbells', 'Bands', 'Bodyweight only']], ['none', 'No equipment', ['Bodyweight only']]];
 // first setup: a short conversation, one question per screen; single-choice answers move on by themselves
 const qStep = (key, { required = false, skip } = {}) => ({ key, title: () => T(QUESTIONS.find((x) => x.key === key).q), sub: () => T(QUESTIONS.find((x) => x.key === key).why),
@@ -1356,8 +1370,8 @@ const qStep = (key, { required = false, skip } = {}) => ({ key, title: () => T(Q
 const FIRST_STEPS = [
   { key: 'hello', title: () => T('Hi, I\'m your coach'), sub: () => T('Give me two minutes and I\'ll know enough to build your first week. After that I rewrite it every week from what you actually do.'), render: renderFirstHello, validate: () => (ob.data.name ? null : T('Add your first name.')) },
   { key: 'sport', title: () => T('Nice to meet you, {x}. What do you play or train?').replace('{x}', esc(ob.data.name || '')), sub: () => T('Your main sport first.'), render: renderFirstSport, validate: () => { const d = ob.data; if (!d.sports?.length) return T('Pick at least one sport.'); if (POSITIONS[d.sports[0]] && !d.position) return T('Choose your position.'); } },
-  qStep('playlevel', { skip: () => !isUlt(ob.data) }),
-  qStep('season', { skip: () => !isUlt(ob.data) }),
+  qStep('playlevel', { skip: () => !isTeamSport(ob.data) }),
+  qStep('season', { skip: () => !isTeamSport(ob.data) }),
   { key: 'level', title: () => T('Where are you with training right now?'), sub: () => T('This sets the starting point, not the ceiling.'), render: (el) => el.append(optionGroup(LEVELS, ob.data.level, (v) => { ob.data.level = v; obAuto(); })), validate: () => (ob.data.level ? null : T('Choose your training level.')) },
   { key: 'goal', title: () => T('What are you working toward?'), sub: () => T('Pick up to three, in order of importance. The first one leads the plan.'), render: renderFirstGoal, validate: () => (ob.data.goals?.length ? null : T('Choose at least one goal.')) },
   qStep('injury', { required: true }),
@@ -1465,7 +1479,7 @@ function obQuestion(el, key, { required = false, bare = false, auto = false } = 
     const w = document.createElement('div'); w.className = 'chips';
     let picked = Array.isArray(d.qa[key]) ? d.qa[key] : (d.qa[key] ? [d.qa[key]] : []);
     const paint = () => $$('.chip', w).forEach((c) => c.setAttribute('aria-pressed', String(picked.includes(c.dataset.val))));
-    q.options.forEach((o) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.val = o; b.textContent = T(o);
+    optionsFor(q, d).forEach((o) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.val = o; b.textContent = T(o);
       b.onclick = () => {
         if (!q.multi) picked = [o];
         else if (o === 'Nothing') picked = ['Nothing'];
@@ -1515,7 +1529,7 @@ function renderStep() {
   if (ob.first) { const k = shown.indexOf(ob.step) + 1; $('#obProgress').innerHTML = `<b class="obbar"><i style="width:${Math.round((k / shown.length) * 100)}%"></i></b>`; }
   else $('#obProgress').innerHTML = shown.map((i) => `<i class="${i <= ob.step ? 'done' : ''}"></i>`).join('');
   const val = (x) => (typeof x === 'function' ? x() : x);
-  const el = $('#obStep'); el.innerHTML = `<h2>${val(s.title)}</h2><p class="muted">${val(s.sub)}</p>`;
+  const el = $('#obStep'); el.innerHTML = `<h2>${ob.first && s.key === 'hello' ? COACH_MARK : ''}${val(s.title)}</h2><p class="muted">${val(s.sub)}</p>`;
   if (ob.first) { el.classList.remove('ob-in', 'ob-back'); void el.offsetWidth; el.classList.add(ob.dir < 0 ? 'ob-back' : 'ob-in'); }
   s.render(el);
   $('#btnObBack').classList.toggle('hidden', ob.step === 0);
@@ -1939,6 +1953,21 @@ function syncTabs() {
   if (!on && state.view === 'nutrition') navigate('today');
 }
 
+
+// the coach's mark: a whistle in a circle, used wherever the coach speaks
+const COACH_MARK = '<span class="coach-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9h6v4h-3.5"/><circle cx="9" cy="14" r="5"/><path d="M9 4v3M5 6l1.5 2M13 6l-1.5 2"/></svg></span>';
+// the main movement's photo on a session card, when the exercise library has one
+async function sessionPhoto(card, sess) {
+  try {
+    const index = await loadMedia();
+    const hit = (sess.exercises || []).map((x) => index.get(normName(x.name))).find((m) => m && m.images);
+    if (!hit || !card.isConnected) return;
+    const head = card.querySelector('.sess-head'); if (!head) return;
+    const img = document.createElement('img'); img.className = 'sess-photo'; img.alt = ''; img.loading = 'lazy';
+    img.src = `/exercises/${encodeURIComponent(hit.id)}/0.webp`; img.onerror = () => img.remove();
+    head.append(img);
+  } catch (_) { /* no photo, no problem */ }
+}
 /* ---------- session types: colour, icon and a friendly name ---------- */
 const TYPE_ICON = {
   speed: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
@@ -2070,7 +2099,9 @@ function navigate(view) {
   track('view:' + view);
   state.view = view;
   $$('.tab').forEach((t) => { if (t.dataset.view === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
-  $('#topTitle').textContent = { today: T('Today'), plan: T('This week'), log: T('Log'), nutrition: T('Nutrition'), club: T('Club'), profile: T('Profile') }[view];
+  const isToday = view === 'today'; $('#topDate').classList.toggle('hidden', isToday);
+  $('#topTitle').textContent = isToday ? new Date().toLocaleDateString(localeTag(), { weekday: 'long', day: 'numeric', month: 'long' }) : { today: T('Today'), plan: T('This week'), log: T('Log'), nutrition: T('Nutrition'), club: T('Club'), profile: T('Profile') }[view];
+  $('#topTitle').classList.toggle('top-date', isToday);
   const el = $('#view'); el.innerHTML = '';
   ({ today: viewToday, plan: viewPlan, log: viewLog, nutrition: viewNutrition, club: viewClub, profile: viewProfile }[view])(el);
   window.scrollTo(0, 0);
@@ -2085,7 +2116,7 @@ async function viewToday(el) {
   // header: greeting and, if set, the countdown — one line each, no card
   const head = document.createElement('div');
   head.innerHTML = `<div class="todayhead"><h1 style="font-size:1.6rem">${greeting()}, ${esc(p.name)}</h1><button type="button" class="streak hidden" id="streakPill"></button></div>` +
-    (() => { const line = coachLine(p, planIsCurrent() ? (state.plan.sessions || []).filter((x) => x.day === todayIndex() && x.type !== 'rest') : []); return line ? `<p class="coachline">${line}</p>` : ''; })();
+    (() => { const line = coachLine(p, planIsCurrent() ? (state.plan.sessions || []).filter((x) => x.day === todayIndex() && x.type !== 'rest') : []); return line ? `<p class="coachline">${COACH_MARK}<span>${line}</span></p>` : ''; })();
   el.append(head);
   paintStreak();
 
@@ -2151,11 +2182,11 @@ async function viewToday(el) {
     const lg = logFor(sess);
     const c = document.createElement('div'); c.className = 'card todaycard';
     c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">${typeBadge(sess, (sess.timeOfDay ? ' · ' + esc(T(sess.timeOfDay)) : '') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : ''))}${statusHtml(lg)}</div>
-      <h3 style="margin:8px 0 2px">${esc(sess.title)}</h3>
-      <div class="muted small">${sess.durationMin} ${T('min')} · ${sess.exercises.length} ${sess.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
+      <div class="sess-head"><div><h3 style="margin:8px 0 2px">${esc(sess.title)}</h3>
+      <div class="muted small">${sess.durationMin} ${T('min')} · ${sess.exercises.length} ${sess.exercises.length === 1 ? T('exercise') : T('exercises')}</div></div></div>
       ${sess.why && !sess.eased ? `<p class="why">${esc(sess.why)}</p>` : ''}
       <button class="btn${lg ? ' secondary' : ''}" id="btnOpenToday${i}" style="margin-top:12px">${lg ? T('View session') : T('Open session')}</button>`;
-    el.append(c);
+    el.append(c); sessionPhoto(c, sess);
     $('#btnOpenToday' + i).onclick = () => openSession(sess);
   });
 
@@ -2408,7 +2439,10 @@ function viewPlan(el) {
         delete state.logs[b.dataset.del]; streakCache = null; toast(T('Removed')); navigate('plan'); } catch (e) { toast(T('Could not send. Check your connection and try again.')); }
     }; });
   }
-  if (p.rationale) el.insertAdjacentHTML('beforeend', `<div class="card sage"><h3 style="margin-bottom:6px">${T('Why this week')}</h3><p class="muted">${esc(p.rationale)}</p></div>`);
+  {
+    const why = (p.rationale || '').trim(); const fixes = (p.coachChecks || []).slice(0, 6);
+    if (why.length >= 50 || fixes.length) el.insertAdjacentHTML('beforeend', `<div class="card sage"><h3 style="margin-bottom:6px">${T('Why this week')}</h3>${why.length >= 50 ? `<p class="muted">${esc(why)}</p>` : ''}${fixes.length ? `<p class="muted small" style="margin-top:8px;font-weight:600">${T('Adjusted by the coach check')}</p><ul class="muted small cc-list">${fixes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`);
+  }
   const reviewed = state.review && state.review.weekId === p.weekId;
   if (!planIsFuture() && !reviewed) {
     const soon = todayIndex() >= 5 || planIsPast();
@@ -3439,15 +3473,18 @@ async function showInboxIfAdmin(el) {
 /* ---------- question of the day: Cadence learns the athlete one answer at a time ---------- */
 // label = how the answer is written into profile.about (English, for the plan); apply = extra profile fields
 const isUlt = (p) => (p.sports || [])[0] === 'Ultimate Frisbee';
+const isTeamSport = (p) => TEAM_SPORTS.includes((p.sports || [])[0]);
+// some questions offer different answers per sport
+const optionsFor = (q, p) => (q.optionsFor ? q.optionsFor(p || {}) : q.options);
 const QUESTIONS = [
   { key: 'age', label: 'Age', q: 'How old are you?', why: 'Recovery and load depend on it.', type: 'number', unit: T('years'), min: 13, max: 90, when: (p) => !p.age, apply: (v) => ({ age: v }) },
   { key: 'weight', label: 'Weight', q: 'What do you weigh?', why: 'For bodyweight exercises and energy needs.', type: 'number', unit: 'kg', min: 30, max: 250, step: 0.1, when: (p) => !p.weightKg, apply: (v) => ({ weightKg: v }) },
   { key: 'injury', label: 'Injury history', q: 'Anything that hurts often or keeps coming back?', why: 'I\'ll keep that area safe and add prehab for it.', type: 'chips', multi: true, options: ['Nothing', 'Ankle', 'Knee', 'Hamstring', 'Groin', 'Lower back', 'Shoulder'], when: () => true },
-  { key: 'club', label: 'Club', q: 'Which club or team do you play for?', why: 'So I can plan around your team\'s season.', type: 'text', placeholder: 'e.g. Flying Rabbits', when: (p) => isUlt(p) || (p.dayPrefs && Object.values(p.dayPrefs).some((x) => x.some((y) => y.focus === 'skills'))) },
-  { key: 'playlevel', label: 'Plays at', q: 'At what level do you play?', why: 'Higher levels need more speed and repeat-sprint work.', type: 'chips', options: ['Recreational league', 'Club team', 'Top club or national team'], when: (p) => isUlt(p) },
-  { key: 'weak', label: 'Wants to improve most', q: 'What do you most want to get better at on the field?', why: 'It becomes the focus of your speed and gym days.', type: 'chips', options: ['First step', 'Top speed', 'Lasting a whole game', 'Jumping', 'Change of direction', 'Throwing power'], when: (p) => isUlt(p) },
-  { key: 'weakgen', label: 'Wants to improve most', q: 'What do you most want to improve?', why: 'It becomes the focus of your plan.', type: 'chips', options: ['Strength', 'Speed', 'Endurance', 'Mobility', 'Power'], when: (p) => !isUlt(p) },
-  { key: 'season', label: 'Season now', q: 'Where are you in your season?', why: 'In season I keep you fresh; off-season we build.', type: 'chips', options: ['Outdoor season', 'Indoor season', 'Off-season'], ttl: 56, when: (p) => isUlt(p) },
+  { key: 'club', label: 'Club', q: 'Which club or team do you play for?', why: 'So I can plan around your team\'s season.', type: 'text', placeholder: 'e.g. Flying Rabbits', when: (p) => isTeamSport(p) || (p.dayPrefs && Object.values(p.dayPrefs).some((x) => x.some((y) => y.focus === 'skills'))) },
+  { key: 'playlevel', label: 'Plays at', q: 'At what level do you play?', why: 'Higher levels need more speed and repeat-sprint work.', type: 'chips', options: ['Recreational league', 'Club team', 'Top club or national team'], when: (p) => isTeamSport(p) },
+  { key: 'weak', label: 'Wants to improve most', q: 'What do you most want to get better at on the field?', why: 'It becomes the focus of your speed and gym days.', type: 'chips', options: ['First step', 'Top speed', 'Lasting a whole game', 'Jumping', 'Change of direction', 'Throwing power'], optionsFor: (p) => (isUlt(p) ? ['First step', 'Top speed', 'Lasting a whole game', 'Jumping', 'Change of direction', 'Throwing power'] : (p.sports || [])[0] === 'Volleyball' ? ['Jumping', 'First step', 'Lasting a whole game', 'Shoulder strength', 'Change of direction'] : ['First step', 'Top speed', 'Lasting a whole game', 'Jumping', 'Change of direction', 'Strength in duels']), when: (p) => isTeamSport(p) },
+  { key: 'weakgen', label: 'Wants to improve most', q: 'What do you most want to improve?', why: 'It becomes the focus of your plan.', type: 'chips', options: ['Strength', 'Speed', 'Endurance', 'Mobility', 'Power'], when: (p) => !isTeamSport(p) },
+  { key: 'season', label: 'Season now', q: 'Where are you in your season?', why: 'In season I keep you fresh; off-season we build.', type: 'chips', options: ['Outdoor season', 'Indoor season', 'Off-season'], optionsFor: (p) => (isUlt(p) ? ['Outdoor season', 'Indoor season', 'Off-season'] : ['Pre-season', 'In season', 'Off-season']), ttl: 56, when: (p) => isTeamSport(p) },
   { key: 'tournament', label: 'Next tournament', q: 'Is a tournament coming up?', why: 'I\'ll taper into it and plan recovery after.', type: 'action', options: ['Yes, add it', 'Not right now'], ttl: 21, when: (p) => !(p.events || []).some((e) => e.start >= dateKey()) },
   { key: 'height', label: 'Height', q: 'How tall are you?', why: 'Rounds out your body stats.', type: 'number', unit: 'cm', min: 120, max: 230, when: (p) => !p.heightCm, apply: (v) => ({ heightCm: v }) },
   { key: 'teamload', label: 'Team practice intensity', q: 'How hard are your team practices usually?', why: 'So I know how much else fits around them.', type: 'chips', options: ['Light', 'Medium', 'Hard'], when: (p) => Object.values(p.dayPrefs || {}).some((x) => (x || []).some((y) => y.focus === 'skills')) },
@@ -3497,7 +3534,7 @@ function questionCard(forced, onDone) {
     } catch (_) { toast(T('Could not save.')); }
   };
   if ($('#qodChips', c)) {
-    const opts = q.type === 'action' ? q.options : q.options;
+    const opts = optionsFor(q, state.profile);
     const w = $('#qodChips', c);
     opts.forEach((o) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = T(o); b.setAttribute('aria-pressed', 'false'); b.onclick = () => {
       if (q.type === 'action') { if (o === opts[0]) { save('added'); openEvents(); } else save('none planned'); return; }
@@ -3594,7 +3631,7 @@ async function openMyProfile() {
       <div class="card mp-head"><div class="prof-av" aria-hidden="true">${esc(initials(pp.name))}</div><div style="min-width:0"><h3 style="margin:0">${esc(pp.name)}</h3><div class="muted small">${[pos && T(pos), T(pp.sports?.[0] || ''), about.Club, about['Plays at'] && T(about['Plays at'])].filter(Boolean).map(esc).join(' · ')}</div></div></div>
       <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h3>${T('What I know about you')}</h3><span class="muted small">${answered.length}/${asked.length}</span></div>
         <div class="pbar" style="margin:8px 0 4px"><i style="width:${asked.length ? Math.round((answered.length / asked.length) * 100) : 0}%"></i></div>
-        <div id="mpAbout">${QUESTIONS.filter((q) => about[q.label] != null && q.key !== 'weakgen' || (q.key === 'weakgen' && !isUlt(pp) && about[q.label] != null)).filter((q, i, arr) => arr.findIndex((x) => x.label === q.label) === i).map((q) => `<button type="button" class="mp-row" data-q="${q.key}"><span class="muted small">${esc(T(q.label))}</span><span>${q.type === 'number' ? esc(String(about[q.label])) + ' ' + esc(q.unit) : esc(String(about[q.label]).split(', ').map((x) => T(x)).join(', '))}</span><span class="chev">›</span></button>`).join('') || `<p class="muted small">${T('Nothing yet. Answer the question on Today, one a day.')}</p>`}</div>
+        <div id="mpAbout">${QUESTIONS.filter((q) => about[q.label] != null && q.key !== 'weakgen' || (q.key === 'weakgen' && !isTeamSport(pp) && about[q.label] != null)).filter((q, i, arr) => arr.findIndex((x) => x.label === q.label) === i).map((q) => `<button type="button" class="mp-row" data-q="${q.key}"><span class="muted small">${esc(T(q.label))}</span><span>${q.type === 'number' ? esc(String(about[q.label])) + ' ' + esc(q.unit) : esc(String(about[q.label]).split(', ').map((x) => T(x)).join(', '))}</span><span class="chev">›</span></button>`).join('') || `<p class="muted small">${T('Nothing yet. Answer the question on Today, one a day.')}</p>`}</div>
         <div id="mpAsk"></div>
         ${answered.length < asked.length ? `<button class="btn secondary sm" id="mpMore" style="margin-top:10px">${T('Answer another question')}</button>` : ''}</div>
       <div class="card"><h3>${T('Strengths')}</h3>${list(strengths.map(esc), T('Your fitness tests will show what is getting better.'))}<h3 style="margin-top:14px">${T('Working on')}</h3>${list(workons.map(esc), T('Tell me what you want to improve, or do a fitness test.'))}</div>
@@ -4033,6 +4070,9 @@ function viewProfile(el) {
     reset: 'M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6',
     trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
     out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11',
+    watch: 'M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2.5 2M9 2h6',
+    invite: 'M15 20c0-3.3-2.7-6-6-6s-6 2.7-6 6M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19 8v6M16 11h6',
+    doc: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7',
   };
   const goals = (p.goals || [p.goal]).map((g) => T(GOALS.find((x) => x[0] === g)?.[1] || '')).filter(Boolean).join(', ');
   const level = T(LEVELS.find((l) => l[0] === p.level)?.[1] || '');
@@ -4049,9 +4089,8 @@ function viewProfile(el) {
     <div class="card set-group">
       <button type="button" class="set-row" data-edit>${ico(I.goal)}<span class="set-main"><span>${T('Goals')}</span><small>${esc(goals || '—')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.days)}<span class="set-main"><span>${T('Training days')}</span><small>${p.days.map((i) => T(DAYS[i])).join(', ')}${p.doubles && p.doubles !== 'no' ? ' · ' + T('doubles') : ''}</small></span><span class="chev">›</span></button>
-      <button type="button" class="set-row" data-edit>${ico(I.flag)}<span class="set-main"><span>${T('Deadline')}</span><small>${p.deadline ? esc(p.deadline.name) : T('None')}</small></span><span class="chev">›</span></button>
-      <button type="button" class="set-row" id="btnTestsToggle">${ico(I.goal)}<span class="set-main"><span>${T('Fitness tests')}</span><small>${p.testsOff ? T('Off') : T('One short test block a week')}</small></span><span class="chev">›</span></button>
-      <button type="button" class="set-row" id="btnEvents">${ico(I.flag)}<span class="set-main"><span>${T('Tournaments')}</span><small>${(p.events || []).filter((e) => e.start >= dateKey()).length ? (p.events || []).filter((e) => e.start >= dateKey()).map((e) => esc(e.name)).join(', ') : T('None')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnTestsToggle">${ico(I.watch)}<span class="set-main"><span>${T('Fitness tests')}</span><small>${p.testsOff ? T('Off') : T('One short test block a week')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnEvents">${ico(I.flag)}<span class="set-main"><span>${T('Season & events')}</span><small>${p.deadline ? esc(p.deadline.name) + ' · ' : ''}${(p.events || []).filter((e) => e.start >= dateKey()).length ? (p.events || []).filter((e) => e.start >= dateKey()).map((e) => esc(e.name)).join(', ') : T('None')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" data-edit>${ico(I.food)}<span class="set-main"><span>${T('Nutrition')}</span><small>${p.nutrition ? esc(T(NUTRITION_GOALS.find((n) => n[0] === p.nutrition.goal)?.[1] || '')) : T('Off')}</small></span><span class="chev">›</span></button>
       <div class="set-foot"><button class="btn secondary" id="btnEdit">${T('Edit setup')}</button></div>
     </div>
@@ -4071,10 +4110,10 @@ function viewProfile(el) {
 
     <h4 class="set-title">${T('Help')}</h4>
     <div class="card set-group">
-      <button type="button" class="set-row" id="btnInvite">${ico(I.chat)}<span class="set-main"><span>${T('Invite a teammate')}</span><small>${T('Send your link to the team chat. Training is easier together.')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnInvite">${ico(I.invite)}<span class="set-main"><span>${T('Invite a teammate')}</span><small>${T('Send your link to the team chat. Training is easier together.')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" id="btnFeedback">${ico(I.chat)}<span class="set-main"><span>${T('Send feedback')}</span><small>${T('Something broken, confusing or missing? Tell us.')}</small></span><span class="chev">›</span></button>
       <a class="set-row" href="/privacy.html">${ico(I.shield)}<span class="set-main"><span>${T('Privacy')}</span></span><span class="chev">›</span></a>
-      <a class="set-row" href="/terms.html">${ico(I.shield)}<span class="set-main"><span>${T('Terms')}</span></span><span class="chev">›</span></a>
+      <a class="set-row" href="/terms.html">${ico(I.doc)}<span class="set-main"><span>${T('Terms')}</span></span><span class="chev">›</span></a>
     </div>
 
     <h4 class="set-title">${T('Account')}</h4>
