@@ -319,12 +319,20 @@ textarea.input { min-height: 90px; resize: vertical; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.obbar { display: block; height: 4px; border-radius: 2px; background: var(--sage); overflow: hidden; flex: 1; max-width: 200px; } .obbar i { display: block; height: 100%; background: var(--green); transition: width .4s ease; }
+.ob-step.ob-in { animation: obin .35s ease; } .ob-step.ob-back { animation: obback .35s ease; }
+@keyframes obin { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes obback { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ob-step.ob-in, .ob-step.ob-back { animation: none; } }
 .obq { margin: 0 0 26px; } .obq h3 { margin: 0 0 2px; } .obq > p.muted { margin: 0 0 10px; }
-.build-ov { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: flex; align-items: flex-start; transition: opacity .25s; }
+.build-ov { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: flex; align-items: center; justify-content: center; transition: opacity .25s; }
+.build-ov:has(.reveal) { align-items: flex-start; }
 .build-ov.out { opacity: 0; }
-.build-in { padding-top: max(56px, 10vh); padding-bottom: 40px; width: 100%; }
+.build-in { padding-top: 40px; padding-bottom: 40px; width: 100%; text-align: center; }
+.build-in.reveal { text-align: left; padding-top: max(48px, 8vh); }
+.build-in .build-lines { display: inline-block; text-align: left; max-width: 100%; }
 .build-in h2 { font-size: 1.6rem; margin: 22px 0 18px; }
-.build-ring { position: relative; width: 96px; height: 96px; }
+.build-ring { position: relative; width: 96px; height: 96px; margin: 0 auto; }
 .build-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .build-ring circle { fill: none; stroke-width: 9; } .build-ring .trk { stroke: var(--sage); }
 .build-ring .arc { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
@@ -1303,22 +1311,39 @@ const STEPS = [
 // First run: only what the first plan really needs. Everything else arrives later as one question a day.
 const POSITIONS = { 'Ultimate Frisbee': [['handler', 'Handler', 'Throws, resets, controls the disc'], ['cutter', 'Cutter', 'Runs deep and under, gets open'], ['hybrid', 'Both', 'Handles and cuts']] };
 const PLACES = [['gym', 'A gym', ['Full gym', 'Field or track']], ['field', 'A field or park', ['Field or track', 'Bodyweight only']], ['home', 'At home, some weights', ['Dumbbells', 'Bands', 'Bodyweight only']], ['none', 'No equipment', ['Bodyweight only']]];
+// first setup: a short conversation, one question per screen; single-choice answers move on by themselves
+const qStep = (key, { required = false, skip } = {}) => ({ key, title: () => T(QUESTIONS.find((x) => x.key === key).q), sub: () => T(QUESTIONS.find((x) => x.key === key).why),
+  render: (el) => obQuestion(el, key, { bare: true, auto: true }), validate: () => (required ? obNeed([key]) : null), skip });
 const FIRST_STEPS = [
-  { key: 'hello', title: T('Hi! Let\'s build your plan'), sub: T('Six quick screens, about two minutes. Then I build your week.'), render: renderFirstHello, validate: () => { const d = ob.data; if (!d.name) return T('Add your first name.'); if (!d.sports?.length) return T('Pick at least one sport.'); if (POSITIONS[d.sports[0]] && !d.position) return T('Choose your position.'); } },
-  { key: 'goal', title: T('Where are you now, and where to?'), sub: T('Your level sets the starting point. Your first goal leads the plan.'), render: renderFirstGoal, validate: () => { if (!ob.data.level) return T('Choose your training level.'); if (!ob.data.goals?.length) return T('Choose at least one goal.'); } },
-  { key: 'you', title: T('A bit about you'), sub: T('So the plan fits your body, not an average one.'), render: renderFirstYou, validate: () => obNeed(['injury', 'push']) },
-  { key: 'week', title: T('Your week'), sub: T('Tap the days you can train. Mark team practices and games so I plan around them.'), render: renderFirstWeek, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); } },
-  { key: 'where', title: T('Where do you train?'), sub: T('Pick all that apply.'), render: renderFirstWhere, validate: () => { if (!ob.data.places?.length) return T('Pick at least one option.'); } },
-  { key: 'taste', title: T('What you like'), sub: T('I build more of what you enjoy and leave out what you don\'t.'), render: renderFirstTaste, validate: () => obNeed(['enjoy', 'gymexp']) },
+  { key: 'hello', title: () => T('Hi, I\'m your coach'), sub: () => T('Give me two minutes and I\'ll know enough to build your first week. After that I rewrite it every week from what you actually do.'), render: renderFirstHello, validate: () => (ob.data.name ? null : T('Add your first name.')) },
+  { key: 'sport', title: () => T('Nice to meet you, {x}. What do you play or train?').replace('{x}', esc(ob.data.name || '')), sub: () => T('Your main sport first.'), render: renderFirstSport, validate: () => { const d = ob.data; if (!d.sports?.length) return T('Pick at least one sport.'); if (POSITIONS[d.sports[0]] && !d.position) return T('Choose your position.'); } },
+  qStep('playlevel', { skip: () => !isUlt(ob.data) }),
+  qStep('season', { skip: () => !isUlt(ob.data) }),
+  { key: 'level', title: () => T('Where are you with training right now?'), sub: () => T('This sets the starting point, not the ceiling.'), render: (el) => el.append(optionGroup(LEVELS, ob.data.level, (v) => { ob.data.level = v; obAuto(); })), validate: () => (ob.data.level ? null : T('Choose your training level.')) },
+  { key: 'goal', title: () => T('What are you working toward?'), sub: () => T('Pick up to three, in order of importance. The first one leads the plan.'), render: renderFirstGoal, validate: () => (ob.data.goals?.length ? null : T('Choose at least one goal.')) },
+  qStep('injury', { required: true }),
+  { key: 'week', title: () => T('Which days can you train?'), sub: () => T('Tap the days you can train. Mark team practices and games so I plan around them.'), render: renderFirstWeek, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); } },
+  qStep('time', { required: true }),
+  { key: 'where', title: () => T('Where do you train?'), sub: () => T('Pick all that apply.'), render: renderFirstWhere, validate: () => (ob.data.places?.length ? null : T('Pick at least one option.')) },
+  qStep('gymexp', { required: true }),
+  qStep('enjoy', { required: true }),
+  qStep('push', { required: true }),
+  qStep('sleep', { required: true }),
+  qStep('stress', { required: true }),
+  { key: 'body', title: () => T('A few numbers about you'), sub: () => T('Optional, but they make loads and recovery more accurate.'), render: (el) => { obQuestion(el, 'age'); obQuestion(el, 'height'); obQuestion(el, 'weight'); } },
+  { key: 'avoid', title: () => T('Last one, {x}: anything you never want in your plan?').replace('{x}', esc(ob.data.name || '')), sub: () => T('Optional. I\'ll leave it out.'), render: (el) => obQuestion(el, 'avoid', { bare: true }) },
 ];
 function startOnboarding(existing) {
   if (!existing) { $('.ob-actions').classList.remove('hidden'); beginOnboarding(null, false, true); return; }
   beginOnboarding(existing);
 }
 function renderFirstHello(el) {
-  const d = ob.data;
-  el.insertAdjacentHTML('beforeend', `<div class="field"><label for="fName">${T('What should I call you?')}</label><input class="input" id="fName" autocomplete="given-name"></div><h3 style="margin:22px 0 10px">${T('What do you play or train?')}</h3><p class="muted small" style="margin:-4px 0 10px">${T('Your main sport first.')}</p>`);
+  el.insertAdjacentHTML('beforeend', `<div class="field"><label for="fName">${T('What should I call you?')}</label><input class="input" id="fName" autocomplete="given-name" enterkeyhint="next"></div>`);
   bind($('#fName'), 'name', (v) => v.trim());
+  $('#fName').onkeydown = (e) => { if (e.key === 'Enter') $('#btnObNext').click(); };
+}
+function renderFirstSport(el) {
+  const d = ob.data;
   const custom = d.sports.filter((x) => !SPORTS.includes(x));
   el.append(chipGroup([...SPORTS, ...custom], d.sports, (v) => { const hadPos = !!POSITIONS[d.sports[0]]; d.sports = v; if (!!POSITIONS[d.sports[0]] !== hadPos) renderStep(); }));
   const add = document.createElement('button'); add.type = 'button'; add.className = 'chip add'; add.textContent = T('+ Other'); add.style.marginTop = '8px';
@@ -1328,9 +1353,6 @@ function renderFirstHello(el) {
   if (pos) { const h = document.createElement('h3'); h.textContent = T('Your position'); h.style.margin = '26px 0 10px'; el.append(h, optionGroup(pos, d.position, (v) => { d.position = v; })); }
 }
 function renderFirstGoal(el) {
-  el.append(optionGroup(LEVELS, ob.data.level, (v) => { ob.data.level = v; }));
-  const h = document.createElement('h3'); h.textContent = T('What are you working toward?'); h.style.margin = '26px 0 4px'; el.append(h);
-  el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin:0 0 10px">${T('Pick up to three, in order of importance.')}</p>`);
   renderGoal(el);
   const note = $('#fGoalNote', el); if (note) note.closest('.field').remove();
 }
@@ -1350,7 +1372,7 @@ function renderFirstWeek(el) {
     tw.append(w);
   };
   paintTeam();
-  const h = document.createElement('h3'); h.textContent = T('Typical session length'); h.style.margin = '26px 0 10px'; el.append(h);
+  const h = document.createElement('h3'); h.textContent = T('How long can a session be?'); h.style.margin = '26px 0 10px'; el.append(h);
   if (!d.sessionMin) d.sessionMin = 60;
   el.append(chipGroup(['30 ' + T('min'), '45 ' + T('min'), '60 ' + T('min'), '75 ' + T('min'), '90+ ' + T('min')], [d.sessionMin + ' ' + T('min')], (v) => { d.sessionMin = parseInt(v[0]); }, { multi: false }));
 }
@@ -1361,11 +1383,11 @@ function renderFirstWhere(el) {
   el.append(w);
 }
 // one question from the QUESTIONS bank, asked inline during setup; answers land in ob.data.qa
-function obQuestion(el, key, { required = false } = {}) {
+function obQuestion(el, key, { required = false, bare = false, auto = false } = {}) {
   const q = QUESTIONS.find((x) => x.key === key); if (!q) return;
   const d = ob.data; d.qa = d.qa || {};
   const box = document.createElement('div'); box.className = 'obq';
-  box.innerHTML = `<h3>${T(q.q)}${required ? '' : ` <span class="muted small" style="font-weight:400">${T('optional')}</span>`}</h3><p class="muted small">${T(q.why)}</p>`;
+  if (!bare) box.innerHTML = `<h3>${T(q.q)}${required ? '' : ` <span class="muted small" style="font-weight:400">${T('optional')}</span>`}</h3><p class="muted small">${T(q.why)}</p>`;
   if (q.type === 'number' || q.type === 'text') {
     const i = document.createElement('input'); i.className = 'input'; i.id = 'obq-' + key;
     if (q.type === 'number') { i.type = 'number'; i.inputMode = 'numeric'; i.min = q.min; i.max = q.max; } else { i.maxLength = 120; i.placeholder = T(q.placeholder || ''); }
@@ -1382,27 +1404,19 @@ function obQuestion(el, key, { required = false } = {}) {
         else if (o === 'Nothing') picked = ['Nothing'];
         else picked = picked.includes(o) ? picked.filter((x) => x !== o) : [...picked.filter((x) => x !== 'Nothing'), o];
         if (picked.length) d.qa[key] = q.multi ? picked : picked[0]; else delete d.qa[key];
-        paint();
+        paint(); if (auto && !q.multi) obAuto();
       }; w.append(b); });
     paint(); box.append(w);
   }
   el.append(box);
 }
+// single-choice answers move to the next screen after a beat
+let obAutoT = null;
+function obAuto() { clearTimeout(obAutoT); obAutoT = setTimeout(() => { if (!$('#onboarding').classList.contains('hidden')) $('#btnObNext').click(); }, 320); }
 function obNeed(keys) {
   const qa = ob.data.qa || {};
   const miss = keys.find((k) => qa[k] == null || (Array.isArray(qa[k]) && !qa[k].length));
   return miss ? T('Answer “{x}” to continue.').replace('{x}', T(QUESTIONS.find((x) => x.key === miss).q)) : null;
-}
-function renderFirstYou(el) {
-  obQuestion(el, 'injury', { required: true });
-  obQuestion(el, 'push', { required: true });
-  if (isUlt(ob.data)) { obQuestion(el, 'playlevel'); obQuestion(el, 'season'); }
-  obQuestion(el, 'age');
-}
-function renderFirstTaste(el) {
-  obQuestion(el, 'enjoy', { required: true });
-  obQuestion(el, 'gymexp', { required: true });
-  obQuestion(el, 'avoid');
 }
 function showPathPicker() {
   show('onboarding');
@@ -1429,19 +1443,24 @@ function beginOnboarding(existing, quick, first) {
 }
 function renderStep() {
   const S = obSteps(); const s = S[ob.step];
-  const shown = S.map((st, i) => i).filter((i) => !(ob.quick && S[i].optional));
-  $('#obProgress').innerHTML = shown.map((i) => `<i class="${i <= ob.step ? 'done' : ''}"></i>`).join('');
-  const el = $('#obStep'); el.innerHTML = `<h2>${s.title}</h2><p class="muted">${s.sub}</p>`;
+  clearTimeout(obAutoT);
+  const shown = S.map((st, i) => i).filter((i) => !(ob.quick && S[i].optional) && !(S[i].skip && S[i].skip()));
+  if (ob.first) { const k = shown.indexOf(ob.step) + 1; $('#obProgress').innerHTML = `<b class="obbar"><i style="width:${Math.round((k / shown.length) * 100)}%"></i></b>`; }
+  else $('#obProgress').innerHTML = shown.map((i) => `<i class="${i <= ob.step ? 'done' : ''}"></i>`).join('');
+  const val = (x) => (typeof x === 'function' ? x() : x);
+  const el = $('#obStep'); el.innerHTML = `<h2>${val(s.title)}</h2><p class="muted">${val(s.sub)}</p>`;
+  if (ob.first) { el.classList.remove('ob-in', 'ob-back'); void el.offsetWidth; el.classList.add(ob.dir < 0 ? 'ob-back' : 'ob-in'); }
   s.render(el);
   $('#btnObBack').classList.toggle('hidden', ob.step === 0);
-  $('#btnObNext').textContent = ob.step === S.length - 1 ? (ob.first ? T('Build my plan') : T('Save and start')) : T('Continue');
+  $('#btnObNext').textContent = ob.step === S.length - 1 ? (ob.first ? T('Build my week') : T('Save and start')) : T('Continue');
   window.scrollTo(0, 0);
-  const first = el.querySelector('input:not([type=hidden])'); if (first && ob.step === 0) first.focus();
+  const first = el.querySelector('input:not([type=hidden])'); if (first && (ob.step === 0 || (ob.first && el.querySelectorAll('input').length === 1 && !el.querySelector('.chips')))) first.focus();
 }
-$('#btnObBack').onclick = () => { let i = ob.step - 1; while (i > 0 && ob.quick && obSteps()[i].optional) i--; if (i >= 0) { ob.step = i; renderStep(); } };
+const obSkip = (st) => (ob.quick && st.optional) || (st.skip && st.skip());
+$('#btnObBack').onclick = () => { let i = ob.step - 1; while (i > 0 && obSkip(obSteps()[i])) i--; if (i >= 0) { ob.dir = -1; ob.step = i; renderStep(); } };
 function nextStepIndex(from) {
   let i = from + 1;
-  while (i < obSteps().length - 1 && ob.quick && obSteps()[i].optional) i++;
+  while (i < obSteps().length - 1 && obSkip(obSteps()[i])) i++;
   return i;
 }
 $('#btnObNext').onclick = async () => {
@@ -1450,7 +1469,7 @@ $('#btnObNext').onclick = async () => {
     const err = s.validate ? s.validate() : null;
     if (err) { toast(err); return; }
     const next = nextStepIndex(ob.step);
-    if (next <= S.length - 1 && ob.step < S.length - 1) { ob.step = next; renderStep(); return; }
+    if (next <= S.length - 1 && ob.step < S.length - 1) { ob.dir = 1; ob.step = next; renderStep(); return; }
     await saveProfile();
   } catch (e) { console.error('onboarding step failed', e); toast(T('Something went wrong on this screen. Try again.')); }
 };
@@ -1630,7 +1649,8 @@ async function saveProfile() {
     d.dayPrefs = Object.fromEntries((d.team || []).map((day) => [day, [{ time: 'evening', focus: 'skills' }]]));
     d.fixed = (d.team || []).length ? `Team practice or games on ${(d.team || []).map((x) => DAYS[x]).join(', ')}` : '';
     d.doubles = 'no'; d.nutritionGoal = 'none';
-    if (d.qa?.age) d.age = d.qa.age;
+    Object.entries(d.qa || {}).forEach(([k, v]) => { const q = QUESTIONS.find((x) => x.key === k); if (q?.apply && v != null && v !== '') Object.assign(d, q.apply(q.type === 'number' ? Number(v) : v)); });
+    const tm = { Morning: '07:00', Lunchtime: '12:00', Evening: '18:30' }[d.qa?.time]; if (tm) d.sessionTime = tm;
     const inj = d.qa?.injury; if (Array.isArray(inj) && inj.length && !inj.includes('Nothing')) d.injuries = `Recurring: ${inj.join(', ')}`;
   }
   const profile = {
@@ -1866,41 +1886,58 @@ function buildLines(p) {
   L.push(T('Writing why each session matters for you'));
   return L;
 }
-async function buildFirstWeek() {
-  const p = state.profile || {};
+// Builds the week in front of the athlete. mode 'first': a new account's first week; 'upgrade': replace a backup week with an AI one.
+async function buildFirstWeek(mode = 'first') {
+  const p = state.profile || {}; const upgrade = mode === 'upgrade';
   document.getElementById('buildOv')?.remove();
   const ov = document.createElement('div'); ov.id = 'buildOv'; ov.className = 'build-ov'; ov.setAttribute('role', 'status'); ov.setAttribute('aria-live', 'polite');
   ov.innerHTML = `<div class="container build-in"><div class="build-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="trk"/><circle cx="60" cy="60" r="52" class="arc" id="buildArc"/></svg><span id="buildPct">0%</span></div>
-    <h2>${esc(T('Building your week, {x}').replace('{x}', p.name || ''))}</h2><ul class="build-lines" id="buildLines"></ul></div>`;
+    <h2>${esc((upgrade ? T('Rebuilding your week, {x}') : T('Building your week, {x}')).replace('{x}', p.name || ''))}</h2><ul class="build-lines" id="buildLines"></ul></div>`;
   document.body.append(ov);
   const lines = buildLines(p); const ul = $('#buildLines', ov); const arc = $('#buildArc', ov); const pct = $('#buildPct', ov);
   const C = 2 * Math.PI * 52; arc.style.strokeDasharray = C; arc.style.strokeDashoffset = C;
   const setPct = (f) => { arc.style.strokeDashoffset = C * (1 - f); pct.textContent = Math.round(f * 100) + '%'; };
-  let shown = 0, done = false, result = null, error = null;
-  const addLine = (txt, last) => {
+  const addLine = (txt) => {
     const prev = ul.lastElementChild; if (prev) prev.classList.add('ok');
-    const li = document.createElement('li'); li.textContent = txt; if (last) li.classList.add('last'); ul.append(li);
+    const li = document.createElement('li'); li.textContent = txt; ul.append(li);
     requestAnimationFrame(() => li.classList.add('in'));
   };
-  const call = api('/api/generate-plan', undefined, { slowMsg: null }).then((r) => { result = r; }, (e) => { error = e; }).finally(() => { done = true; });
-  const t0 = Date.now(); const minMs = 5500;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  let done = false, result = null, error = null;
+  const run = (body) => { done = false; result = null; error = null; return api('/api/generate-plan', body, { slowMsg: null, timeoutMs: 80000 }).then((r) => { result = r; }, (e) => { error = e; }).finally(() => { done = true; }); };
+  const creep = async (from, to) => { let f = from; while (!done) { f = Math.min(to, f + 0.004); setPct(f); await wait(400); } };
+  run(upgrade ? { upgrade: true } : undefined);
+  const t0 = Date.now(); let shown = 0;
   // a line every ~2.4 s while the AI works; when it finishes early, the rest run quickly
   while (shown < lines.length) {
-    addLine(lines[shown], false); shown++;
-    setPct(Math.min(0.9, shown / (lines.length + 1) * 0.9));
-    await new Promise((r) => setTimeout(r, done && Date.now() - t0 > minMs ? 380 : 2400));
+    addLine(lines[shown]); shown++;
+    setPct(Math.min(0.85, shown / (lines.length + 1) * 0.85));
+    await wait(done && Date.now() - t0 > 5500 ? 380 : 2400);
   }
-  addLine(T('Final checks'), true);
-  let f = 0.9; while (!done) { f = Math.min(0.97, f + 0.004); setPct(f); await new Promise((r) => setTimeout(r, 400)); }
-  if (error) { ov.remove(); enterApp(); toast(error.message); return; }
-  try { await loadPlan(result.weekId); } catch (_) { /* fall back to the response */ }
-  if (!state.plan) state.plan = result;
+  addLine(T('Final checks')); await creep(0.85, 0.93);
+  // the server timed out or the connection dropped: one more go before giving up
+  if (error && !upgrade) { addLine(T('Taking longer than usual, trying again')); run(undefined); await creep(0.93, 0.96); }
+  // the AI was busy and a backup week was saved: ask the AI once more while the athlete is still watching
+  if (!upgrade && result?.fallback) { addLine(T('The AI coach is busy, asking once more')); const first = result; run({ upgrade: true }); await creep(0.93, 0.98); result = result?.upgraded ? { ...first, fallback: false } : first; error = null; }
+  if (upgrade && (error || !result?.upgraded)) {
+    ov.querySelector('.build-in').insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:14px">${T('The AI is still busy. Your backup week stays for now and I keep trying in the background.')}</p><button class="btn" id="buildOk" style="margin-top:12px">${T('OK')}</button>`);
+    ul.lastElementChild?.classList.add('ok');
+    $('#buildOk', ov).onclick = () => { ov.remove(); navigate(state.view || 'today'); };
+    return;
+  }
+  if (error) {
+    ov.querySelector('.build-in').insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:14px">${esc(error.message)}</p><button class="btn" id="buildRetry" style="margin-top:12px">${T('Try again')}</button>`);
+    $('#buildRetry', ov).onclick = () => buildFirstWeek(mode);
+    return;
+  }
+  try { await loadPlan(upgrade ? undefined : result.weekId); } catch (_) { /* fall back to the response */ }
+  if (!state.plan && !upgrade) state.plan = result;
   ul.lastElementChild?.classList.add('ok'); setPct(1);
-  track('first_week_built');
-  await new Promise((r) => setTimeout(r, 650));
-  revealWeek(ov, result.fallback);
+  track(upgrade ? 'backup_retry_ok' : 'first_week_built');
+  await wait(650);
+  revealWeek(ov, !upgrade && result.fallback, upgrade);
 }
-function revealWeek(ov, fallback) {
+function revealWeek(ov, fallback, upgraded) {
   const p = state.profile || {}; const plan = state.plan || { sessions: [] }; const t = planIsCurrent() ? todayIndex() : -1;
   const rows = DAYS.map((d, i) => {
     const ss = (plan.sessions || []).filter((x) => x.day === i && x.type !== 'rest').sort((a, b) => (a.slot || 0) - (b.slot || 0));
@@ -1908,11 +1945,11 @@ function revealWeek(ov, fallback) {
     return `<li class="${i === t ? 'today' : ''}" style="animation-delay:${i * 70}ms"><span class="d">${T(d)}</span><span>${body}</span></li>`;
   }).join('');
   ov.innerHTML = `<div class="container build-in reveal"><p class="muted small" style="font-weight:600;letter-spacing:.04em;text-transform:uppercase">${T('Ready')}</p>
-    <h2>${esc(T('Your first week, {x}').replace('{x}', p.name || ''))}</h2>${plan.focus ? `<p class="muted">${esc(plan.focus)}</p>` : ''}
+    <h2>${esc((upgraded ? T('Your new week, {x}') : T('Your first week, {x}')).replace('{x}', p.name || ''))}</h2>${plan.focus ? `<p class="muted">${esc(plan.focus)}</p>` : ''}
     <ul class="reveal-days">${rows}</ul>
     ${fallback ? `<p class="muted small">${T('The AI coach was busy, so this week starts from a solid template. It becomes fully personal at the next rebuild.')}</p>` : `<p class="muted small">${T('Every week I look at what you did and rewrite the next one.')}</p>`}
     <button class="btn" id="revealGo">${T('Let\'s go')}</button><button class="btn secondary" id="revealWeek">${T('See the full week')}</button></div>`;
-  const close = (view) => { ov.classList.add('out'); setTimeout(() => ov.remove(), 250); enterApp(); if (view) navigate(view); };
+  const close = (view) => { ov.classList.add('out'); setTimeout(() => ov.remove(), 250); if (!upgraded) enterApp(); navigate(view || 'today'); };
   $('#revealGo', ov).onclick = () => close(null);
   $('#revealWeek', ov).onclick = () => close('plan');
 }
@@ -2032,7 +2069,7 @@ async function viewToday(el) {
     const c = document.createElement('div'); c.className = 'card todaycard amber src-card';
     c.innerHTML = `<div style="flex:1;min-width:0"><strong>${T('Backup week')}</strong><div class="muted small">${T('The AI was busy, so these are standard sessions. Cadence keeps trying in the background.')}</div></div><button class="btn sm" id="btnSrcRetry">${T('Try again')}</button>`;
     el.append(c);
-    $('#btnSrcRetry').onclick = () => openRebuild();
+    $('#btnSrcRetry').onclick = () => buildFirstWeek('upgrade');
   }
 
   // ---- invite nudge: once someone has trained a few times, never for the first week; dismissed for good ----
@@ -2048,7 +2085,6 @@ async function viewToday(el) {
     } }
 
   // ---- one question a day ----
-  { const qc = questionCard(); if (qc) el.append(qc); }
 
   // ---- last night, from the Garmin watch (only when linked) ----
   if (state.garminDay && planIsCurrent()) {

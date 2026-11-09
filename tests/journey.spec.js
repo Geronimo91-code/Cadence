@@ -54,8 +54,8 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
     await step('onboarding completed', async () => {
       if (await page.isVisible('#pathFull')) await page.click('#pathFull');
       const titles = [];
-      for (let i = 0; i < 12; i++) {
-        if (await page.isVisible('#app:not(.hidden)')) break;
+      for (let i = 0; i < 40; i++) {
+        if (await page.isVisible('#app:not(.hidden)') || await page.isVisible('#buildOv')) break;
         const title = (await page.textContent('#obStep h2').catch(() => '')).trim(); titles.push(title);
         if (await page.isVisible('#fName')) {
           await page.fill('#fName', 'Journey');
@@ -74,8 +74,11 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
           document.querySelectorAll('#obStep .chips').forEach((g) => { if (!g.querySelector('[aria-pressed="true"]')) g.querySelector('.chip')?.click(); });
           document.querySelectorAll('#obStep .options').forEach((g) => { if (!g.querySelector('[aria-checked="true"]')) g.querySelector('.option')?.click(); });
         });
-        const last = /Save and start|Build my plan/i.test(await page.textContent('#btnObNext'));
-        await page.click('#btnObNext');
+        const last = /Save and start|Build my plan|Build my week/i.test(await page.textContent('#btnObNext'));
+        // single-choice answers move on by themselves; only press Continue if the screen is still here
+        await page.waitForTimeout(600);
+        if (await page.isVisible('#buildOv')) break;
+        if ((await page.textContent('#obStep h2').catch(() => '')).trim() === title) await page.click('#btnObNext');
         if (last) {
           // a brand-new account builds its first week straight away, with the animation, then shows the result
           await time('first plan', () => expect(page.locator('#revealGo, #app:not(.hidden)')).toBeVisible({ timeout: 200000 }));
@@ -90,6 +93,12 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
         await page.waitForTimeout(700);
         const toastText = (await page.textContent('#toast').catch(() => '')) || '';
         if (titles.length > 1 && titles[titles.length - 1] === (await page.textContent('#obStep h2').catch(() => '')).trim() && toastText) out.notes.push(`onboarding blocked on "${title}": ${toastText}`);
+      }
+      if (!out.reveal && await page.isVisible('#buildOv')) {
+        await time('first plan', () => expect(page.locator('#revealGo')).toBeVisible({ timeout: 200000 }));
+        out.reveal = { days: await page.locator('.reveal-days li').count() };
+        ok('first week revealed after setup', out.reveal.days === 7, out.reveal);
+        await page.click('#revealGo');
       }
       await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
       out.onboardingSteps = titles;

@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   // Quiet retry of a backup week: never saves a template, never counts against rebuilds
   if (body.upgrade) {
     if (!(await checkLimit(user.uid, 'upgrade', 30, 60))) return res.status(200).json({ upgraded: false, reason: 'limit' });
-    return res.status(200).json(await upgradeBackupWeek(user.uid, { deadlineMs: 50000 }));
+    return res.status(200).json(await upgradeBackupWeek(user.uid, { deadlineMs: 45000 }));
   }
   if (!(await checkLimit(user.uid, 'plan', 12, 30))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const started = Date.now();
@@ -58,7 +58,7 @@ ${planShape(id)}`;
   const userMsg = athleteBlock(profile, id) + (history ? '\n' + history : '') + '\nDays already passed this week should still be filled in for reference.';
 
   try {
-    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, deadline: started + 50000 }));
+    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, deadline: started + 40000 }));
     plan.weekId = id;
     plan.createdAt = new Date().toISOString();
     plan.source = 'profile';
