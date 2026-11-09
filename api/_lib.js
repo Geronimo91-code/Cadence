@@ -196,6 +196,7 @@ export const PLAN_RULES = `Rules:
 - Deload: every fourth week of a block is a step back — same movements, roughly 60% of the usual volume, nothing near failure. The athlete's week number is given below; if it is a deload week, say so plainly in the rationale.
 - Warm-up 5–10 min and cool-down 3–5 min in every non-rest session (3–4 items each, a few words per item).
 - Tournaments listed above: each tournament day is a session of type "match", fixed=true, title "Tournament: <name>", with a short activation warm-up, no gym work, and an intent that covers between games: eat carbohydrates within 30 minutes after each game (banana, rice cakes, a sandwich), sip about 500 ml per hour with electrolytes, 5 minutes of easy mobility between games, stay warm. The two days before a tournament: nothing hard, only a short sharp activation or rest. The day after: easy mobility and recovery only. In the week leading in, cut volume by about 40% but keep some speed.
+- If the athlete "Often skips" a weekday, put only a short or easy session there (or rest), never the week's key session.
 - Be brief: cues under 12 words, intent one short sentence, 4–6 exercises per session. Brevity matters more than completeness.`;
 
 export function planShape(id) {

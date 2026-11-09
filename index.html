@@ -771,6 +771,8 @@ a.btn { text-decoration: none; }
 .qod-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}.qod-q{display:block;font-size:1.05rem;margin-bottom:2px}.qod-act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.qod .chips{margin-top:2px}
 .why{margin:10px 0 0;padding-left:10px;border-left:3px solid var(--accent,#1f6b4a);font-size:.92rem;line-height:1.4;color:var(--ink)}.why-s{margin:10px 0 4px}
 .coachline{margin:4px 0 0;font-size:.95rem;color:var(--ink-2);line-height:1.4}.coachline b{color:var(--ink)}
+.mp-head{display:flex;gap:12px;align-items:center}.mp-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;gap:8px;align-items:center;width:100%;text-align:left;padding:10px 0;border:0;border-bottom:1px solid var(--line,rgba(127,127,127,.2));background:none;color:inherit;font:inherit}.mp-row span:nth-child(2){font-weight:600}
+.mp-list{margin:8px 0 0 18px;padding:0;line-height:1.5}.mp-list li{margin-top:4px}#profHead{cursor:pointer}.mp-link{font-size:.85rem;font-weight:600;color:var(--accent,#1f6b4a)}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -3126,23 +3128,24 @@ function nextQuestion() {
   });
   return left.length ? { q: left[0], left: left.length } : null;
 }
-function questionCard() {
-  const n = nextQuestion(); if (!n) return null;
+function questionCard(forced, onDone) {
+  const n = forced ? { q: forced, left: 0 } : nextQuestion(); if (!n) return null;
   const { q } = n; const c = document.createElement('div'); c.className = 'card todaycard qod'; // never trimmed: this is how Cadence gets to know the athlete
   const input = q.type === 'number' ? `<div class="unit-input"><input class="input" id="qodIn" type="number" inputmode="decimal" min="${q.min}" max="${q.max}" step="${q.step || 1}"><span>${q.unit}</span></div>`
     : q.type === 'text' ? `<input class="input" id="qodIn" maxlength="120" placeholder="${esc(T(q.placeholder || ''))}">` : '<div class="chips" id="qodChips"></div>';
-  c.innerHTML = `<div class="qod-top"><span class="muted small" style="font-weight:600">${T('Getting to know you')}</span><span class="muted small">${n.left} ${T('left')}</span></div><strong class="qod-q">${esc(T(q.q))}</strong><div class="muted small">${esc(T(q.why))}</div><div style="margin-top:10px">${input}</div><div class="qod-act">${q.type === 'chips' || q.type === 'action' ? '' : `<button class="btn sm" id="qodSave">${T('Save')}</button>`}${q.type === 'chips' && q.multi ? `<button class="btn sm" id="qodSave">${T('Save')}</button>` : ''}<button class="btn sm ghost" id="qodLater">${T('Not now')}</button></div>`;
+  c.innerHTML = `<div class="qod-top"><span class="muted small" style="font-weight:600">${T('Getting to know you')}</span>${forced ? '' : `<span class="muted small">${n.left} ${T('left')}</span>`}</div><strong class="qod-q">${esc(T(q.q))}</strong><div class="muted small">${esc(T(q.why))}</div><div style="margin-top:10px">${input}</div><div class="qod-act">${q.type === 'chips' || q.type === 'action' ? '' : `<button class="btn sm" id="qodSave">${T('Save')}</button>`}${q.type === 'chips' && q.multi ? `<button class="btn sm" id="qodSave">${T('Save')}</button>` : ''}<button class="btn sm ghost" id="qodLater">${T('Not now')}</button></div>`;
   let picked = [];
   const save = async (answer) => {
     const p = state.profile; const now = new Date().toISOString(); const today = dateKey();
-    const upd = { about: { ...(p.about || {}), [q.label]: answer }, aboutAt: { ...(p.aboutAt || {}), [q.key]: now }, qod: { ...(p.qod || {}), last: today } };
+    const upd = { about: { ...(p.about || {}), [q.label]: answer }, aboutAt: { ...(p.aboutAt || {}), [q.key]: now }, ...(forced ? {} : { qod: { ...(p.qod || {}), last: today } }) };
     if (q.apply) Object.assign(upd, q.apply(q.type === 'number' ? Number(answer) : answer));
     if (q.key === 'injury' && answer !== 'Nothing') upd.injuries = [p.injuries, `Recurring: ${answer}`].filter(Boolean).join('. ');
     if (q.key === 'weight') db.collection('users/' + state.user.uid + '/weights').add({ kg: Number(answer), at: now }).catch(() => {});
     try {
       await settle(db.doc('users/' + state.user.uid).set({ profile: upd }, { merge: true }));
       Object.assign(state.profile, upd); track('qod_' + q.key);
-      c.innerHTML = `<strong>✓ ${T('Got it')}</strong><div class="muted small" style="margin-top:4px">${T('Your next plan will use this. Another question tomorrow.')}</div>`;
+      c.innerHTML = `<strong>✓ ${T('Got it')}</strong><div class="muted small" style="margin-top:4px">${forced ? T('Your next plan will use this.') : T('Your next plan will use this. Another question tomorrow.')}</div>`;
+      if (onDone) onDone();
     } catch (_) { toast(T('Could not save.')); }
   };
   if ($('#qodChips', c)) {
@@ -3161,11 +3164,91 @@ function questionCard() {
     if (!raw) { toast(T('Write a few words first.')); return; } save(raw);
   };
   $('#qodLater', c).onclick = async () => {
+    if (forced) { c.remove(); return; }
     const p = state.profile; const until = dateKey(new Date(Date.now() + 3 * 864e5));
     const qod = { ...(p.qod || {}), last: dateKey(), skip: { ...((p.qod || {}).skip || {}), [q.key]: until } };
     state.profile.qod = qod; c.remove(); db.doc('users/' + state.user.uid).set({ profile: { qod } }, { merge: true }).catch(() => {});
   };
   return c;
+}
+
+/* ---------- My profile: everything Cadence has learned, in one place ---------- */
+async function openMyProfile() {
+  track('my_profile');
+  const p = state.profile;
+  const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('My profile'));
+  sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('My profile')}</h2></div><div id="mpBody"><p class="muted">${T('Loading…')}</p></div></div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  $('#btnCloseSheet', sheet).onclick = () => history.back();
+  registerSheet(close);
+  const body = $('#mpBody', sheet);
+  // data: logs (16 weeks), tests, Garmin nights (30 days)
+  let logs = [], nights = [];
+  const since = new Date(Date.now() - 112 * 864e5).toISOString();
+  try { const q = await db.collection('users/' + state.user.uid + '/logs').where('loggedAt', '>=', since).orderBy('loggedAt').limit(500).get(); logs = q.docs.map((d) => d.data()); } catch (_) {}
+  await loadTests();
+  if (state.garmin?.connected) { for (let i = 0; i < 30; i++) { const d = dateKey(new Date(Date.now() - i * 864e5)); try { const g = await db.doc('users/' + state.user.uid + '/garmin/' + d).get(); if (g.exists) nights.push({ date: d, ...g.data() }); } catch (_) { break; } } }
+  if (!sheet.isConnected) return;
+  const paint = () => {
+    const pp = state.profile; const about = pp.about || {};
+    const pos = POSITIONS[pp.sports?.[0]]?.find((x) => x[0] === pp.position)?.[1];
+    const asked = QUESTIONS.filter((q) => q.when(pp) || (pp.aboutAt || {})[q.key]);
+    const answered = asked.filter((q) => (pp.aboutAt || {})[q.key] || (q.apply && !q.when(pp)));
+    // strengths and work-ons from test trends, plus what they said
+    const trend = Object.entries(TESTS).map(([k, t]) => { const arr = (testHistory || []).filter((r) => r.key === k).sort((a, b) => String(a.at).localeCompare(String(b.at))); if (arr.length < 2) return null; const d = arr[arr.length - 1].value - arr[0].value; return { t, better: t.better === 'lower' ? d < 0 : d > 0, worse: t.better === 'lower' ? d > 0 : d < 0 }; }).filter(Boolean);
+    const strengths = trend.filter((x) => x.better).map((x) => T(x.t.short));
+    const workons = [...trend.filter((x) => x.worse).map((x) => T(x.t.short)), ...(about['Wants to improve most'] ? [T(about['Wants to improve most'])] : [])];
+    // records
+    const bestTest = Object.entries(TESTS).map(([k, t]) => { const arr = (testHistory || []).filter((r) => r.key === k); if (!arr.length) return null; const v = arr.reduce((b, x) => (t.better === 'lower' ? Math.min(b, x.value) : Math.max(b, x.value)), arr[0].value); return `${T(t.short)}: <b>${v} ${t.unit}</b>`; }).filter(Boolean);
+    const lifts = new Map();
+    logs.forEach((l) => (l.exercises || []).forEach((ex) => { const done = (ex.sets || []).filter((st) => st.done && Number(st.load) > 0); if (!done.length) return; const top = Math.max(...done.map((st) => Number(st.load))); const e1 = Math.max(...done.map((st) => Number(st.load) * (1 + (Number(st.reps) || 1) / 30))); const k = ex.name.toLowerCase(); const cur = lifts.get(k) || { name: ex.name, top: 0, e1: 0 }; cur.top = Math.max(cur.top, top); cur.e1 = Math.max(cur.e1, e1); lifts.set(k, cur); }));
+    const bestLifts = [...lifts.values()].sort((a, b) => b.e1 - a.e1).slice(0, 5).map((x) => `${esc(x.name)}: <b>${x.top} kg</b> <span class="muted">(${T('est. max')} ${Math.round(x.e1 / 2.5) * 2.5} kg)</span>`);
+    // patterns
+    const done = logs.filter((l) => l.status && l.status !== 'skipped');
+    const weeks = new Set(logs.map((l) => l.weekId)).size || 1;
+    const perWeek = Math.round((done.length / weeks) * 10) / 10;
+    const byDay = [0, 0, 0, 0, 0, 0, 0], skipDay = [0, 0, 0, 0, 0, 0, 0];
+    logs.forEach((l) => { if (l.status === 'skipped') skipDay[l.day] = (skipDay[l.day] || 0) + 1; else if (l.status) byDay[l.day] = (byDay[l.day] || 0) + 1; });
+    const bestDay = byDay.indexOf(Math.max(...byDay)); const worstDay = skipDay.indexOf(Math.max(...skipDay));
+    const types = {}; done.forEach((l) => { types[l.type] = (types[l.type] || 0) + 1; });
+    const fav = Object.entries(types).sort((a, b) => b[1] - a[1])[0];
+    const rpeBy = {}; done.filter((l) => l.sessionRpe).forEach((l) => { (rpeBy[l.type] = rpeBy[l.type] || []).push(l.sessionRpe); });
+    const hardest = Object.entries(rpeBy).map(([k, v]) => [k, v.reduce((a, b) => a + b, 0) / v.length]).sort((a, b) => b[1] - a[1])[0];
+    const pats = [];
+    if (done.length >= 4) pats.push(`${T('You train about')} <b>${perWeek}×</b> ${T('a week')}.`);
+    if (done.length >= 6 && Math.max(...byDay) >= 3) pats.push(`${T('Your most reliable day is')} <b>${T(DAYS[bestDay])}</b>.`);
+    if (Math.max(...skipDay) >= 2) {
+      pats.push(`${T('You skip most often on')} <b>${T(DAYS[worstDay])}</b>. ${T('I keep that day lighter.')}`);
+      // tell the plan, so that promise is real
+      const v = DAYS[worstDay];
+      if ((pp.about || {})['Often skips'] !== v) { const about2 = { ...(pp.about || {}), 'Often skips': v }; state.profile.about = about2; db.doc('users/' + state.user.uid).set({ profile: { about: about2 } }, { merge: true }).catch(() => {}); }
+    }
+    if (fav && fav[1] >= 3) pats.push(`${T('Most of your logged work is')} <b>${esc(T(fav[0]))}</b>.`);
+    if (hardest && (rpeBy[hardest[0]] || []).length >= 3) pats.push(`${T('Your hardest sessions are')} <b>${esc(T(hardest[0]))}</b> (RPE ${Math.round(hardest[1] * 10) / 10}).`);
+    const sl = nights.map((n) => n.sleepH).filter((x) => x > 0);
+    if (sl.length >= 5) pats.push(`${T('You sleep')} <b>${Math.round((sl.reduce((a, b) => a + b, 0) / sl.length) * 10) / 10} h</b> ${T('a night on average')}.`);
+    const games = new Set(logs.filter((l) => ['match', 'skills'].includes(l.type) && l.status !== 'skipped').map((l) => dateKey(new Date(l.loggedAt))));
+    const after = nights.filter((n) => games.has(dateKey(new Date(Date.parse(n.date + 'T12:00:00') - 864e5))) && n.readiness != null).map((n) => n.readiness);
+    const other = nights.filter((n) => !games.has(dateKey(new Date(Date.parse(n.date + 'T12:00:00') - 864e5))) && n.readiness != null).map((n) => n.readiness);
+    if (after.length >= 2 && other.length >= 3) { const a = after.reduce((x, y) => x + y, 0) / after.length, o = other.reduce((x, y) => x + y, 0) / other.length; if (o - a >= 8) pats.push(`${T('Your readiness drops about')} <b>${Math.round(o - a)}</b> ${T('points the day after practice or games, so those days stay easy.')}`); }
+    const list = (arr, empty) => (arr.length ? `<ul class="mp-list">${arr.map((x) => `<li>${x}</li>`).join('')}</ul>` : `<p class="muted small">${empty}</p>`);
+    body.innerHTML = `
+      <div class="card mp-head"><div class="prof-av" aria-hidden="true">${esc(initials(pp.name))}</div><div style="min-width:0"><h3 style="margin:0">${esc(pp.name)}</h3><div class="muted small">${[pos && T(pos), T(pp.sports?.[0] || ''), about.Club, about['Plays at'] && T(about['Plays at'])].filter(Boolean).map(esc).join(' · ')}</div></div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h3>${T('What I know about you')}</h3><span class="muted small">${answered.length}/${asked.length}</span></div>
+        <div class="pbar" style="margin:8px 0 4px"><i style="width:${asked.length ? Math.round((answered.length / asked.length) * 100) : 0}%"></i></div>
+        <div id="mpAbout">${QUESTIONS.filter((q) => about[q.label] != null && q.key !== 'weakgen' || (q.key === 'weakgen' && !isUlt(pp) && about[q.label] != null)).filter((q, i, arr) => arr.findIndex((x) => x.label === q.label) === i).map((q) => `<button type="button" class="mp-row" data-q="${q.key}"><span class="muted small">${esc(T(q.label))}</span><span>${q.type === 'number' ? esc(String(about[q.label])) + ' ' + esc(q.unit) : esc(String(about[q.label]).split(', ').map((x) => T(x)).join(', '))}</span><span class="chev">›</span></button>`).join('') || `<p class="muted small">${T('Nothing yet. Answer the question on Today, one a day.')}</p>`}</div>
+        <div id="mpAsk"></div>
+        ${answered.length < asked.length ? `<button class="btn secondary sm" id="mpMore" style="margin-top:10px">${T('Answer another question')}</button>` : ''}</div>
+      <div class="card"><h3>${T('Strengths')}</h3>${list(strengths.map(esc), T('Your fitness tests will show what is getting better.'))}<h3 style="margin-top:14px">${T('Working on')}</h3>${list(workons.map(esc), T('Tell me what you want to improve, or do a fitness test.'))}</div>
+      <div class="card"><h3>${T('Records')}</h3>${list([...bestTest, ...bestLifts], T('Your best test results and lifts will appear here.'))}</div>
+      <div class="card"><h3>${T('What I have noticed')}</h3>${list(pats, T('After a few weeks of logging I will tell you what I notice: your best days, what you skip, how you recover.'))}</div>
+      ${pp.injuries || about['Injury history'] ? `<div class="card"><h3>${T('Injuries and limits')}</h3><p class="muted small" style="margin-top:6px">${esc([about['Injury history'] && about['Injury history'] !== 'Nothing' ? T('Comes back sometimes') + ': ' + about['Injury history'].split(', ').map((x) => T(x)).join(', ') : '', String(pp.injuries || '').replace(/(^|\.\s*)Recurring:[^.]*/g, '').replace(/^[.\s]+|[.\s]+$/g, '')].filter(Boolean).join(' · '))}</p></div>` : ''}`;
+    const ask = (q) => { const w = $('#mpAsk', sheet); w.innerHTML = ''; const card = questionCard(q, () => setTimeout(() => { if (sheet.isConnected) paint(); }, 900)); if (card) { card.classList.remove('todaycard'); w.append(card); card.scrollIntoView({ block: 'center', behavior: 'smooth' }); } };
+    $$('[data-q]', sheet).forEach((b) => { b.onclick = () => ask(QUESTIONS.find((q) => q.key === b.dataset.q)); });
+    if ($('#mpMore', sheet)) $('#mpMore', sheet).onclick = () => { const pp2 = state.profile; const q = QUESTIONS.find((x) => x.when(pp2) && !(pp2.aboutAt || {})[x.key] && !(x.apply && !x.when(pp2))); if (q) ask(q); };
+  };
+  paint();
 }
 
 /* ---------- fitness tests ---------- */
@@ -3596,7 +3679,7 @@ function viewProfile(el) {
   const goals = (p.goals || [p.goal]).map((g) => T(GOALS.find((x) => x[0] === g)?.[1] || '')).filter(Boolean).join(', ');
   const level = T(LEVELS.find((l) => l[0] === p.level)?.[1] || '');
   el.insertAdjacentHTML('beforeend', `
-    <div class="card prof-head">
+    <div class="card prof-head" id="profHead" role="button" tabindex="0" aria-label="${T('My profile')}">
       <div class="prof-top">
         <div class="prof-av" aria-hidden="true">${esc(initials(p.name))}</div>
         <div style="min-width:0"><h3>${esc(p.name)}</h3><div class="muted small">${esc(T(p.sports[0]))}${level ? ' · ' + esc(level) : ''}</div></div>
@@ -3661,6 +3744,7 @@ function viewProfile(el) {
   setupInstall();
   $('#btnFeedback').onclick = openFeedback;
   if ($('#btnEvents')) $('#btnEvents').onclick = openEvents;
+  if ($('#profHead')) { $('#profHead').onclick = openMyProfile; $('#profHead').insertAdjacentHTML('beforeend', `<div class="mp-link">${T('My profile')} ›</div>`); }
   if ($('#btnTestsToggle')) $('#btnTestsToggle').onclick = async () => {
     const off = !p.testsOff;
     if (!confirm(off ? T('Turn off the weekly fitness tests? Your results stay.') : T('Turn the weekly fitness tests back on? They start with your next plan.'))) return;
