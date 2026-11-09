@@ -768,6 +768,7 @@ a.btn { text-decoration: none; }
 .team-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;text-align:center;padding:10px 0 14px;border-bottom:1px solid var(--line,rgba(127,127,127,.2));margin-bottom:6px}.team-sum b{display:block;font:700 1.3rem var(--font-display);color:var(--ink)}.team-sum b small{font-size:.8rem;color:var(--ink-3)}.team-sum span{font-size:.72rem;color:var(--ink-2);line-height:1.2;display:block}.team-sum b.g-low{color:var(--bad,#c0392b)}
 .chips-s{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.chip-s{font-size:.72rem;padding:2px 7px;border-radius:999px;background:rgba(127,127,127,.14);color:var(--ink-2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.chip-s.bad{background:rgba(217,83,79,.15);color:var(--bad,#c0392b)}.chip-s.good{background:rgba(46,139,87,.15);color:var(--ok,#2e8b57)}
 .test-ex{border-left:3px solid var(--accent,#1f6b4a);padding-left:12px}.test-in{display:grid;gap:6px;margin-top:10px}.test-in label{font-size:.85rem;font-weight:600}
+.qod-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}.qod-q{display:block;font-size:1.05rem;margin-bottom:2px}.qod-act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.qod .chips{margin-top:2px}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1846,6 +1847,9 @@ async function viewToday(el) {
     $('#btnSrcRetry').onclick = () => openRebuild();
   }
 
+  // ---- one question a day ----
+  { const qc = questionCard(); if (qc) el.append(qc); }
+
   // ---- last night, from the Garmin watch (only when linked) ----
   if (state.garminDay && planIsCurrent()) {
     const g = state.garminDay;
@@ -1923,9 +1927,12 @@ async function viewToday(el) {
 
   // ---- anything the quick start skipped ----
   const gaps = [];
+  // the short setup learns the rest through the question of the day, so no extra nudge
+  if (p.setupStyle !== 'short') {
   if (!p.equipment || p.equipment.length === 0 || (p.equipment.length === 1 && p.equipment[0] === 'Full gym' && !p.equipmentConfirmed)) gaps.push('equipment');
   if (!p.deadline && !p.noDeadline) gaps.push('deadline');
   if (!p.nutrition && !p.nutritionDeclined) gaps.push('nutrition');
+  }
   if (gaps.length >= 2) {
     const c = document.createElement('div'); c.className = 'card todaycard';
     c.innerHTML = `<div class="finish"><div class="body"><strong>${T('Finish your setup')}</strong><div class="muted small">${T('Add your equipment, a competition date or nutrition targets to sharpen the plan.')}</div></div><button class="btn sm secondary" id="btnFinishSetup">${T('Add')}</button></div>`;
@@ -3078,6 +3085,84 @@ async function showInboxIfAdmin(el) {
   paintGarminCard($('#inboxCard'));
 }
 
+
+/* ---------- question of the day: Cadence learns the athlete one answer at a time ---------- */
+// label = how the answer is written into profile.about (English, for the plan); apply = extra profile fields
+const isUlt = (p) => (p.sports || [])[0] === 'Ultimate Frisbee';
+const QUESTIONS = [
+  { key: 'age', label: 'Age', q: 'How old are you?', why: 'Recovery and load depend on it.', type: 'number', unit: T('years'), min: 13, max: 90, when: (p) => !p.age, apply: (v) => ({ age: v }) },
+  { key: 'weight', label: 'Weight', q: 'What do you weigh?', why: 'For bodyweight exercises and energy needs.', type: 'number', unit: 'kg', min: 30, max: 250, step: 0.1, when: (p) => !p.weightKg, apply: (v) => ({ weightKg: v }) },
+  { key: 'injury', label: 'Injury history', q: 'Anything that hurts often or keeps coming back?', why: 'I\'ll keep that area safe and add prehab for it.', type: 'chips', multi: true, options: ['Nothing', 'Ankle', 'Knee', 'Hamstring', 'Groin', 'Lower back', 'Shoulder'], when: () => true },
+  { key: 'club', label: 'Club', q: 'Which club or team do you play for?', why: 'So I can plan around your team\'s season.', type: 'text', placeholder: 'e.g. Flying Rabbits', when: (p) => isUlt(p) || (p.dayPrefs && Object.values(p.dayPrefs).some((x) => x.some((y) => y.focus === 'skills'))) },
+  { key: 'playlevel', label: 'Plays at', q: 'At what level do you play?', why: 'Higher levels need more speed and repeat-sprint work.', type: 'chips', options: ['Recreational league', 'Club team', 'Top club or national team'], when: (p) => isUlt(p) },
+  { key: 'weak', label: 'Wants to improve most', q: 'What do you most want to get better at on the field?', why: 'It becomes the focus of your speed and gym days.', type: 'chips', options: ['First step', 'Top speed', 'Lasting a whole game', 'Jumping', 'Change of direction', 'Throwing power'], when: (p) => isUlt(p) },
+  { key: 'weakgen', label: 'Wants to improve most', q: 'What do you most want to improve?', why: 'It becomes the focus of your plan.', type: 'chips', options: ['Strength', 'Speed', 'Endurance', 'Mobility', 'Power'], when: (p) => !isUlt(p) },
+  { key: 'season', label: 'Season now', q: 'Where are you in your season?', why: 'In season I keep you fresh; off-season we build.', type: 'chips', options: ['Outdoor season', 'Indoor season', 'Off-season'], ttl: 56, when: (p) => isUlt(p) },
+  { key: 'tournament', label: 'Next tournament', q: 'Is a tournament coming up?', why: 'I\'ll taper into it and plan recovery after.', type: 'action', options: ['Yes, add it', 'Not right now'], ttl: 21, when: (p) => !(p.events || []).some((e) => e.start >= dateKey()) },
+  { key: 'height', label: 'Height', q: 'How tall are you?', why: 'Rounds out your body stats.', type: 'number', unit: 'cm', min: 120, max: 230, when: (p) => !p.heightCm, apply: (v) => ({ heightCm: v }) },
+  { key: 'push', label: 'Coaching style', q: 'How should I push you?', why: 'Sets how close to the limit your sessions go.', type: 'chips', options: ['Push me hard', 'Steady and sustainable', 'Keep it light'], when: () => true },
+  { key: 'gymexp', label: 'Gym experience', q: 'How long have you been lifting weights?', why: 'Decides how technical your gym sessions can be.', type: 'chips', options: ['Never', 'Under a year', '1–3 years', 'More than 3 years'], when: () => true },
+  { key: 'sleep', label: 'Usual sleep', q: 'How much do you usually sleep?', why: 'Short sleep means fewer hard days in a row.', type: 'chips', options: ['Under 6 h', '6–7 h', '7–8 h', 'Over 8 h'], when: () => !state.garmin?.connected },
+  { key: 'stress', label: 'Life stress', q: 'How demanding are work or studies right now?', why: 'Busy weeks get shorter, sharper sessions.', type: 'chips', options: ['Light', 'Normal', 'Very busy'], ttl: 28, when: () => true },
+  { key: 'enjoy', label: 'Enjoys', q: 'Which sessions do you enjoy most?', why: 'I\'ll put more of them in, it helps you stick with it.', type: 'chips', multi: true, options: ['Lifting', 'Sprints', 'Running', 'Drills and games', 'Mobility'], when: () => true },
+  { key: 'time', label: 'Prefers training', q: 'When do you like to train?', why: 'Hard sessions go where you feel best.', type: 'chips', options: ['Morning', 'Lunchtime', 'Evening'], when: () => true },
+  { key: 'avoid', label: 'Never include', q: 'Anything you never want in your plan?', why: 'I\'ll leave it out.', type: 'text', placeholder: 'e.g. burpees, running on a treadmill', when: () => true },
+  { key: 'sex', label: 'Sex', q: 'Which best describes you?', why: 'Used for energy estimates only.', type: 'chips', options: ['Male', 'Female', 'Other'], when: (p) => !p.sex, apply: (v) => ({ sex: v }) },
+];
+function nextQuestion() {
+  const p = state.profile || {}; const qa = p.qod || {}; const today = dateKey();
+  if (qa.last === today) return null;
+  const at = p.aboutAt || {}; const skip = qa.skip || {};
+  const left = QUESTIONS.filter((q) => {
+    if (!q.when(p)) return false;
+    if (skip[q.key] && skip[q.key] > today) return false;
+    const answered = at[q.key] || (q.apply && !q.when(p));
+    if (!answered) return true;
+    return q.ttl && at[q.key] && (Date.now() - Date.parse(at[q.key])) / 864e5 > q.ttl;
+  });
+  return left.length ? { q: left[0], left: left.length } : null;
+}
+function questionCard() {
+  const n = nextQuestion(); if (!n) return null;
+  const { q } = n; const c = document.createElement('div'); c.className = 'card todaycard qod'; // never trimmed: this is how Cadence gets to know the athlete
+  const input = q.type === 'number' ? `<div class="unit-input"><input class="input" id="qodIn" type="number" inputmode="decimal" min="${q.min}" max="${q.max}" step="${q.step || 1}"><span>${q.unit}</span></div>`
+    : q.type === 'text' ? `<input class="input" id="qodIn" maxlength="120" placeholder="${esc(T(q.placeholder || ''))}">` : '<div class="chips" id="qodChips"></div>';
+  c.innerHTML = `<div class="qod-top"><span class="muted small" style="font-weight:600">${T('Getting to know you')}</span><span class="muted small">${n.left} ${T('left')}</span></div><strong class="qod-q">${esc(T(q.q))}</strong><div class="muted small">${esc(T(q.why))}</div><div style="margin-top:10px">${input}</div><div class="qod-act">${q.type === 'chips' || q.type === 'action' ? '' : `<button class="btn sm" id="qodSave">${T('Save')}</button>`}${q.type === 'chips' && q.multi ? `<button class="btn sm" id="qodSave">${T('Save')}</button>` : ''}<button class="btn sm ghost" id="qodLater">${T('Not now')}</button></div>`;
+  let picked = [];
+  const save = async (answer) => {
+    const p = state.profile; const now = new Date().toISOString(); const today = dateKey();
+    const upd = { about: { ...(p.about || {}), [q.label]: answer }, aboutAt: { ...(p.aboutAt || {}), [q.key]: now }, qod: { ...(p.qod || {}), last: today } };
+    if (q.apply) Object.assign(upd, q.apply(q.type === 'number' ? Number(answer) : answer));
+    if (q.key === 'injury' && answer !== 'Nothing') upd.injuries = [p.injuries, `Recurring: ${answer}`].filter(Boolean).join('. ');
+    if (q.key === 'weight') db.collection('users/' + state.user.uid + '/weights').add({ kg: Number(answer), at: now }).catch(() => {});
+    try {
+      await settle(db.doc('users/' + state.user.uid).set({ profile: upd }, { merge: true }));
+      Object.assign(state.profile, upd); track('qod_' + q.key);
+      c.innerHTML = `<strong>✓ ${T('Got it')}</strong><div class="muted small" style="margin-top:4px">${T('Your next plan will use this. Another question tomorrow.')}</div>`;
+    } catch (_) { toast(T('Could not save.')); }
+  };
+  if ($('#qodChips', c)) {
+    const opts = q.type === 'action' ? q.options : q.options;
+    const w = $('#qodChips', c);
+    opts.forEach((o) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = T(o); b.setAttribute('aria-pressed', 'false'); b.onclick = () => {
+      if (q.type === 'action') { if (o === opts[0]) { save('added'); openEvents(); } else save('none planned'); return; }
+      if (q.multi) { if (o === 'Nothing') picked = ['Nothing']; else picked = picked.includes(o) ? picked.filter((x) => x !== o) : [...picked.filter((x) => x !== 'Nothing'), o]; $$('.chip', w).forEach((x, i) => x.setAttribute('aria-pressed', String(picked.includes(opts[i])))); return; }
+      save(o);
+    }; w.append(b); });
+  }
+  if ($('#qodSave', c)) $('#qodSave', c).onclick = () => {
+    if (q.type === 'chips') { if (!picked.length) { toast(T('Pick at least one option.')); return; } save(picked.join(', ')); return; }
+    const raw = $('#qodIn', c).value.trim();
+    if (q.type === 'number') { const v = parseFloat(raw.replace(',', '.')); if (!(v >= q.min && v <= q.max)) { toast(T('Check the number.')); return; } save(v); return; }
+    if (!raw) { toast(T('Write a few words first.')); return; } save(raw);
+  };
+  $('#qodLater', c).onclick = async () => {
+    const p = state.profile; const until = dateKey(new Date(Date.now() + 3 * 864e5));
+    const qod = { ...(p.qod || {}), last: dateKey(), skip: { ...((p.qod || {}).skip || {}), [q.key]: until } };
+    state.profile.qod = qod; c.remove(); db.doc('users/' + state.user.uid).set({ profile: { qod } }, { merge: true }).catch(() => {});
+  };
+  return c;
+}
 
 /* ---------- fitness tests ---------- */
 const TESTS = {
