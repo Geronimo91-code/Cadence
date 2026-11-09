@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem } from './_lib.js';
+import { requireUser, db, callModel, weekId, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem, recentBlock, coachCheck } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -54,14 +54,15 @@ ${PLAN_RULES}
 
 Return ONLY a JSON object with exactly this shape:
 ${planShape(id)}`;
-  const history = await trainingHistoryBlock(user.uid);
-  const userMsg = athleteBlock(profile, id) + (history ? '\n' + history : '') + '\nDays already passed this week should still be filled in for reference.';
+  const [history, recent] = await Promise.all([trainingHistoryBlock(user.uid), recentBlock(user.uid)]);
+  const userMsg = athleteBlock(profile, id) + (history ? '\n' + history : '') + (recent ? '\n' + recent : '') + '\nDays already passed this week should still be filled in for reference.';
 
   try {
     const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + 170000 }));
     plan.weekId = id;
     plan.createdAt = new Date().toISOString();
     plan.source = 'profile';
+    coachCheck(plan, profile);
     plan.weekNote = profile.weekNote || null;
     applyProgression(plan, await liftHistory(user.uid));
     applyTests(plan, profile, { fromDay: todayIdx() });
@@ -108,11 +109,12 @@ ${PLAN_RULES}
 
 Return ONLY a JSON object with exactly this shape:
 ${planShape(id)}`;
-  const history = await trainingHistoryBlock(uid);
+  const [history, recent] = await Promise.all([trainingHistoryBlock(uid), recentBlock(uid)]);
   let fresh;
   try {
-    fresh = validatePlan(await callModel({ system, user: athleteBlock(profile, id) + (history ? '\n' + history : ''), maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + deadlineMs }));
-  } catch (e) { return { upgraded: false, reason: String(e.message || e).slice(0, 120) }; }
+    fresh = validatePlan(await callModel({ system, user: athleteBlock(profile, id) + (history ? '\n' + history : '') + (recent ? '\n' + recent : ''), maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + deadlineMs }));
+  } catch (e) { return { upgraded: false, reason: String(e.message || e).slice(0, 300) }; }
+  coachCheck(fresh, profile);
   const today = (new Date(new Date().toLocaleString('en-US', { timeZone: profile.timezone || 'Europe/Brussels' })).getDay() + 6) % 7;
   const logs = await db().collection(`users/${uid}/logs`).where('weekId', '==', id).get();
   const loggedDays = new Set(logs.docs.map((d) => d.data()).filter((l) => !l.extra).map((l) => l.day));

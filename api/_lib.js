@@ -276,7 +276,16 @@ export function upcomingEvents(p, ref = new Date(), days = 35) {
 }
 function tournamentLines(p, ref) {
   const ev = upcomingEvents(p, ref);
-  return ev.length ? ev.map((e) => `- TOURNAMENT: "${e.name}" ${e.start}${e.days > 1 ? ` to ${e.end} (${e.days} days)` : ''}`).join('\n') + '\n' : '';
+  const near = ev.length ? ev.map((e) => `- TOURNAMENT: "${e.name}" ${e.start}${e.days > 1 ? ` to ${e.end} (${e.days} days)` : ''}`).join('\n') + '\n' : '';
+  const later = upcomingEvents(p, ref, 200).filter((e) => !ev.some((x) => x.start === e.start && x.name === e.name)).slice(0, 8);
+  return near + (later.length ? `- Season calendar after that (build toward these across the coming weeks): ${later.map((e) => `"${e.name}" ${e.start}`).join(', ')}\n` : '');
+}
+// Starting numbers from setup: the first loads come from these until there is real history
+function baselineLines(p) {
+  const b = p.baseline; if (!b || typeof b !== 'object') return '';
+  const lift = (name, x) => (x && x.kg > 0 && x.reps > 0 ? `${name} ${x.kg} kg × ${x.reps} (est. 1RM ~${Math.round((x.kg * (1 + Math.min(12, x.reps) / 30)) / 2.5) * 2.5} kg)` : '');
+  const parts = [lift('Back squat', b.squat), lift('Bench press', b.bench), lift('Deadlift', b.deadlift), b.pushups > 0 && `max push-ups ${b.pushups}`, b.run5k && `5 km in ${b.run5k}`, b.runMin > 0 && `can run ${b.runMin} min easy`].filter(Boolean);
+  return parts.length ? `\n- Starting numbers the athlete gave: ${parts.join('; ')}. Until there is training history, set first working loads at about 70–75% of the estimated 1RM and run volumes from these.` : '';
 }
 
 // What the athlete told Cadence over time (question of the day), as "Label: answer" pairs
@@ -289,7 +298,7 @@ export function athleteBlock(p, id, ref = new Date()) {
   return `Athlete
 - Name: ${p.name}${[p.age && `age ${p.age}`, p.sex, p.heightCm && `${p.heightCm} cm`, p.weightKg && `${p.weightKg} kg`].filter(Boolean).map((x) => ', ' + x).join('') || ' (age, height and weight not given yet: keep loads to RPE)'}
 - Sports: ${(p.sports || []).join(', ')} (main: ${(p.sports || [])[0]})${p.position ? `\n- Position: ${p.position}` : ''}${aboutLines(p)}
-- Level: ${p.level}
+- Level: ${p.level}${baselineLines(p)}
 - Goals in order: ${goals.join(' > ')}${p.goalNote ? `\n- Specific aim: ${p.goalNote}` : ''}
 - Available days: ${p.days.map((d) => DAY_NAMES[d]).join(', ')}
 ${dayPrefBlock(p)}
@@ -747,6 +756,8 @@ export async function trainingHistoryBlock(uid, { weeks = 16, maxExercises = 40,
       const cur = byExercise.get(key) || { name: key, sessions: 0, best: null, first: null, firstAt: null, last: null, lastAt: null, rpes: [] };
       cur.sessions++;
       const maxLoad = Math.max(0, ...done.map((st) => st.load || 0));
+      // estimated one-rep max (Epley), from sets of 1–12 reps only
+      for (const st of done) { const r = Number(st.reps), l = Number(st.load); if (l > 0 && r >= 1 && r <= 12) { const e = l * (1 + r / 30); if (!cur.e1rm || e > cur.e1rm) cur.e1rm = e; } }
       if (maxLoad > 0) {
         if (cur.best == null || maxLoad > cur.best) cur.best = maxLoad;
         if (!cur.firstAt || (log.loggedAt || '') < cur.firstAt) { cur.firstAt = log.loggedAt; cur.first = maxLoad; }
@@ -774,7 +785,8 @@ export async function trainingHistoryBlock(uid, { weeks = 16, maxExercises = 40,
     const trend = e.best && e.first && e.best > e.first ? ` (from ${e.first})` : '';
     const best = e.best ? `, best ${e.best}kg${trend}` : '';
     const rpe = e.rpes.length ? `, RPE~${Math.round((e.rpes.reduce((a, b) => a + b, 0) / e.rpes.length) * 10) / 10}` : '';
-    return `  · ${e.name}: ${e.last} on ${String(e.lastAt).slice(5, 10)}${best}${rpe} ×${e.sessions}`;
+    const e1 = e.e1rm ? `, est. 1RM ~${Math.round(e.e1rm / 2.5) * 2.5}kg` : '';
+    return `  · ${e.name}: ${e.last} on ${String(e.lastAt).slice(5, 10)}${best}${e1}${rpe} ×${e.sessions}`;
   };
   const lines = [];
   let chars = 0;
@@ -786,3 +798,70 @@ export async function trainingHistoryBlock(uid, { weeks = 16, maxExercises = 40,
   const noLoad = scored.filter((e) => e.sessions >= 2 && !e.best).length;
   return `- What the athlete has actually done in the last ${weeks} weeks (reps×kg per set, most important movements first). Prescribe loads from these numbers — progress, hold or back off — rather than generic percentages:\n${lines.join('\n')}${noLoad ? `\n  (${noLoad} movement(s) logged without a load — give an RPE and a kilogram range for those)` : ''}${scored.length < byExercise.size ? `\n  (${byExercise.size - lines.length} rarer movements omitted)` : ''}`;
 }
+
+// ---------- what happened recently: given to every plan build, not only to the weekly review ----------
+export async function recentBlock(uid, ref = new Date()) {
+  const lines = [];
+  try {
+    const since = new Date(ref.getTime() - 10 * 864e5).toISOString();
+    const q = await db().collection(`users/${uid}/logs`).orderBy('loggedAt', 'desc').limit(40).get();
+    const logs = q.docs.map((d) => d.data()).filter((l) => (l.loggedAt || '') >= since);
+    const ses = logs.slice(0, 20).map((l) => {
+      const bits = [l.status === 'skipped' ? 'SKIPPED' : (l.status || 'done'), l.durationMin && `${l.durationMin} min`, l.sessionRpe && `RPE ${l.sessionRpe}`, l.readiness && `felt ${l.readiness} before`, l.garmin?.avgHr && `avg HR ${l.garmin.avgHr}`].filter(Boolean).join(', ');
+      return `  · ${String(l.loggedAt).slice(5, 10)} ${l.extra || l.source === 'garmin' ? '(extra, not planned) ' : ''}${l.title || l.type} (${l.type || '?'}): ${bits}`;
+    });
+    if (ses.length) lines.push(`- Last 10 days, session by session (hard recent work means more recovery now; do not pile skipped sessions on top of the new week):\n${ses.join('\n')}`);
+  } catch (_) { /* no logs yet */ }
+  try {
+    const ds = [0, 1, 2].map((i) => new Date(ref.getTime() - i * 864e5).toISOString().slice(0, 10));
+    const gd = (await Promise.all(ds.map((d) => db().doc(`users/${uid}/garmin/${d}`).get()))).filter((d) => d.exists).map((d) => d.data());
+    if (gd.length) lines.push(`- Watch, last ${gd.length} nights (newest first): ${gd.map((x) => [x.date, x.sleepH != null && `sleep ${x.sleepH} h`, x.readiness != null && `readiness ${x.readiness}`, typeof x.recoveryMin === 'number' && `recovery ${Math.round(x.recoveryMin / 60)} h`, x.hrvStatus && `HRV ${x.hrvStatus}`].filter(Boolean).join(' ')).join('; ')}. If the latest night was poor (readiness under 40, sleep under 6 h or recovery over 24 h), keep today and tomorrow easy.`);
+  } catch (_) { /* no watch */ }
+  try {
+    const r = await db().collection(`users/${uid}/reviews`).orderBy('weekId', 'desc').limit(1).get();
+    if (!r.empty) { const v = r.docs[0].data(); const st = v.stats || {}; lines.push(`- Last weekly review (${v.weekId}): did ${st.adherence ?? '?'}% of planned sessions, average session RPE ${st.avgRpe ?? '?'}${st.skipped ? `, ${st.skipped} skipped` : ''}.`); }
+  } catch (_) { /* no review yet */ }
+  const t = await testSummary(uid); if (t) lines.push(t);
+  return lines.join('\n');
+}
+
+// ---------- coach check: hard rules the AI sometimes breaks, fixed in code after every plan ----------
+const isTeam = (s) => s.type === 'match' || (s.fixed && s.type === 'skills');
+const isHard = (s) => !s.fixed && (s.type === 'speed' || s.type === 'conditioning');
+const trimSets = (s, f) => { (s.exercises || []).forEach((x) => { if (x.sets > 2) x.sets = Math.max(2, Math.round(x.sets * f)); }); };
+const RISKY = [
+  { area: /knee/i, ex: /depth jump|bounding|box jump|broad jump/i, swap: 'Glute bridge' },
+  { area: /ankle|achilles/i, ex: /depth jump|pogo hop|bounding|box jump|broad jump/i, swap: 'Calf raise' },
+  { area: /shoulder/i, ex: /overhead press|push press|push jerk|kettlebell snatch|dip/i, swap: 'Landmine press' },
+  { area: /lower back|back pain|lumbar/i, ex: /^deadlift$|power clean|hang clean|clean pull/i, swap: 'Hip thrust' },
+  { area: /hamstring/i, ex: /flying sprint|sprint 40 m|sprint 30 m/i, swap: 'Sprint 10 m' },
+];
+export function coachCheck(plan, profile = {}) {
+  const notes = []; const S = plan.sessions || []; const trimmed = new Set();
+  const byDay = (d) => S.filter((s) => s.day === d);
+  // 1. the day before a team practice or game stays light
+  for (let d = 0; d < 6; d++) {
+    if (!byDay(d + 1).some(isTeam)) continue;
+    for (const s of byDay(d).filter(isHard)) { trimmed.add(s); trimSets(s, 0.5); s.intent = `${s.intent ? s.intent + ' ' : ''}Kept short: team day tomorrow.`.trim(); notes.push(`${DAY_NAMES[d]}: lighter before team day`); }
+  }
+  // 2. no two hard sessions on consecutive days
+  for (let d = 1; d < 7; d++) {
+    if (!byDay(d - 1).some(isHard)) continue;
+    for (const s of byDay(d).filter(isHard)) { if (trimmed.has(s)) continue; trimSets(s, 0.67); notes.push(`${DAY_NAMES[d]}: trimmed, hard day before`); }
+  }
+  // 3. a deload week is really lighter
+  if ((profile.weekNumber || 1) % 4 === 0) {
+    const str = S.filter((s) => s.type === 'strength').flatMap((s) => s.exercises || []);
+    const avg = str.length ? str.reduce((a, x) => a + (x.sets || 0), 0) / str.length : 0;
+    if (avg > 3) { S.filter((s) => s.type === 'strength').forEach((s) => trimSets(s, 0.6)); notes.push('deload week: strength sets cut'); }
+  }
+  // 4. injuries: swap the riskiest movements for a safe one
+  const hurt = `${profile.injuries || ''} ${profile.weekNote || ''} ${profile.about?.['Injury history'] || ''}`;
+  for (const r of RISKY) {
+    if (!r.area.test(hurt)) continue;
+    for (const s of S) for (const x of s.exercises || []) if (r.ex.test(x.name) && !x.test) { notes.push(`${x.name} → ${r.swap} (${hurt.match(r.area)[0]})`); x.name = r.swap; x.cues = ''; }
+  }
+  plan.coachChecks = notes.slice(0, 20);
+  return plan;
+}
+
