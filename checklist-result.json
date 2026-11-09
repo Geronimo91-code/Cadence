@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-11-06T13:58:54.351Z",
+    "started": "2026-11-09T07:55:17.110Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -114,14 +114,14 @@
           "sessions": 7,
           "real": 3,
           "days": 7,
-          "rationale": "As week 1 of a new speed block, this program prioritizes foundational sprint mechanics, maximal acceleration, and supportive strength within your 30-minute training window. Monday focuses on acceleration and upright posture, Wednesday builds lower-body force output to power your sprints, and Friday ",
+          "rationale": "As a beginner with a primary goal of speed for Ultimate Frisbee, this week establishes high-quality acceleration and change-of-direction mechanics without overwhelming your recovery capacity. Sessions are capped at 30 minutes with strict work-to-rest ratios to keep every effort crisp and high-veloci",
           "titles": [
-            "0:speed:Acceleration & Sprint Mechanics",
-            "1:rest:Rest & Recovery",
-            "2:strength:Lower-Body Power & Strength",
-            "3:rest:Rest & Recovery",
-            "4:speed:Max Speed & Change of Direction",
-            "5:rest:Rest & Recovery",
+            "0:speed:Speed Acceleration & Mechanics",
+            "1:rest:Rest & Active Recovery",
+            "2:strength:Lower Body Power & Strength",
+            "3:rest:Rest & Mobility",
+            "4:speed:Agility & Lateral Speed",
+            "5:rest:Rest Day",
             "6:rest:Rest & Recovery"
           ]
         }
@@ -137,8 +137,9 @@
       "weekly fitness test block in the plan": {
         "pass": true,
         "detail": [
-          "4:agility",
-          "4:yoyo"
+          "0:sprint10",
+          "0:sprint30",
+          "0:broad"
         ]
       },
       "today fits one screen": {
@@ -150,9 +151,9 @@
             "DIV",
             "card",
             "card todaycard",
+            "card todaycard nextup",
             "card todaycard",
-            "quick",
-            "card todaycard focus"
+            "quick"
           ]
         }
       },
@@ -197,8 +198,10 @@
         }
       },
       "rebuilt plan avoids jumping": {
-        "pass": true,
-        "detail": []
+        "pass": false,
+        "detail": [
+          "Standing broad jump test"
+        ]
       },
       "nutrition meal added": {
         "pass": true,
@@ -206,7 +209,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codePXKXPVCopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeE5XSM6CopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -260,12 +263,12 @@
       }
     },
     "timings": {
-      "landing load": 346,
-      "sign-up": 1925,
-      "save setup": 872,
-      "first plan": 19941,
-      "save session": 422,
-      "rebuild": 12935
+      "landing load": 182,
+      "sign-up": 2909,
+      "save setup": 2868,
+      "first plan": 11930,
+      "save session": 420,
+      "rebuild": 10927
     },
     "errors": [],
     "console": [],
@@ -285,14 +288,14 @@
       "sessions": 7,
       "real": 3,
       "days": 7,
-      "rationale": "As week 1 of a new speed block, this program prioritizes foundational sprint mechanics, maximal acceleration, and supportive strength within your 30-minute training window. Monday focuses on acceleration and upright posture, Wednesday builds lower-body force output to power your sprints, and Friday ",
+      "rationale": "As a beginner with a primary goal of speed for Ultimate Frisbee, this week establishes high-quality acceleration and change-of-direction mechanics without overwhelming your recovery capacity. Sessions are capped at 30 minutes with strict work-to-rest ratios to keep every effort crisp and high-veloci",
       "titles": [
-        "0:speed:Acceleration & Sprint Mechanics",
-        "1:rest:Rest & Recovery",
-        "2:strength:Lower-Body Power & Strength",
-        "3:rest:Rest & Recovery",
-        "4:speed:Max Speed & Change of Direction",
-        "5:rest:Rest & Recovery",
+        "0:speed:Speed Acceleration & Mechanics",
+        "1:rest:Rest & Active Recovery",
+        "2:strength:Lower Body Power & Strength",
+        "3:rest:Rest & Mobility",
+        "4:speed:Agility & Lateral Speed",
+        "5:rest:Rest Day",
         "6:rest:Rest & Recovery"
       ]
     },
@@ -308,35 +311,31 @@
     "rebuiltPlan": {
       "source": "profile",
       "note": "Left ankle sprain, no jumping this week",
-      "rationale": "Because of your left ankle sprain, all jumping and high-impact lower body work have been completely removed this week to allow the joint to heal. We adapted your speed focus to low-impact wall drills and walking A-skips, while keeping workout density high with upper body strength and bike conditioning. Sessions are strictly kept to your 30-minute target on Monday, Wednesday, and Friday.",
+      "rationale": "Since your primary goal is speed but you have a left ankle sprain, all plyometrics and jump drills have been completely removed this week. We are using low-impact wall acceleration drills, sled pushes, and controlled strength work to keep building your athletic engine safely. Sessions are kept tight at 30 minutes with exercises that preserve strength without putting your ankle under stress.",
       "titles": [
-        "0:speed:Low-Impact Speed & Upper Body",
-        "1:rest:Rest & Active Recovery",
-        "2:strength:Upper Body & Non-Impact Conditioning",
-        "3:rest:Rest & Active Recovery",
-        "4:speed:Posture & Trunk Control",
-        "5:rest:Rest & Active Recovery",
-        "6:mobility:Rest & Mobility"
+        "0:speed:Low-Impact Speed & Wall Drills",
+        "1:rest:Rest & Recovery",
+        "2:strength:Non-Impact Lower & Upper Express",
+        "3:rest:Rest & Recovery",
+        "4:strength:Ankle-Safe Posterior Chain & Speed",
+        "5:rest:Rest & Recovery",
+        "6:rest:Rest & Recovery"
       ],
       "exercises": [
+        "10 m sprint test",
+        "30 m sprint test",
+        "Standing broad jump test",
         "Acceleration wall drill",
-        "Bench press",
-        "Seated cable row",
-        "Pallof press",
-        "Overhead press",
-        "Lat pulldown",
-        "Assault bike sprints",
-        "Dead bug",
-        "5-10-5 agility test",
         "A-skip",
+        "Sled push",
+        "Goblet squat",
         "Dumbbell row",
+        "Bench press",
+        "Plank",
+        "Romanian deadlift",
         "Push-up",
-        "Side plank",
-        "Yo-Yo IR1 test",
-        "Ankle dorsiflexion drill",
-        "Thoracic rotation",
-        "Foam roll upper back",
-        "Hamstring stretch"
+        "Lat pulldown",
+        "Pallof press"
       ]
     },
     "club": {
@@ -347,6 +346,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-11-06T14:00:14.515Z"
+    "finished": "2026-11-09T07:56:32.538Z"
   }
 }
