@@ -1,9 +1,87 @@
 {
-  "step": "seed",
-  "checks": {},
+  "step": "done",
+  "checks": {
+    "every exercise has a How to button": {
+      "pass": true,
+      "detail": 3
+    },
+    "back squat: 2 photos load": {
+      "pass": true,
+      "detail": {
+        "photos": 2,
+        "steps": 6,
+        "muscles": 6,
+        "href": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
+      }
+    },
+    "back squat: steps and muscles shown": {
+      "pass": true,
+      "detail": {
+        "photos": 2,
+        "steps": 6,
+        "muscles": 6,
+        "href": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
+      }
+    },
+    "back squat: lift video search": {
+      "pass": true,
+      "detail": "https://www.youtube.com/results?search_query=Back%20squat%20exercise%20proper%20form"
+    },
+    "Back (phone back button) closes only the how-to sheet": {
+      "pass": true,
+      "detail": 1
+    },
+    "push jerk: 2 photos load": {
+      "pass": true,
+      "detail": 2
+    },
+    "unknown exercise: still gets a video link and the no-photo note": {
+      "pass": true,
+      "detail": {
+        "video": "https://www.youtube.com/results?search_query=Zottman%20curl%20exercise%20proper%20form",
+        "note": "No photos for this movement yet — the video search below will show you how it is done."
+      }
+    },
+    "swap: How to follows the new exercise": {
+      "pass": true,
+      "detail": {
+        "title": "Goblet squat",
+        "photos": 2
+      }
+    },
+    "sprint: no photos, shows the note": {
+      "pass": true,
+      "detail": {
+        "photos": 0,
+        "note": "No photos for this movement yet — the video search below will show you how it is done.",
+        "href": "https://www.youtube.com/results?search_query=Sprint%2020%20m%20drill%20technique%20how%20to"
+      }
+    },
+    "sprint: video search asks for drill technique": {
+      "pass": true,
+      "detail": "https://www.youtube.com/results?search_query=Sprint%2020%20m%20drill%20technique%20how%20to"
+    },
+    "Turkish: how-to labels are translated": {
+      "pass": true,
+      "detail": {
+        "tr": {
+          "how": "Nasıl yapılır",
+          "yt": "YouTube'da izle"
+        },
+        "trText": {
+          "h2": "Nasıl yapılır",
+          "yt": "▶ YouTube'da izle"
+        }
+      }
+    },
+    "French: labels are translated": {
+      "pass": true,
+      "detail": "Comment faire"
+    }
+  },
   "errors": [],
   "journey": {
-    "started": "2026-11-09T15:58:23.608Z",
+    "started": "2026-11-09T16:10:33.234Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -130,7 +208,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite code6BTW95CopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeK7M6S8CopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -184,12 +262,12 @@
       }
     },
     "timings": {
-      "landing load": 279,
-      "sign-up": 2964,
-      "save setup": 370,
-      "first plan": 51003,
-      "save session": 437,
-      "rebuild": 41995
+      "landing load": 256,
+      "sign-up": 1945,
+      "save setup": 367,
+      "first plan": 42995,
+      "save session": 426,
+      "rebuild": 41988
     },
     "errors": [],
     "console": [],
@@ -267,6 +345,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-11-09T16:00:48.394Z"
+    "finished": "2026-11-09T16:12:43.012Z"
   }
 }
