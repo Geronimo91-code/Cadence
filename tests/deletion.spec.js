@@ -41,7 +41,7 @@ test('account deletion leaves nothing behind', async ({ page }) => {
       const profile = { name: 'QA', age: 30, sex: 'Male', heightCm: 175, weightKg: 70, sports: ['Running'], level: 'beginner', goals: ['general'], goal: 'general',
         days: [0, 1, 2, 3, 4, 5, 6], sessionMin: 60, sessionTime: '18:00', doubles: 'no', equipment: ['Full gym'], injuries: '', deadline: null, nutrition: null,
         timezone: 'Europe/Brussels', lang: 'en', equipmentConfirmed: true, noDeadline: true, nutritionDeclined: true, updatedAt: new Date().toISOString() };
-      await db.doc('users/' + uid).set({ profile, email: auth.currentUser.email });
+      await db.doc('users/' + uid).set({ profile, email: auth.currentUser.email }, { merge: true });
       await db.collection('users/' + uid + '/weights').add({ kg: 70, at: new Date().toISOString() });
       const sessions = [0, 1, 2, 3, 4, 5, 6].map((d) => ({ day: d, slot: 0, timeOfDay: 'morning', title: 'LEAK-CHECK day ' + d, type: 'strength', fixed: false, durationMin: 45,
         intent: 'seeded', warmup: [], exercises: [{ name: 'Back squat', sets: 3, reps: '5', load: '60 kg', restSec: 90, cues: '' }], cooldown: [] }));
@@ -58,6 +58,7 @@ test('account deletion leaves nothing behind', async ({ page }) => {
     const clubId = seeded.clubId;
 
     await page.reload();
+    await consentAfter(page);
     await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
     await page.waitForTimeout(1200);
     out.seededToday = (await page.locator('#view').textContent()).includes('LEAK-CHECK');
@@ -123,6 +124,7 @@ test('account deletion leaves nothing behind', async ({ page }) => {
     // and with a clean page load, does the server hand the old data to the new account?
     out.step = 'reload';
     await page.reload();
+    await consentAfter(page);
     await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
     await page.waitForTimeout(1500);
     const text = await page.locator('#view').textContent();

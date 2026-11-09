@@ -28,7 +28,7 @@ test('phase 1 checklist: exercise how-to', async ({ page }) => {
       const profile = { name: 'QA', age: 30, sex: 'Male', heightCm: 175, weightKg: 70, sports: ['Running'], level: 'beginner', goals: ['general'], goal: 'general',
         days: [0, 1, 2, 3, 4, 5, 6], sessionMin: 60, sessionTime: '18:00', doubles: 'no', equipment: ['Full gym'], injuries: '', deadline: null, nutrition: null,
         timezone: 'Europe/Brussels', lang: 'en', equipmentConfirmed: true, noDeadline: true, nutritionDeclined: true, updatedAt: new Date().toISOString() };
-      await db.doc('users/' + uid).set({ profile, email: auth.currentUser.email });
+      await db.doc('users/' + uid).set({ profile, email: auth.currentUser.email }, { merge: true });
       const ex = (name) => ({ name, sets: 3, reps: '5', load: '', restSec: 60, cues: 'Keep it tight' });
       const base = { slot: 0, timeOfDay: 'morning', fixed: false, durationMin: 45, intent: 'seeded', warmup: [], cooldown: [] };
       const sessions = [
@@ -39,6 +39,7 @@ test('phase 1 checklist: exercise how-to', async ({ page }) => {
       await db.doc('users/' + uid + '/plans/' + wk).set({ weekId: wk, phase: 'base', focus: 'QA', sessions, rationale: '', createdAt: new Date().toISOString() });
     });
     await page.reload();
+    await consentAfter(page);
     await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 30000 });
     await page.click('.tab[data-view="plan"]');
 
