@@ -51,14 +51,15 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
 
     // ---- full onboarding through the real UI ----
     await step('onboarding completed', async () => {
-      await page.click('#pathFull');
+      if (await page.isVisible('#pathFull')) await page.click('#pathFull');
       const titles = [];
       for (let i = 0; i < 12; i++) {
         if (await page.isVisible('#app:not(.hidden)')) break;
         const title = (await page.textContent('#obStep h2').catch(() => '')).trim(); titles.push(title);
         if (await page.isVisible('#fName')) {
-          await page.fill('#fName', 'Journey'); await page.fill('#fAge', '30'); await page.fill('#fHeight', '180'); await page.fill('#fWeight', '75');
-          await page.click('#obStep .chip[data-val="Male"]');
+          await page.fill('#fName', 'Journey');
+          // the short first setup has no body stats; the full one does
+          if (await page.isVisible('#fAge')) { await page.fill('#fAge', '30'); await page.fill('#fHeight', '180'); await page.fill('#fWeight', '75'); await page.click('#obStep .chip[data-val="Male"]'); }
         }
         if (await page.isVisible('#obStep .chip[data-val="Ultimate Frisbee"]')) {
           if ((await page.getAttribute('#obStep .chip[data-val="Ultimate Frisbee"]', 'aria-pressed')) !== 'true') await page.click('#obStep .chip[data-val="Ultimate Frisbee"]');
@@ -72,7 +73,7 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
           document.querySelectorAll('#obStep .chips').forEach((g) => { if (!g.querySelector('[aria-pressed="true"]')) g.querySelector('.chip')?.click(); });
           document.querySelectorAll('#obStep .options').forEach((g) => { if (!g.querySelector('[aria-checked="true"]')) g.querySelector('.option')?.click(); });
         });
-        const last = /Save and start/i.test(await page.textContent('#btnObNext'));
+        const last = /Save and start|Build my plan/i.test(await page.textContent('#btnObNext'));
         await page.click('#btnObNext');
         if (last) { await time('save setup', () => expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 45000 })); break; }
         await page.waitForTimeout(700);

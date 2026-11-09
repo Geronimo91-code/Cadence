@@ -1218,8 +1218,8 @@ const DIETS = ['No restrictions', 'Vegetarian', 'Vegan', 'Pescatarian', 'Halal',
 let ob = { step: 0, data: {} };
 const STEPS = [
   { key: 'basics', title: T('Let\'s start with you'), sub: T('These numbers shape loads, volumes and nutrition targets.'), render: renderBasics, validate: () => {
-      const d = ob.data; if (!d.name) return T('Add your first name.'); if (!(d.age >= 13 && d.age <= 90)) return T('Enter an age between 13 and 90.');
-      if (!(d.heightCm >= 120 && d.heightCm <= 230)) return T('Enter your height in cm.'); if (!(d.weightKg >= 30 && d.weightKg <= 250)) return T('Enter your weight in kg.'); if (!d.sex) return T('Choose an option for sex.'); } },
+      const d = ob.data; if (!d.name) return T('Add your first name.'); if (d.age && !(d.age >= 13 && d.age <= 90)) return T('Enter an age between 13 and 90.');
+      if (d.heightCm && !(d.heightCm >= 120 && d.heightCm <= 230)) return T('Enter your height in cm.'); if (d.weightKg && !(d.weightKg >= 30 && d.weightKg <= 250)) return T('Enter your weight in kg.'); } },
   { key: 'sports', title: T('What do you play or train?'), sub: T('Pick everything you do regularly. Your main sport goes first.'), render: renderSports, validate: () => { if (!ob.data.sports?.length) return T('Pick at least one sport.'); if (!ob.data.level) return T('Choose your training level.'); } },
   { key: 'goal', title: T('What are you working toward?'), sub: T('Pick up to three, in order of importance. The first one leads the plan.'), render: renderGoal, validate: () => { if (!ob.data.goals?.length) return T('Choose at least one goal.'); } },
   { key: 'availability', title: T('When can you train?'), sub: T('Tap the days you can commit to. Club practices and matches count too.'), render: renderAvailability, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); if (!ob.data.doubles) return T('Choose whether you can train twice in a day.'); } },
@@ -1229,9 +1229,63 @@ const STEPS = [
   { key: 'review', title: T('Here is your setup'), sub: T('Check it over. You can edit any of this later from Profile.'), render: renderReview },
 ];
 
+// First run: only what the first plan really needs. Everything else arrives later as one question a day.
+const POSITIONS = { 'Ultimate Frisbee': [['handler', 'Handler', 'Throws, resets, controls the disc'], ['cutter', 'Cutter', 'Runs deep and under, gets open'], ['hybrid', 'Both', 'Handles and cuts']] };
+const PLACES = [['gym', 'A gym', ['Full gym', 'Field or track']], ['field', 'A field or park', ['Field or track', 'Bodyweight only']], ['home', 'At home, some weights', ['Dumbbells', 'Bands', 'Bodyweight only']], ['none', 'No equipment', ['Bodyweight only']]];
+const FIRST_STEPS = [
+  { key: 'hello', title: T('Hi! Let\'s build your plan'), sub: T('Four quick screens. I\'ll learn the rest as we go.'), render: renderFirstHello, validate: () => { const d = ob.data; if (!d.name) return T('Add your first name.'); if (!d.sports?.length) return T('Pick at least one sport.'); if (POSITIONS[d.sports[0]] && !d.position) return T('Choose your position.'); } },
+  { key: 'goal', title: T('Where are you now, and where to?'), sub: T('Your level sets the starting point. Your first goal leads the plan.'), render: renderFirstGoal, validate: () => { if (!ob.data.level) return T('Choose your training level.'); if (!ob.data.goals?.length) return T('Choose at least one goal.'); } },
+  { key: 'week', title: T('Your week'), sub: T('Tap the days you can train. Mark team practices and games so I plan around them.'), render: renderFirstWeek, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); } },
+  { key: 'where', title: T('Where do you train?'), sub: T('Pick all that apply.'), render: renderFirstWhere, validate: () => { if (!ob.data.places?.length) return T('Pick at least one option.'); } },
+];
 function startOnboarding(existing) {
-  if (!existing) { showPathPicker(); return; }
+  if (!existing) { $('.ob-actions').classList.remove('hidden'); beginOnboarding(null, false, true); return; }
   beginOnboarding(existing);
+}
+function renderFirstHello(el) {
+  const d = ob.data;
+  el.insertAdjacentHTML('beforeend', `<div class="field"><label for="fName">${T('What should I call you?')}</label><input class="input" id="fName" autocomplete="given-name"></div><h3 style="margin:22px 0 10px">${T('What do you play or train?')}</h3><p class="muted small" style="margin:-4px 0 10px">${T('Your main sport first.')}</p>`);
+  bind($('#fName'), 'name', (v) => v.trim());
+  const custom = d.sports.filter((x) => !SPORTS.includes(x));
+  el.append(chipGroup([...SPORTS, ...custom], d.sports, (v) => { const hadPos = !!POSITIONS[d.sports[0]]; d.sports = v; if (!!POSITIONS[d.sports[0]] !== hadPos) renderStep(); }));
+  const add = document.createElement('button'); add.type = 'button'; add.className = 'chip add'; add.textContent = T('+ Other'); add.style.marginTop = '8px';
+  add.onclick = () => { const x = prompt(T('Which sport?')); if (x?.trim()) { d.sports.push(x.trim()); renderStep(); } };
+  el.append(add);
+  const pos = POSITIONS[d.sports[0]];
+  if (pos) { const h = document.createElement('h3'); h.textContent = T('Your position'); h.style.margin = '26px 0 10px'; el.append(h, optionGroup(pos, d.position, (v) => { d.position = v; })); }
+}
+function renderFirstGoal(el) {
+  el.append(optionGroup(LEVELS, ob.data.level, (v) => { ob.data.level = v; }));
+  const h = document.createElement('h3'); h.textContent = T('What are you working toward?'); h.style.margin = '26px 0 4px'; el.append(h);
+  el.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin:0 0 10px">${T('Pick up to three, in order of importance.')}</p>`);
+  renderGoal(el);
+  const note = $('#fGoalNote', el); if (note) note.closest('.field').remove();
+}
+function renderFirstWeek(el) {
+  const d = ob.data; d.team = d.team || [];
+  el.append(weekStrip(d.days, { readonly: false, onToggle: (i, on) => {
+    d.days = on ? [...new Set([...d.days, i])].sort((a, b) => a - b) : d.days.filter((x) => x !== i);
+    if (!on) d.team = d.team.filter((x) => x !== i);
+    paintTeam();
+  } }));
+  const tw = document.createElement('div'); el.append(tw);
+  const paintTeam = () => {
+    tw.innerHTML = d.days.length ? `<h3 style="margin:24px 0 4px">${T('Team practice or games on…')}</h3><p class="muted small" style="margin:0 0 10px">${T('Those days stay yours. I add light activation and keep hard work away from them.')}</p>` : '';
+    if (!d.days.length) return;
+    const w = document.createElement('div'); w.className = 'chips';
+    d.days.forEach((day) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = T(DAYS[day]); b.setAttribute('aria-pressed', String(d.team.includes(day))); b.onclick = () => { d.team = d.team.includes(day) ? d.team.filter((x) => x !== day) : [...d.team, day]; b.setAttribute('aria-pressed', String(d.team.includes(day))); }; w.append(b); });
+    tw.append(w);
+  };
+  paintTeam();
+  const h = document.createElement('h3'); h.textContent = T('Typical session length'); h.style.margin = '26px 0 10px'; el.append(h);
+  if (!d.sessionMin) d.sessionMin = 60;
+  el.append(chipGroup(['30 ' + T('min'), '45 ' + T('min'), '60 ' + T('min'), '75 ' + T('min'), '90+ ' + T('min')], [d.sessionMin + ' ' + T('min')], (v) => { d.sessionMin = parseInt(v[0]); }, { multi: false }));
+}
+function renderFirstWhere(el) {
+  const d = ob.data; d.places = d.places || [];
+  const w = document.createElement('div'); w.className = 'options';
+  PLACES.forEach(([k, label]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'option'; b.setAttribute('aria-checked', String(d.places.includes(k))); b.innerHTML = `<strong>${T(label)}</strong>`; b.onclick = () => { d.places = d.places.includes(k) ? d.places.filter((x) => x !== k) : [...d.places, k]; b.setAttribute('aria-checked', String(d.places.includes(k))); }; w.append(b); });
+  el.append(w);
 }
 function showPathPicker() {
   show('onboarding');
@@ -1247,38 +1301,39 @@ function showPathPicker() {
   $('#pathQuick').onclick = () => { $('.ob-actions').classList.remove('hidden'); beginOnboarding(null, true); };
   $('#pathFull').onclick = () => { $('.ob-actions').classList.remove('hidden'); beginOnboarding(null, false); };
 }
-function beginOnboarding(existing, quick) {
+const obSteps = () => (ob.first ? FIRST_STEPS : STEPS);
+function beginOnboarding(existing, quick, first) {
   const fresh = { name: state.user.displayName?.split(' ')[0] || '', days: [], sports: [], equipment: [], goals: [], injuries: '', hasDeadline: false, diet: ['No restrictions'], nutritionGoal: 'none' };
-  ob = { step: 0, editing: !!existing, quick: !!quick, data: existing ? { ...fresh, ...existing } : fresh };
+  ob = { step: 0, editing: !!existing, quick: !!quick, first: !!first, data: existing ? { ...fresh, ...existing } : fresh };
   if (quick) { ob.data.equipment = ['Full gym']; ob.data.doubles = 'no'; ob.data.nutritionGoal = 'none'; ob.data.hasDeadline = false; }
   $('#btnObCancel').classList.toggle('hidden', !existing);
   const next = $('#btnObNext'); next.disabled = false;
   show('onboarding'); renderStep();
 }
 function renderStep() {
-  const s = STEPS[ob.step];
-  const shown = STEPS.map((st, i) => i).filter((i) => !(ob.quick && STEPS[i].optional));
+  const S = obSteps(); const s = S[ob.step];
+  const shown = S.map((st, i) => i).filter((i) => !(ob.quick && S[i].optional));
   $('#obProgress').innerHTML = shown.map((i) => `<i class="${i <= ob.step ? 'done' : ''}"></i>`).join('');
   const el = $('#obStep'); el.innerHTML = `<h2>${s.title}</h2><p class="muted">${s.sub}</p>`;
   s.render(el);
   $('#btnObBack').classList.toggle('hidden', ob.step === 0);
-  $('#btnObNext').textContent = ob.step === STEPS.length - 1 ? T('Save and start') : T('Continue');
+  $('#btnObNext').textContent = ob.step === S.length - 1 ? (ob.first ? T('Build my plan') : T('Save and start')) : T('Continue');
   window.scrollTo(0, 0);
   const first = el.querySelector('input:not([type=hidden])'); if (first && ob.step === 0) first.focus();
 }
-$('#btnObBack').onclick = () => { let i = ob.step - 1; while (i > 0 && ob.quick && STEPS[i].optional) i--; if (i >= 0) { ob.step = i; renderStep(); } };
+$('#btnObBack').onclick = () => { let i = ob.step - 1; while (i > 0 && ob.quick && obSteps()[i].optional) i--; if (i >= 0) { ob.step = i; renderStep(); } };
 function nextStepIndex(from) {
   let i = from + 1;
-  while (i < STEPS.length - 1 && ob.quick && STEPS[i].optional) i++;
+  while (i < obSteps().length - 1 && ob.quick && obSteps()[i].optional) i++;
   return i;
 }
 $('#btnObNext').onclick = async () => {
   try {
-    const s = STEPS[ob.step];
+    const S = obSteps(); const s = S[ob.step];
     const err = s.validate ? s.validate() : null;
     if (err) { toast(err); return; }
     const next = nextStepIndex(ob.step);
-    if (next <= STEPS.length - 1 && ob.step < STEPS.length - 1) { ob.step = next; renderStep(); return; }
+    if (next <= S.length - 1 && ob.step < S.length - 1) { ob.step = next; renderStep(); return; }
     await saveProfile();
   } catch (e) { console.error('onboarding step failed', e); toast(T('Something went wrong on this screen. Try again.')); }
 };
@@ -1434,7 +1489,7 @@ function renderNutrition(el) {
 function renderReview(el) {
   const d = ob.data;
   const rows = [
-    [T('You'), `${d.name}, ${d.age}, ${d.heightCm} cm, ${d.weightKg} kg`],
+    [T('You'), [d.name, d.age, d.heightCm && d.heightCm + ' cm', d.weightKg && d.weightKg + ' kg'].filter(Boolean).join(', ')],
     [T('Sports'), d.sports.map(T).join(', ')],
     [T('Level'), T(LEVELS.find((l) => l[0] === d.level)?.[1] || '')],
     [T('Goals'), (d.goals || []).map((g) => T(GOALS.find((x) => x[0] === g)?.[1] || '')).join(', ') + (d.goalNote ? ` — ${d.goalNote}` : '')],
@@ -1452,6 +1507,13 @@ function renderReview(el) {
 async function saveProfile() {
   const btn = $('#btnObNext'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   const d = ob.data;
+  if (ob.first) {
+    // map the short setup onto the full profile
+    d.equipment = [...new Set((d.places || []).flatMap((k) => PLACES.find((x) => x[0] === k)?.[2] || []))];
+    d.dayPrefs = Object.fromEntries((d.team || []).map((day) => [day, [{ time: 'evening', focus: 'skills' }]]));
+    d.fixed = (d.team || []).length ? `Team practice or games on ${(d.team || []).map((x) => DAYS[x]).join(', ')}` : '';
+    d.doubles = 'no'; d.nutritionGoal = 'none';
+  }
   const profile = {
     name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg,
     sports: d.sports, level: d.level, goals: d.goals, goal: d.goals[0], goalNote: d.goalNote || '',
@@ -1463,15 +1525,19 @@ async function saveProfile() {
     nutrition: d.nutritionGoal === 'none' ? null : { goal: d.nutritionGoal, diet: d.diet, kcalAdjust: (ob.editing && state.profile?.nutrition?.goal === d.nutritionGoal) ? (state.profile.nutrition.kcalAdjust || 0) : 0 },
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: LANG,
     updatedAt: new Date().toISOString(),
+    ...(d.position ? { position: d.position } : {}),
   };
+  if (ob.first) { profile.noDeadline = false; profile.nutritionDeclined = true; profile.setupStyle = 'short'; }
+  // Firestore refuses undefined; body stats are optional until the athlete answers them
+  Object.keys(profile).forEach((k) => { if (profile[k] === undefined || (typeof profile[k] === 'number' && !Number.isFinite(profile[k]))) delete profile[k]; });
   try {
     const ref = db.doc('users/' + state.user.uid);
     const payload = { profile, email: state.user.email || null };
     if (!ob.editing) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     await ref.set(payload, { merge: true });
-    if (!ob.editing || state.profile?.weightKg !== d.weightKg) await db.collection('users/' + state.user.uid + '/weights').add({ kg: d.weightKg, at: new Date().toISOString() });
+    if (d.weightKg && (!ob.editing || state.profile?.weightKg !== d.weightKg)) await db.collection('users/' + state.user.uid + '/weights').add({ kg: d.weightKg, at: new Date().toISOString() });
     const wasEditing = ob.editing;
-    state.profile = profile;
+    state.profile = { ...(state.profile || {}), ...profile };
     enterApp(); if (wasEditing) { navigate('profile'); toast(T('Setup saved')); }
   } catch (e) {
     console.error(e); toast(T('Could not save. Check your connection and try again.'));
@@ -2577,7 +2643,7 @@ async function viewLog(el) {
   // Weight card
   const wc = document.createElement('div'); wc.className = 'card';
   wc.innerHTML = `<h3>${T('Weight')}</h3><div class="muted small" id="wLatest">${T('Loading…')}</div><div class="wchart" id="wChart"></div>
-    <div class="row" style="margin-top:12px;align-items:stretch"><div class="unit-input" style="min-width:0"><input class="input" id="wIn" type="number" inputmode="decimal" step="0.1" placeholder="${p.weightKg}"><span>kg</span></div><button class="btn sm" id="wAdd" style="flex:0 0 auto">${T('Add today')}</button></div>`;
+    <div class="row" style="margin-top:12px;align-items:stretch"><div class="unit-input" style="min-width:0"><input class="input" id="wIn" type="number" inputmode="decimal" step="0.1" placeholder="${p.weightKg || ''}"><span>kg</span></div><button class="btn sm" id="wAdd" style="flex:0 0 auto">${T('Add today')}</button></div>`;
   el.append(wc);
   const tcard = document.createElement('div'); tcard.className = 'card'; tcard.id = 'testsCard'; el.append(tcard);
   const paintTests = () => { if (!tcard.isConnected) return; tcard.innerHTML = testsCardHtml(); $('#btnAddTest', tcard).onclick = () => openAddTest(paintTests); };
@@ -3446,7 +3512,7 @@ function viewProfile(el) {
         <div class="prof-av" aria-hidden="true">${esc(initials(p.name))}</div>
         <div style="min-width:0"><h3>${esc(p.name)}</h3><div class="muted small">${esc(T(p.sports[0]))}${level ? ' · ' + esc(level) : ''}</div></div>
       </div>
-      <div class="prof-chips"><span>${p.age} ${T('yrs')}</span><span>${p.heightCm} cm</span><span>${p.weightKg} kg</span></div>
+      <div class="prof-chips">${p.position ? `<span>${esc(T(POSITIONS[p.sports?.[0]]?.find((x) => x[0] === p.position)?.[1] || p.position))}</span>` : ''}${p.age ? `<span>${p.age} ${T('yrs')}</span>` : ''}${p.heightCm ? `<span>${p.heightCm} cm</span>` : ''}${p.weightKg ? `<span>${p.weightKg} kg</span>` : ''}</div>
     </div>
 
     <h4 class="set-title">${T('Your training')}</h4>

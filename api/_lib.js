@@ -257,11 +257,16 @@ function tournamentLines(p, ref) {
   return ev.length ? ev.map((e) => `- TOURNAMENT: "${e.name}" ${e.start}${e.days > 1 ? ` to ${e.end} (${e.days} days)` : ''}`).join('\n') + '\n' : '';
 }
 
+// What the athlete told Cadence over time (question of the day), as "Label: answer" pairs
+function aboutLines(p) {
+  const a = p.about && typeof p.about === 'object' ? Object.entries(p.about).filter(([, v]) => v != null && String(v).trim()) : [];
+  return a.length ? '\n- What the athlete has told you (use it, and refer to it in each session\'s "why"): ' + a.map(([k, v]) => `${k}: ${String(v).slice(0, 120)}`).join('; ') : '';
+}
 export function athleteBlock(p, id, ref = new Date()) {
   const goals = (p.goals || [p.goal]).filter(Boolean);
   return `Athlete
-- Name: ${p.name}, age ${p.age}, ${p.sex}, ${p.heightCm} cm, ${p.weightKg} kg
-- Sports: ${p.sports.join(', ')} (main: ${p.sports[0]})
+- Name: ${p.name}${[p.age && `age ${p.age}`, p.sex, p.heightCm && `${p.heightCm} cm`, p.weightKg && `${p.weightKg} kg`].filter(Boolean).map((x) => ', ' + x).join('') || ' (age, height and weight not given yet: keep loads to RPE)'}
+- Sports: ${(p.sports || []).join(', ')} (main: ${(p.sports || [])[0]})${p.position ? `\n- Position: ${p.position}` : ''}${aboutLines(p)}
 - Level: ${p.level}
 - Goals in order: ${goals.join(' > ')}${p.goalNote ? `\n- Specific aim: ${p.goalNote}` : ''}
 - Available days: ${p.days.map((d) => DAY_NAMES[d]).join(', ')}
@@ -269,7 +274,7 @@ ${dayPrefBlock(p)}
 - Typical session length: ${p.sessionMin} min
 - Two sessions in one day: ${p.doubles === 'often' ? 'yes, happy to train twice on some days (e.g. gym in the morning, club practice in the evening)' : p.doubles === 'sometimes' ? 'occasionally, at most once or twice a week, only when the second one is easy or is club practice' : 'no, one session per day only'}
 - Fixed commitments: ${p.fixed || 'none'}
-- Equipment: ${p.equipment.join(', ')}
+- Equipment: ${(p.equipment || []).join(', ') || 'not given: assume bodyweight and a field'}
 - Injuries / limits: ${p.injuries || 'none'}${p.weekNote ? `\n- WHAT THE ATHLETE SAID ABOUT THIS WEEK (highest priority, overrides everything else): "${p.weekNote}"` : ''}
 - ${phaseFor(p, ref).text}
 ${tournamentLines(p, ref)}- Week ${p.weekNumber || 1} of the current block${((p.weekNumber || 1) % 4 === 0) ? ' — THIS IS A DELOAD WEEK' : ''}.
