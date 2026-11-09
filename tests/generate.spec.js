@@ -37,6 +37,8 @@ test('generate a plan end to end', async ({ page }) => {
     if (out.status !== 200) { out.error = (await res.text().catch(() => '')).slice(0, 400); }
 
     out.step = 'render';
+    // the first-week build shows a reveal screen over the app; close it
+    await page.locator('#revealGo').click({ timeout: 15000 }).catch(() => {});
     await page.click('.tab[data-view="plan"]');
     await page.waitForTimeout(1500);
     await expect(page.locator('.daygroup').first()).toBeVisible({ timeout: 30000 });

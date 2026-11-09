@@ -319,6 +319,27 @@ textarea.input { min-height: 90px; resize: vertical; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.obq { margin: 0 0 26px; } .obq h3 { margin: 0 0 2px; } .obq > p.muted { margin: 0 0 10px; }
+.build-ov { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: flex; align-items: flex-start; transition: opacity .25s; }
+.build-ov.out { opacity: 0; }
+.build-in { padding-top: max(56px, 10vh); padding-bottom: 40px; width: 100%; }
+.build-in h2 { font-size: 1.6rem; margin: 22px 0 18px; }
+.build-ring { position: relative; width: 96px; height: 96px; }
+.build-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.build-ring circle { fill: none; stroke-width: 9; } .build-ring .trk { stroke: var(--sage); }
+.build-ring .arc { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+.build-ring span { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.build-lines { list-style: none; padding: 0; margin: 0; }
+.build-lines li { position: relative; padding: 7px 0 7px 30px; color: var(--ink-2); opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .35s; }
+.build-lines li.in { opacity: 1; transform: none; }
+.build-lines li::before { content: ''; position: absolute; left: 4px; top: 11px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--green); border-right-color: transparent; animation: spin .8s linear infinite; }
+.build-lines li.ok { color: var(--ink); } .build-lines li.ok::before { animation: none; border: 0; content: '✓'; color: var(--green); font-weight: 700; top: 6px; width: auto; height: auto; }
+.reveal-days { list-style: none; padding: 0; margin: 18px 0 16px; border-top: 1px solid var(--line); }
+.reveal-days li { display: flex; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); opacity: 0; animation: rvin .4s ease forwards; }
+.reveal-days li .d { flex: 0 0 44px; font-weight: 700; color: var(--ink-2); } .reveal-days li.today .d { color: var(--green); }
+@keyframes rvin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.reveal .btn { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .build-lines li, .reveal-days li { transition: none; animation: none; opacity: 1; transform: none; } .build-lines li::before { animation: none; } }
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--sage-2); color: var(--green-2); }
 .badge.rest { background: var(--bg); color: var(--ink-3); border: 1px solid var(--line); }
 .badge.match, .badge.skills { background: var(--amber-2); color: var(--warm-ink); }
@@ -1283,10 +1304,12 @@ const STEPS = [
 const POSITIONS = { 'Ultimate Frisbee': [['handler', 'Handler', 'Throws, resets, controls the disc'], ['cutter', 'Cutter', 'Runs deep and under, gets open'], ['hybrid', 'Both', 'Handles and cuts']] };
 const PLACES = [['gym', 'A gym', ['Full gym', 'Field or track']], ['field', 'A field or park', ['Field or track', 'Bodyweight only']], ['home', 'At home, some weights', ['Dumbbells', 'Bands', 'Bodyweight only']], ['none', 'No equipment', ['Bodyweight only']]];
 const FIRST_STEPS = [
-  { key: 'hello', title: T('Hi! Let\'s build your plan'), sub: T('Four quick screens. I\'ll learn the rest as we go.'), render: renderFirstHello, validate: () => { const d = ob.data; if (!d.name) return T('Add your first name.'); if (!d.sports?.length) return T('Pick at least one sport.'); if (POSITIONS[d.sports[0]] && !d.position) return T('Choose your position.'); } },
+  { key: 'hello', title: T('Hi! Let\'s build your plan'), sub: T('Six quick screens, about two minutes. Then I build your week.'), render: renderFirstHello, validate: () => { const d = ob.data; if (!d.name) return T('Add your first name.'); if (!d.sports?.length) return T('Pick at least one sport.'); if (POSITIONS[d.sports[0]] && !d.position) return T('Choose your position.'); } },
   { key: 'goal', title: T('Where are you now, and where to?'), sub: T('Your level sets the starting point. Your first goal leads the plan.'), render: renderFirstGoal, validate: () => { if (!ob.data.level) return T('Choose your training level.'); if (!ob.data.goals?.length) return T('Choose at least one goal.'); } },
+  { key: 'you', title: T('A bit about you'), sub: T('So the plan fits your body, not an average one.'), render: renderFirstYou, validate: () => obNeed(['injury', 'push']) },
   { key: 'week', title: T('Your week'), sub: T('Tap the days you can train. Mark team practices and games so I plan around them.'), render: renderFirstWeek, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); } },
   { key: 'where', title: T('Where do you train?'), sub: T('Pick all that apply.'), render: renderFirstWhere, validate: () => { if (!ob.data.places?.length) return T('Pick at least one option.'); } },
+  { key: 'taste', title: T('What you like'), sub: T('I build more of what you enjoy and leave out what you don\'t.'), render: renderFirstTaste, validate: () => obNeed(['enjoy', 'gymexp']) },
 ];
 function startOnboarding(existing) {
   if (!existing) { $('.ob-actions').classList.remove('hidden'); beginOnboarding(null, false, true); return; }
@@ -1336,6 +1359,50 @@ function renderFirstWhere(el) {
   const w = document.createElement('div'); w.className = 'options';
   PLACES.forEach(([k, label]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'option'; b.setAttribute('aria-checked', String(d.places.includes(k))); b.innerHTML = `<strong>${T(label)}</strong>`; b.onclick = () => { d.places = d.places.includes(k) ? d.places.filter((x) => x !== k) : [...d.places, k]; b.setAttribute('aria-checked', String(d.places.includes(k))); }; w.append(b); });
   el.append(w);
+}
+// one question from the QUESTIONS bank, asked inline during setup; answers land in ob.data.qa
+function obQuestion(el, key, { required = false } = {}) {
+  const q = QUESTIONS.find((x) => x.key === key); if (!q) return;
+  const d = ob.data; d.qa = d.qa || {};
+  const box = document.createElement('div'); box.className = 'obq';
+  box.innerHTML = `<h3>${T(q.q)}${required ? '' : ` <span class="muted small" style="font-weight:400">${T('optional')}</span>`}</h3><p class="muted small">${T(q.why)}</p>`;
+  if (q.type === 'number' || q.type === 'text') {
+    const i = document.createElement('input'); i.className = 'input'; i.id = 'obq-' + key;
+    if (q.type === 'number') { i.type = 'number'; i.inputMode = 'numeric'; i.min = q.min; i.max = q.max; } else { i.maxLength = 120; i.placeholder = T(q.placeholder || ''); }
+    i.value = d.qa[key] ?? '';
+    i.oninput = () => { const v = i.value.trim(); if (!v) delete d.qa[key]; else d.qa[key] = q.type === 'number' ? Number(v) : v; };
+    if (q.type === 'number') { const w = document.createElement('div'); w.className = 'unit-input'; w.style.maxWidth = '180px'; const u = document.createElement('span'); u.textContent = q.unit; w.append(i, u); box.append(w); } else box.append(i);
+  } else {
+    const w = document.createElement('div'); w.className = 'chips';
+    let picked = Array.isArray(d.qa[key]) ? d.qa[key] : (d.qa[key] ? [d.qa[key]] : []);
+    const paint = () => $$('.chip', w).forEach((c) => c.setAttribute('aria-pressed', String(picked.includes(c.dataset.val))));
+    q.options.forEach((o) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.val = o; b.textContent = T(o);
+      b.onclick = () => {
+        if (!q.multi) picked = [o];
+        else if (o === 'Nothing') picked = ['Nothing'];
+        else picked = picked.includes(o) ? picked.filter((x) => x !== o) : [...picked.filter((x) => x !== 'Nothing'), o];
+        if (picked.length) d.qa[key] = q.multi ? picked : picked[0]; else delete d.qa[key];
+        paint();
+      }; w.append(b); });
+    paint(); box.append(w);
+  }
+  el.append(box);
+}
+function obNeed(keys) {
+  const qa = ob.data.qa || {};
+  const miss = keys.find((k) => qa[k] == null || (Array.isArray(qa[k]) && !qa[k].length));
+  return miss ? T('Answer “{x}” to continue.').replace('{x}', T(QUESTIONS.find((x) => x.key === miss).q)) : null;
+}
+function renderFirstYou(el) {
+  obQuestion(el, 'injury', { required: true });
+  obQuestion(el, 'push', { required: true });
+  if (isUlt(ob.data)) { obQuestion(el, 'playlevel'); obQuestion(el, 'season'); }
+  obQuestion(el, 'age');
+}
+function renderFirstTaste(el) {
+  obQuestion(el, 'enjoy', { required: true });
+  obQuestion(el, 'gymexp', { required: true });
+  obQuestion(el, 'avoid');
 }
 function showPathPicker() {
   show('onboarding');
@@ -1563,6 +1630,8 @@ async function saveProfile() {
     d.dayPrefs = Object.fromEntries((d.team || []).map((day) => [day, [{ time: 'evening', focus: 'skills' }]]));
     d.fixed = (d.team || []).length ? `Team practice or games on ${(d.team || []).map((x) => DAYS[x]).join(', ')}` : '';
     d.doubles = 'no'; d.nutritionGoal = 'none';
+    if (d.qa?.age) d.age = d.qa.age;
+    const inj = d.qa?.injury; if (Array.isArray(inj) && inj.length && !inj.includes('Nothing')) d.injuries = `Recurring: ${inj.join(', ')}`;
   }
   const profile = {
     name: d.name, age: d.age, sex: d.sex, heightCm: d.heightCm, weightKg: d.weightKg,
@@ -1577,7 +1646,12 @@ async function saveProfile() {
     updatedAt: new Date().toISOString(),
     ...(d.position ? { position: d.position } : {}),
   };
-  if (ob.first) { profile.noDeadline = false; profile.nutritionDeclined = true; profile.setupStyle = 'short'; }
+  if (ob.first) {
+    profile.noDeadline = false; profile.nutritionDeclined = true; profile.setupStyle = 'short';
+    const now = new Date().toISOString(); const about = {}, aboutAt = {};
+    Object.entries(d.qa || {}).forEach(([k, v]) => { const q = QUESTIONS.find((x) => x.key === k); if (!q || v == null || v === '') return; about[q.label] = Array.isArray(v) ? v.join(', ') : v; aboutAt[k] = now; });
+    if (Object.keys(about).length) { profile.about = about; profile.aboutAt = aboutAt; }
+  }
   // Firestore refuses undefined; body stats are optional until the athlete answers them
   Object.keys(profile).forEach((k) => { if (profile[k] === undefined || (typeof profile[k] === 'number' && !Number.isFinite(profile[k]))) delete profile[k]; });
   try {
@@ -1589,6 +1663,7 @@ async function saveProfile() {
     if (d.weightKg && (!ob.editing || state.profile?.weightKg !== d.weightKg)) await db.collection('users/' + state.user.uid + '/weights').add({ kg: d.weightKg, at: new Date().toISOString() });
     const wasEditing = ob.editing;
     state.profile = { ...(state.profile || {}), ...profile };
+    if (!wasEditing && !state.plan) { buildFirstWeek(); return; }
     enterApp(); if (wasEditing) { navigate('profile'); toast(T('Setup saved')); }
   } catch (e) {
     console.error(e); toast(T('Could not save. Check your connection and try again.'));
@@ -1775,6 +1850,72 @@ function syncTabs() {
   const t = $('.tab[data-view="nutrition"]'); if (t) t.hidden = !on;
   if (!on && state.view === 'nutrition') navigate('today');
 }
+/* ---------- first week: build it in front of the athlete, then show the result ---------- */
+function buildLines(p) {
+  const about = p.about || {}; const L = [];
+  const goal = GOALS.find((g) => g[0] === p.goal); if (goal) L.push(T('Reading your goal: {x}').replace('{x}', T(goal[1]).toLowerCase()));
+  const lvl = LEVELS.find((x) => x[0] === p.level); if (lvl) L.push(T('Starting from your level: {x}').replace('{x}', T(lvl[1]).toLowerCase()));
+  const team = Object.keys(p.dayPrefs || {}).filter((d) => (p.dayPrefs[d] || []).some((x) => x.focus === 'skills')).map((d) => T(DAYS[d]));
+  if (team.length) L.push(T('Keeping hard work away from team days: {x}').replace('{x}', team.join(', ')));
+  const inj = about['Injury history']; if (inj && inj !== 'Nothing') L.push(T('Adding extra care for: {x}').replace('{x}', inj.split(', ').map((x) => T(x).toLowerCase()).join(', ')));
+  L.push(T('Fitting {n} sessions of {m} min into your week').replace('{n}', (p.days || []).length).replace('{m}', p.sessionMin || 60));
+  if (about['Enjoys']) L.push(T('More of what you enjoy: {x}').replace('{x}', about['Enjoys'].split(', ').map((x) => T(x).toLowerCase()).join(', ')));
+  if (about['Never include']) L.push(T('Leaving out: {x}').replace('{x}', about['Never include']));
+  if (about['Coaching style']) L.push(T('Coaching style: {x}').replace('{x}', T(about['Coaching style']).toLowerCase()));
+  if ((p.equipment || []).length) L.push(T('Choosing exercises for: {x}').replace('{x}', p.equipment.map((x) => T(x).toLowerCase()).join(', ')));
+  L.push(T('Writing why each session matters for you'));
+  return L;
+}
+async function buildFirstWeek() {
+  const p = state.profile || {};
+  document.getElementById('buildOv')?.remove();
+  const ov = document.createElement('div'); ov.id = 'buildOv'; ov.className = 'build-ov'; ov.setAttribute('role', 'status'); ov.setAttribute('aria-live', 'polite');
+  ov.innerHTML = `<div class="container build-in"><div class="build-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="trk"/><circle cx="60" cy="60" r="52" class="arc" id="buildArc"/></svg><span id="buildPct">0%</span></div>
+    <h2>${esc(T('Building your week, {x}').replace('{x}', p.name || ''))}</h2><ul class="build-lines" id="buildLines"></ul></div>`;
+  document.body.append(ov);
+  const lines = buildLines(p); const ul = $('#buildLines', ov); const arc = $('#buildArc', ov); const pct = $('#buildPct', ov);
+  const C = 2 * Math.PI * 52; arc.style.strokeDasharray = C; arc.style.strokeDashoffset = C;
+  const setPct = (f) => { arc.style.strokeDashoffset = C * (1 - f); pct.textContent = Math.round(f * 100) + '%'; };
+  let shown = 0, done = false, result = null, error = null;
+  const addLine = (txt, last) => {
+    const prev = ul.lastElementChild; if (prev) prev.classList.add('ok');
+    const li = document.createElement('li'); li.textContent = txt; if (last) li.classList.add('last'); ul.append(li);
+    requestAnimationFrame(() => li.classList.add('in'));
+  };
+  const call = api('/api/generate-plan', undefined, { slowMsg: null }).then((r) => { result = r; }, (e) => { error = e; }).finally(() => { done = true; });
+  const t0 = Date.now(); const minMs = 5500;
+  // a line every ~2.4 s while the AI works; when it finishes early, the rest run quickly
+  while (shown < lines.length) {
+    addLine(lines[shown], false); shown++;
+    setPct(Math.min(0.9, shown / (lines.length + 1) * 0.9));
+    await new Promise((r) => setTimeout(r, done && Date.now() - t0 > minMs ? 380 : 2400));
+  }
+  addLine(T('Final checks'), true);
+  let f = 0.9; while (!done) { f = Math.min(0.97, f + 0.004); setPct(f); await new Promise((r) => setTimeout(r, 400)); }
+  if (error) { ov.remove(); enterApp(); toast(error.message); return; }
+  try { await loadPlan(result.weekId); } catch (_) { /* fall back to the response */ }
+  if (!state.plan) state.plan = result;
+  ul.lastElementChild?.classList.add('ok'); setPct(1);
+  track('first_week_built');
+  await new Promise((r) => setTimeout(r, 650));
+  revealWeek(ov, result.fallback);
+}
+function revealWeek(ov, fallback) {
+  const p = state.profile || {}; const plan = state.plan || { sessions: [] }; const t = planIsCurrent() ? todayIndex() : -1;
+  const rows = DAYS.map((d, i) => {
+    const ss = (plan.sessions || []).filter((x) => x.day === i && x.type !== 'rest').sort((a, b) => (a.slot || 0) - (b.slot || 0));
+    const body = ss.length ? ss.map((x) => `<strong>${esc(x.title)}</strong>${x.durationMin ? `<span class="muted small"> · ${x.durationMin} ${T('min')}</span>` : ''}`).join('<br>') : `<span class="muted">${T('Rest')}</span>`;
+    return `<li class="${i === t ? 'today' : ''}" style="animation-delay:${i * 70}ms"><span class="d">${T(d)}</span><span>${body}</span></li>`;
+  }).join('');
+  ov.innerHTML = `<div class="container build-in reveal"><p class="muted small" style="font-weight:600;letter-spacing:.04em;text-transform:uppercase">${T('Ready')}</p>
+    <h2>${esc(T('Your first week, {x}').replace('{x}', p.name || ''))}</h2>${plan.focus ? `<p class="muted">${esc(plan.focus)}</p>` : ''}
+    <ul class="reveal-days">${rows}</ul>
+    ${fallback ? `<p class="muted small">${T('The AI coach was busy, so this week starts from a solid template. It becomes fully personal at the next rebuild.')}</p>` : `<p class="muted small">${T('Every week I look at what you did and rewrite the next one.')}</p>`}
+    <button class="btn" id="revealGo">${T('Let\'s go')}</button><button class="btn secondary" id="revealWeek">${T('See the full week')}</button></div>`;
+  const close = (view) => { ov.classList.add('out'); setTimeout(() => ov.remove(), 250); enterApp(); if (view) navigate(view); };
+  $('#revealGo', ov).onclick = () => close(null);
+  $('#revealWeek', ov).onclick = () => close('plan');
+}
 function enterApp() {
   show('app');
   syncTabs();
@@ -1812,11 +1953,7 @@ async function viewToday(el) {
     const c = document.createElement('div'); c.className = 'card';
     c.innerHTML = `<div class="empty"><h3>${T('No plan yet')}</h3><p>${T('Cadence will build your first week from the setup you just completed.')}</p><button class="btn" id="btnGen">${T('Build my first week')}</button></div>`;
     el.append(c);
-    $('#btnGen').onclick = async (ev) => {
-      const b = ev.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-      try { const fresh = await api('/api/generate-plan'); await loadPlan(fresh.weekId); if (!state.plan) state.plan = fresh; toast(fresh.fallback ? T('The plan service was busy — this week uses a standard template. Rebuild later for a tailored one.') : T('Your week is ready')); navigate('today'); }
-      catch (e) { toast(e.message); b.disabled = false; b.textContent = T('Build my first week'); }
-    };
+    $('#btnGen').onclick = () => buildFirstWeek();
     return;
   }
 

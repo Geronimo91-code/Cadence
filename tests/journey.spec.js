@@ -76,7 +76,17 @@ test('phase 1 checklist: fresh user journey', async ({ page }) => {
         });
         const last = /Save and start|Build my plan/i.test(await page.textContent('#btnObNext'));
         await page.click('#btnObNext');
-        if (last) { await time('save setup', () => expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 45000 })); break; }
+        if (last) {
+          // a brand-new account builds its first week straight away, with the animation, then shows the result
+          await time('first plan', () => expect(page.locator('#revealGo, #app:not(.hidden)')).toBeVisible({ timeout: 200000 }));
+          if (await page.isVisible('#revealGo')) {
+            out.reveal = { days: await page.locator('.reveal-days li').count(), lines: await page.evaluate(() => document.querySelectorAll('.build-lines li').length) };
+            ok('first week revealed after setup', out.reveal.days === 7, out.reveal);
+            await page.click('#revealGo');
+          }
+          await expect(page.locator('#app:not(.hidden)')).toBeVisible({ timeout: 15000 });
+          break;
+        }
         await page.waitForTimeout(700);
         const toastText = (await page.textContent('#toast').catch(() => '')) || '';
         if (titles.length > 1 && titles[titles.length - 1] === (await page.textContent('#obStep h2').catch(() => '')).trim() && toastText) out.notes.push(`onboarding blocked on "${title}": ${toastText}`);
