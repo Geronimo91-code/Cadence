@@ -769,6 +769,7 @@ a.btn { text-decoration: none; }
 .chips-s{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.chip-s{font-size:.72rem;padding:2px 7px;border-radius:999px;background:rgba(127,127,127,.14);color:var(--ink-2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.chip-s.bad{background:rgba(217,83,79,.15);color:var(--bad,#c0392b)}.chip-s.good{background:rgba(46,139,87,.15);color:var(--ok,#2e8b57)}
 .test-ex{border-left:3px solid var(--accent,#1f6b4a);padding-left:12px}.test-in{display:grid;gap:6px;margin-top:10px}.test-in label{font-size:.85rem;font-weight:600}
 .qod-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}.qod-q{display:block;font-size:1.05rem;margin-bottom:2px}.qod-act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.qod .chips{margin-top:2px}
+.why{margin:10px 0 0;padding-left:10px;border-left:3px solid var(--accent,#1f6b4a);font-size:.92rem;line-height:1.4;color:var(--ink)}.why-s{margin:10px 0 4px}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1824,6 +1825,7 @@ async function viewToday(el) {
     c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="badge ${esc(sess.type)}">${esc(T(sess.type))}${sess.timeOfDay ? ' · ' + T(sess.timeOfDay) : ''}${sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : ''}</span>${statusHtml(lg)}</div>
       <h3 style="margin:8px 0 2px">${esc(sess.title)}</h3>
       <div class="muted small">${sess.durationMin} ${T('min')} · ${sess.exercises.length} ${sess.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
+      ${sess.why && !sess.eased ? `<p class="why">${esc(sess.why)}</p>` : ''}
       <button class="btn${lg ? ' secondary' : ''}" id="btnOpenToday${i}" style="margin-top:12px">${lg ? T('View session') : T('Open session')}</button>`;
     el.append(c);
     $('#btnOpenToday' + i).onclick = () => openSession(sess);
@@ -2213,6 +2215,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     <h1>${esc(sess.title)}</h1>
     <div class="muted small">${sess.durationMin} min planned</div>
     ${existing?.replacedWith ? `<div class="intent">${T('You logged this as')}: ${esc(existing.replacedWith)}</div>` : sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
+    ${sess.why && !sess.eased ? `<p class="why why-s">${esc(sess.why)}</p>` : ''}
     <div class="block"><h3>${T('How do you feel today?')}</h3><div class="readiness" id="readiness">
       ${[['fresh', '⚡', 'Fresh'], ['normal', '🙂', 'Normal'], ['tired', '😮‍💨', 'Tired'], ['sore', '🤕', 'Sore']].map(([v, e, l]) => `<button type="button" data-r="${v}"><span class="e">${e}</span>${T(l)}</button>`).join('')}
     </div><div id="readinessTip"></div></div>

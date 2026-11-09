@@ -1,6 +1,6 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
 import { sameKind } from './_garmin.js';
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, testSummary, logProblem } from './_lib.js';
+import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, PLAN_RULES, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, testSummary, logProblem } from './_lib.js';
 
 export { reviewWeek };
 
@@ -226,6 +226,7 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
     batch.set(db().doc(`users/${uid}/reviews/${reviewWeek}`), review);
     applyProgression(next, await liftHistory(uid));
     applyTests(next, profile);
+    applyWhy(next, profile);
     batch.set(db().doc(`users/${uid}/plans/${nextId}`), next);
     const adj = Number(out.nutritionKcalAdjust) || 0;
     if (profile.nutrition && (adj === 100 || adj === -100)) {
