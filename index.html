@@ -21,6 +21,7 @@
   --ink-3: #8A978F;
   --line: #DCE3DE;
   --sage: #D5E1D8;
+  --t-speed: #D2701F; --t-strength: #2F62C2; --t-cond: #C93B55; --t-team: #7347C4; --t-mob: #17867C; --t-rest: #8A968F;
   --sage-2: #E9F0EB;
   --green: #1E6B49;
   --green-2: #16543A;
@@ -47,6 +48,7 @@
   --ink-3: #79817E;
   --line: #262A2D;
   --sage: #232829;
+  --t-speed: #F49A4E; --t-strength: #7EA3F2; --t-cond: #F07C8F; --t-team: #B297F2; --t-mob: #5CC9BD; --t-rest: #7D8982;
   --sage-2: #1A1E20;
   --green: #F0862A;
   --green-2: #FFA357;
@@ -66,6 +68,7 @@
     --ink-3: #79817E;
     --line: #262A2D;
     --sage: #232829;
+    --t-speed: #F49A4E; --t-strength: #7EA3F2; --t-cond: #F07C8F; --t-team: #B297F2; --t-mob: #5CC9BD; --t-rest: #7D8982;
     --sage-2: #1A1E20;
     --green: #F0862A;
     --green-2: #FFA357;
@@ -319,6 +322,47 @@ textarea.input { min-height: 90px; resize: vertical; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* session types: one colour + icon each */
+.badge.tb { display: inline-flex; align-items: center; gap: 5px; color: var(--tc); background: color-mix(in srgb, var(--tc) 14%, transparent); }
+.tb svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.ti { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--tc); background: color-mix(in srgb, var(--tc) 15%, transparent); }
+.ti svg { width: 18px; height: 18px; }
+.slot.rest .ti { background: transparent; }
+/* week board: outline = planned, solid + tick = done */
+.board .pip { width: 62%; height: 16px; border-radius: 6px; background: transparent; border: 2px solid var(--tc, var(--green)); display: grid; place-items: center; color: var(--bg); font-size: 10px; font-weight: 800; line-height: 1; }
+.board .pip.done { background: var(--tc, var(--green)); }
+.board .pip.done::after { content: '✓'; }
+.board .pip.miss { border-style: dashed; opacity: .5; background: transparent; }
+.board .pip.rest { width: 6px; height: 6px; border: 0; border-radius: 50%; background: var(--line); margin-top: 5px; }
+.legend .lg-o { width: 12px; height: 9px; border-radius: 3px; border: 2px solid var(--ink-3); background: transparent !important; display: inline-block; }
+.legend .lg-d { width: 12px; height: 9px; border-radius: 3px; background: var(--ink-3) !important; display: inline-block; }
+/* weekly progress ring */
+.wk-ring { display: flex; align-items: center; gap: 16px; }
+.wk-ring svg { width: 74px; height: 74px; flex: 0 0 auto; transform: rotate(-90deg); }
+.wk-ring circle { fill: none; stroke-width: 9; }
+.wk-ring .trk { stroke: var(--sage); } .wk-ring .arc { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset .9s ease; }
+.wk-ring .rtxt { min-width: 0; }
+.wk-ring .rtxt b { display: block; font: 700 1.25rem var(--font-display); color: var(--ink); }
+.wk-ring .rtxt span { color: var(--ink-2); font-size: .88rem; }
+.wk-ring .seg { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+.wk-ring .seg i { width: 18px; height: 6px; border-radius: 3px; background: var(--sage); }
+.wk-ring .seg i.on { background: var(--tc, var(--green)); }
+/* celebration */
+.cele { position: fixed; inset: 0; pointer-events: none; z-index: 400; }
+.cele-msg { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%) scale(.9); background: var(--white); color: var(--ink); border-radius: 18px; padding: 16px 22px; box-shadow: 0 12px 40px rgba(0,0,0,.25); text-align: center; z-index: 401; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; max-width: calc(100% - 48px); }
+.cele-msg.in { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.cele-msg b { display: block; font: 700 1.3rem var(--font-display); }
+.cele-msg span { color: var(--ink-2); font-size: .9rem; }
+/* tidier session tools: How to + a menu for the rest */
+.swapbar .more-tools { display: none; gap: 8px; flex-wrap: wrap; }
+.swapbar.open .more-tools { display: flex; }
+.swapbar .chip.more { min-width: 40px; }
+.slot-move { display: inline-flex; }
+.intent { background: transparent; padding: 0; margin-top: 10px; color: var(--ink-2); font-weight: 600; }
+.intent::before { content: '◎ '; color: var(--green); }
+.linkbtn { background: none; border: 0; color: var(--ink-2); text-decoration: underline; font: 500 .9rem var(--font-body); padding: 10px 0; display: block; margin: 8px auto 0; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .wk-ring .arc { transition: none; } .cele-msg { transition: none; } }
+
 .obbar { display: block; height: 4px; border-radius: 2px; background: var(--sage); overflow: hidden; flex: 1; max-width: 200px; } .obbar i { display: block; height: 100%; background: var(--green); transition: width .4s ease; }
 .ob-step.ob-in { animation: obin .35s ease; } .ob-step.ob-back { animation: obback .35s ease; }
 @keyframes obin { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
@@ -514,12 +558,6 @@ textarea.input { min-height: 90px; resize: vertical; }
 .board .col.today { background: var(--amber-2); }
 .board .col.today .lbl { color: var(--warm-ink); }
 .board .track { width: 100%; display: flex; flex-direction: column; gap: 4px; align-items: center; }
-.board .pip { width: 60%; height: 14px; border-radius: 5px; background: var(--sage); }
-.board .pip.none { background: transparent; border: 1.5px dashed var(--line); height: 12px; }
-.board .pip.on { background: var(--green); }
-.board .pip.done { background: var(--green-2); }
-.board .pip.miss { background: var(--red); opacity: .55; }
-.board .pip.team { background: var(--amber); }
 .board .col .n { font-size: .62rem; color: var(--ink-3); height: 10px; }
 .legend { display: flex; gap: 12px; justify-content: center; margin-top: 10px; font-size: .7rem; color: var(--ink-3); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
@@ -1900,6 +1938,41 @@ function syncTabs() {
   const t = $('.tab[data-view="nutrition"]'); if (t) t.hidden = !on;
   if (!on && state.view === 'nutrition') navigate('today');
 }
+
+/* ---------- session types: colour, icon and a friendly name ---------- */
+const TYPE_ICON = {
+  speed: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  strength: '<path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/>',
+  conditioning: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  team: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/>',
+  match: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
+  mobility: '<circle cx="12" cy="5" r="2"/><path d="M12 7v6l-4 7M12 13l4 7M5 10l7-2 7 2"/>',
+  rest: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+};
+const TYPE_META = { speed: ['speed', 'Speed'], strength: ['strength', 'Strength'], conditioning: ['cond', 'Conditioning'], skills: ['team', 'Team'], match: ['team', 'Game'], mobility: ['mob', 'Mobility'], rest: ['rest', 'Rest'] };
+const typeKey = (sess) => (sess?.teamSession ? 'skills' : (TYPE_META[sess?.type] ? sess.type : 'conditioning'));
+const typeVar = (sess) => `var(--t-${TYPE_META[typeKey(sess)][0]})`;
+const typeName = (sess) => T(TYPE_META[typeKey(sess)][1]);
+const typeSvg = (sess) => { const k = typeKey(sess); const ic = TYPE_ICON[k === 'skills' ? 'team' : k] || TYPE_ICON.conditioning; return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>`; };
+const typeBadge = (sess, extra = '') => `<span class="badge tb" style="--tc:${typeVar(sess)}">${typeSvg(sess)}${esc(typeName(sess))}${extra}</span>`;
+const typeTile = (sess) => `<span class="ti" style="--tc:${typeVar(sess)}">${typeSvg(sess)}</span>`;
+// a short burst of confetti and a message, for finishing a session or a week
+function celebrate(title, sub) {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { toast(title + (sub ? ' · ' + sub : '')); return; }
+  const cv = document.createElement('canvas'); cv.className = 'cele'; const dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; document.body.append(cv);
+  const msg = document.createElement('div'); msg.className = 'cele-msg'; msg.innerHTML = `<b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}`; document.body.append(msg);
+  requestAnimationFrame(() => msg.classList.add('in'));
+  const cs = getComputedStyle(document.documentElement); const cols = ['--t-speed', '--t-strength', '--t-cond', '--t-team', '--t-mob', '--green'].map((v) => cs.getPropertyValue(v).trim() || '#888');
+  const ctx = cv.getContext('2d'); const parts = Array.from({ length: 90 }, () => ({ x: innerWidth / 2, y: innerHeight * 0.38, vx: (Math.random() - 0.5) * 9, vy: -Math.random() * 9 - 3, r: Math.random() * 6 + 3, c: cols[Math.floor(Math.random() * cols.length)], a: Math.random() * 6 }));
+  const t0 = performance.now();
+  const step = (t) => { const k = (t - t0) / 1600; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, innerWidth, innerHeight);
+    parts.forEach((p) => { p.x += p.vx; p.y += p.vy; p.vy += 0.25; p.a += 0.15; ctx.globalAlpha = Math.max(0, 1 - k); ctx.fillStyle = p.c; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore(); });
+    if (k < 1) requestAnimationFrame(step); else cv.remove(); };
+  requestAnimationFrame(step);
+  setTimeout(() => { msg.classList.remove('in'); setTimeout(() => msg.remove(), 300); }, 2200);
+}
+
 /* ---------- first week: build it in front of the athlete, then show the result ---------- */
 function buildLines(p) {
   const about = p.about || {}; const L = [];
@@ -2046,23 +2119,25 @@ async function viewToday(el) {
     const real = (byDay[i] || []).filter((x) => x.type !== 'rest').sort((a, b) => (a.slot || 0) - (b.slot || 0));
     const pip = (sess) => {
       const span = document.createElement('span'); span.className = 'pip';
-      if (!sess) { span.classList.add('none'); return span; }
       const lg = logFor(sess);
-      span.classList.add(lg?.status === 'done' ? 'done' : lg?.status === 'skipped' ? 'miss' : sess.teamSession || sess.type === 'skills' || sess.type === 'match' ? 'team' : 'on');
+      span.style.setProperty('--tc', typeVar(sess));
+      span.classList.add(['done', 'partial'].includes(lg?.status) ? 'done' : lg?.status === 'skipped' ? 'miss' : 'on');
       span.title = `${sess.title}${sess.timeOfDay ? ' · ' + T(sess.timeOfDay) : ''}`;
       return span;
     };
     const track = document.createElement('div'); track.className = 'track';
     const am = real.find((x) => x.timeOfDay === 'morning') || (real.length && !real[0].timeOfDay && !real[0].slot ? real[0] : null);
     const pm = real.find((x) => x.timeOfDay === 'afternoon' || x.timeOfDay === 'evening') || real.find((x) => x !== am && (x.slot || real.length > 1));
-    track.append(pip(am), pip(pm && pm !== am ? pm : null));
+    if (am) track.append(pip(am));
+    if (pm && pm !== am) track.append(pip(pm));
+    if (!real.length) { const r = document.createElement('span'); r.className = 'pip rest'; track.append(r); }
     col.innerHTML = `<span class="lbl">${T(d)[0]}${T(d)[1] || ''}</span>`;
     col.append(track);
     col.onclick = () => { const target = real[0]; if (target) openSession(target); else navigate('plan'); };
     grid.append(col);
   });
   board.append(grid);
-  board.insertAdjacentHTML('beforeend', `<div class="legend"><span><i style="background:var(--green)"></i>${T('planned')}</span><span><i style="background:var(--green-2)"></i>${T('done')}</span><span><i style="background:var(--amber)"></i>${T('team')}</span></div>`);
+  board.insertAdjacentHTML('beforeend', `<div class="legend"><span><i class="lg-o"></i>${T('planned')}</span><span><i class="lg-d"></i>${T('done')}</span><span>${T('colour = session type')}</span></div>`);
   el.append(board);
 
   // ---- today's sessions ----
@@ -2070,12 +2145,12 @@ async function viewToday(el) {
   const realToday = todays.filter((x) => x.type !== 'rest').sort((a, b) => (a.slot || 0) - (b.slot || 0));
   if (!realToday.length) {
     const c = document.createElement('div'); c.className = 'card todaycard';
-    c.innerHTML = `<span class="badge rest">${T('Rest day')}</span><p class="muted" style="margin-top:8px">${esc(todays[0]?.intent || T('Nothing scheduled. Recover, eat well, move lightly if you feel like it.'))}</p>`;
+    c.innerHTML = `${typeBadge({ type: 'rest' }).replace(esc(T('Rest')), esc(T('Rest day')))}<p class="muted" style="margin-top:8px">${esc(todays[0]?.intent || T('Nothing scheduled. Recover, eat well, move lightly if you feel like it.'))}</p>`;
     el.append(c);
   } else realToday.forEach((sess, i) => {
     const lg = logFor(sess);
     const c = document.createElement('div'); c.className = 'card todaycard';
-    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="badge ${esc(sess.type)}">${esc(T(sess.type))}${sess.timeOfDay ? ' · ' + T(sess.timeOfDay) : ''}${sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : ''}</span>${statusHtml(lg)}</div>
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">${typeBadge(sess, (sess.timeOfDay ? ' · ' + esc(T(sess.timeOfDay)) : '') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : ''))}${statusHtml(lg)}</div>
       <h3 style="margin:8px 0 2px">${esc(sess.title)}</h3>
       <div class="muted small">${sess.durationMin} ${T('min')} · ${sess.exercises.length} ${sess.exercises.length === 1 ? T('exercise') : T('exercises')}</div>
       ${sess.why && !sess.eased ? `<p class="why">${esc(sess.why)}</p>` : ''}
@@ -2134,7 +2209,7 @@ async function viewToday(el) {
   const upcoming = state.plan.sessions.filter((x) => x.type !== 'rest' && x.day > t && !logFor(x)).sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0))[0];
   if (upcoming) {
     const c = document.createElement('button'); c.type = 'button'; c.className = 'card todaycard nextup'; c.dataset.opt = '3';
-    c.innerHTML = `<span class="nx-day">${upcoming.day === t + 1 ? T('Tomorrow') : T(DAYS[upcoming.day])}</span><span class="nx-body"><strong>${esc(upcoming.title)}</strong><span class="muted small">${esc(T(upcoming.type))} · ${upcoming.durationMin} ${T('min')}</span></span><span class="chev">›</span>`;
+    c.innerHTML = `<span class="nx-day">${upcoming.day === t + 1 ? T('Tomorrow') : T(DAYS[upcoming.day])}</span><span class="nx-body"><strong>${esc(upcoming.title)}</strong><span class="muted small">${esc(typeName(upcoming))} · ${upcoming.durationMin} ${T('min')}</span></span><span class="chev">›</span>`;
     c.onclick = () => openSession(upcoming);
     el.append(c);
   }
@@ -2147,13 +2222,14 @@ async function viewToday(el) {
     const minutes = weekLogs.reduce((a, l) => a + (l.durationMin || 0), 0);
     const extras = weekLogs.filter((l) => l.extra).length;
     const c = document.createElement('div'); c.className = 'card todaycard'; c.dataset.opt = '4';
-    c.innerHTML = `<div class="wk-stats">
-        <div><b>${done}<small>/${planned.length}</small></b><span>${T('sessions')}</span></div>
-        <div><b>${minutes}</b><span>${T('minutes')}</span></div>
-        <div><b>${extras}</b><span>${T('extra')}</span></div>
-      </div>
-      <div class="wk-pbar"><i style="width:${planned.length ? Math.round((done / planned.length) * 100) : 0}%"></i></div>`;
+    const C = 2 * Math.PI * 30; const frac = planned.length ? done / planned.length : 0;
+    const head = done >= planned.length && planned.length ? T('Week complete') : T('{d} of {n} sessions').replace('{d}', done).replace('{n}', planned.length);
+    const sub = [minutes ? `${minutes} ${T('min trained')}` : T('Your week starts with the first session'), extras ? `${extras} ${T('extra')}` : ''].filter(Boolean).join(' · ');
+    const segs = planned.slice().sort((a, b) => a.day - b.day || (a.slot || 0) - (b.slot || 0)).map((x) => `<i class="${['done', 'partial'].includes(logFor(x)?.status) ? 'on' : ''}" style="--tc:${typeVar(x)}"></i>`).join('');
+    c.innerHTML = `<div class="wk-ring"><svg viewBox="0 0 74 74" aria-hidden="true"><circle cx="37" cy="37" r="30" class="trk"/><circle cx="37" cy="37" r="30" class="arc" style="stroke-dasharray:${C};stroke-dashoffset:${C}"/></svg>
+      <div class="rtxt"><b>${esc(head)}</b><span>${esc(sub)}</span><div class="seg">${segs}</div></div></div>`;
     el.append(c);
+    requestAnimationFrame(() => requestAnimationFrame(() => { const a = c.querySelector('.arc'); if (a) a.style.strokeDashoffset = C * (1 - frac); }));
   }
 
   // ---- quick actions ----
@@ -2301,14 +2377,14 @@ function viewPlan(el) {
       if (!isRest) row.type = 'button';
       row.className = 'slot' + (isRest ? ' rest' : '');
       const when = sess.timeOfDay ? T(sess.timeOfDay) : (real.length > 1 ? (sess.slot ? T('later') : T('first')) : '');
-      row.innerHTML = `<span class="body">${when ? `<span class="when">${esc(when)}</span>` : ''}<strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : esc(T(sess.type)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
+      row.innerHTML = typeTile(sess) + `<span class="body">${when ? `<span class="when">${esc(when)}</span>` : ''}<strong>${esc(sess.title)}</strong><span>${isRest ? esc(sess.intent || T('Recovery')) : esc(typeName(sess)) + ' · ' + sess.durationMin + ' ' + T('min') + (sess.teamSession ? ' · ' + esc(sess.clubName || T('team')) : sess.fixed ? ' · ' + T('fixed') : '')}</span></span>${lg ? statusHtml(lg) : ''}${isRest ? '' : '<span class="chev">›</span>'}`;
       if (!isRest) row.onclick = () => openSession(sess);
       slots.append(row);
     });
     if (real.length) {
       const mv = document.createElement('div'); mv.className = 'movebar';
       real.forEach((sess) => { if (!planIsCurrent()) return; const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.style.fontSize = '.78rem'; b.style.padding = '5px 10px'; b.textContent = T('Move') + (real.length > 1 ? ' · ' + (sess.timeOfDay ? T(sess.timeOfDay) : sess.slot ? T('later') : T('first')) : ''); b.onclick = () => askDay(sess); mv.append(b); });
-      if (mv.children.length) slots.append(mv);
+      // Move now lives inside the session screen; the plan list stays compact
     }
     group.append(dcol, slots); card.append(group);
   }
@@ -2341,7 +2417,7 @@ function viewPlan(el) {
   }
   if (reviewed) el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnSeeReview" style="margin-top:16px">${T('Read this week\'s review')}</button>`);
   if (reviewed) $('#btnSeeReview').onclick = () => openReview(state.review);
-  if (!planIsPast()) el.insertAdjacentHTML('beforeend', `<button class="btn secondary" id="btnRebuild" style="margin-top:10px">${T('Rebuild this week from my profile')}</button>`);
+  if (!planIsPast()) el.insertAdjacentHTML('beforeend', `<button class="linkbtn" id="btnRebuild">${T('Rebuild this week from my profile')}</button>`);
   if ($('#btnRebuild')) $('#btnRebuild').onclick = () => openRebuild();
 }
 
@@ -2475,9 +2551,9 @@ function openSession(raw, weekIdOverride, logOverride) {
     ${sess.eased && !existing ? `<button type="button" class="btn sm secondary" id="btnUnease" style="margin:0 0 12px">↺ ${T('Use the original session')}</button>` : ''}
     ${existing?.garmin?.id && state.isAdmin ? `<button type="button" class="btn secondary sm" id="btnWatchData" style="margin:0 0 12px">♥ ${T('Watch data')}</button>` : ''}
     ${(state.plans || []).find((x) => x.weekId === wk)?.source === 'template' ? `<div class="src-note">${T('Backup week: the AI was busy, so this is a standard session. Rebuild the week to try the AI again.')}</div>` : ''}
-    <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge ${esc(T(sess.type))}">${esc(T(sess.type))}${sess.fixed ? ' · fixed' : ''}</span><span id="sheetStatus">${statusHtml(existing)}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">${typeBadge(sess, sess.fixed ? ' · ' + esc(T('fixed')) : '')}<span id="sheetStatus">${statusHtml(existing)}</span></div>
     <h1>${esc(sess.title)}</h1>
-    <div class="muted small">${sess.durationMin} min planned</div>
+    <div class="muted small" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${sess.durationMin} ${T('min planned')}${wk === isoWeekId() && sess.type !== 'rest' && !existing ? `<button type="button" class="chip" id="btnMoveSess" style="font-size:.78rem;padding:4px 10px">↔ ${T('Move to another day')}</button>` : ''}</div>
     ${existing?.replacedWith ? `<div class="intent">${T('You logged this as')}: ${esc(existing.replacedWith)}</div>` : sess.intent ? `<div class="intent">${esc(sess.intent)}</div>` : ''}
     ${sess.why && !sess.eased ? `<p class="why why-s">${esc(sess.why)}</p>` : ''}
     <div class="block"><h3>${T('How do you feel today?')}</h3><div class="readiness" id="readiness">
@@ -2552,7 +2628,7 @@ function openSession(raw, weekIdOverride, logOverride) {
         <div class="meta">${ex.swapped ? T('your change') : [px.load, rest(px.restSec)].filter(Boolean).map(esc).join(' · ')}${!ex.swapped && px.progression ? ` <span class="prog prog-${px.progression}">${px.progression === 'up' ? '↑ ' + T('up from last time') : px.progression === 'deload' ? '↓ ' + T('deload after 3 misses') : '= ' + T('same weight, finish all sets')}</span>` : ''}</div>
         ${lastTimeLine(ex.name)}
         ${!ex.swapped && px.cues ? `<div class="cues">${esc(px.cues)}</div>` : ''}
-        <div class="swapbar"><button class="chip how" data-how="${ei}">▶ ${T('How to')}</button><button class="chip" data-swap="${ei}">${T('Swap')}</button><button class="chip" data-addset="${ei}">${T('+ set')}</button>${ex.sets.length > 1 ? `<button class="chip" data-delset="${ei}">${T('− set')}</button>` : ''}<button class="chip" data-delex="${ei}">${T('Remove')}</button></div>
+        <div class="swapbar"><button class="chip how" data-how="${ei}">▶ ${T('How to')}</button><button class="chip more" data-more="${ei}" aria-expanded="false" aria-label="${T('More options')}">⋯</button><span class="more-tools"><button class="chip" data-swap="${ei}">${T('Swap')}</button><button class="chip" data-addset="${ei}">${T('+ set')}</button>${ex.sets.length > 1 ? `<button class="chip" data-delset="${ei}">${T('− set')}</button>` : ''}<button class="chip" data-delex="${ei}">${T('Remove')}</button></span></div>
         <div class="setgrid"><span class="h">${T('Set')}</span><span class="h">${T('Reps')}</span><span class="h">${T('Load (kg)')}</span><span></span></div>`;
       const grid = card.querySelector('.setgrid');
       ex.sets.forEach((st, si) => {
@@ -2571,6 +2647,7 @@ function openSession(raw, weekIdOverride, logOverride) {
     $$('[data-swap]', exWrap).forEach((b) => { b.onclick = () => askText(T('What did you do instead?'), draft.exercises[b.dataset.swap].name, (v) => { const ex = draft.exercises[b.dataset.swap]; ex.name = v; ex.swapped = true; renderExercises(); }); });
     $$('[data-addset]', exWrap).forEach((b) => { b.onclick = () => { const ex = draft.exercises[b.dataset.addset]; const last = ex.sets[ex.sets.length - 1] || {}; ex.sets.push({ reps: last.reps ?? null, load: last.load ?? null, done: false }); renderExercises(); }; });
     $$('[data-delset]', exWrap).forEach((b) => { b.onclick = () => { const ex = draft.exercises[b.dataset.delset]; if (ex.sets.length > 1) ex.sets.pop(); renderExercises(); }; });
+    $$('[data-more]', exWrap).forEach((b) => { b.onclick = () => { const bar = b.closest('.swapbar'); const open = !bar.classList.contains('open'); bar.classList.toggle('open', open); b.setAttribute('aria-expanded', String(open)); }; });
     $$('[data-delex]', exWrap).forEach((b) => { b.onclick = () => { draft.exercises.splice(Number(b.dataset.delex), 1); renderExercises(); }; });
   };
   loadExerciseHistory().then(() => renderExercises());
@@ -2611,11 +2688,17 @@ function openSession(raw, weekIdOverride, logOverride) {
       exHistory = null; streakCache = null;
       postActivity(rec).catch(() => {});
       track('session_log');
-      toast(rec.status === 'skipped' ? T('Saved as skipped') : T('Session saved'));
       history.back();
+      if (rec.status === 'skipped') toast(T('Saved as skipped'));
+      else if (wk === state.plan?.weekId && !existing) {
+        const pl = state.plan.sessions.filter((x) => x.type !== 'rest'); const dn = pl.filter((x) => ['done', 'partial'].includes(logFor(x)?.status)).length;
+        if (dn >= pl.length) celebrate(T('Week complete!'), T('Every planned session done. Great work.'));
+        else celebrate(T('Session done'), T('{d} of {n} this week').replace('{d}', dn).replace('{n}', pl.length));
+      } else toast(T('Session saved'));
     } catch (e) { console.error(e); toast(T('Could not save. Check your connection.')); btn.disabled = false; btn.textContent = T('Save session'); }
   };
   $('#btnRpeInfo', sheet).onclick = openRpeInfo;
+  if ($('#btnMoveSess', sheet)) $('#btnMoveSess', sheet).onclick = () => { history.back(); setTimeout(() => askDay(sess), 250); };
   $('#btnSaveLog', sheet).onclick = (ev) => save(ev.currentTarget, false);
   $('#btnSkip', sheet).onclick = (ev) => { if (existing?.status === 'skipped') return; save(ev.currentTarget, true); };
   if (existing && !isPastWeek) sheet.querySelector('#logEx')?.scrollIntoView({ block: 'start' });
