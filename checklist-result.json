@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-11-09T07:55:17.110Z",
+    "started": "2026-11-09T15:11:44.680Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -105,30 +105,30 @@
       },
       "onboarding completed": {
         "pass": true,
-        "detail": "8 screens"
+        "detail": "4 screens"
       },
       "first plan generated": {
         "pass": true,
         "detail": {
-          "source": "profile",
+          "source": "template",
           "sessions": 7,
           "real": 3,
           "days": 7,
-          "rationale": "As a beginner with a primary goal of speed for Ultimate Frisbee, this week establishes high-quality acceleration and change-of-direction mechanics without overwhelming your recovery capacity. Sessions are capped at 30 minutes with strict work-to-rest ratios to keep every effort crisp and high-veloci",
+          "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
           "titles": [
-            "0:speed:Speed Acceleration & Mechanics",
-            "1:rest:Rest & Active Recovery",
-            "2:strength:Lower Body Power & Strength",
-            "3:rest:Rest & Mobility",
-            "4:speed:Agility & Lateral Speed",
-            "5:rest:Rest Day",
-            "6:rest:Rest & Recovery"
+            "0:skills:Skills and agility",
+            "1:rest:Rest",
+            "2:speed:Speed and acceleration",
+            "3:rest:Rest",
+            "4:strength:Full-body strength",
+            "5:rest:Rest",
+            "6:rest:Rest"
           ]
         }
       },
       "first plan is AI-made (not template)": {
-        "pass": true,
-        "detail": "profile"
+        "pass": false,
+        "detail": "template"
       },
       "plan covers 7 days": {
         "pass": true,
@@ -137,23 +137,22 @@
       "weekly fitness test block in the plan": {
         "pass": true,
         "detail": [
-          "0:sprint10",
-          "0:sprint30",
-          "0:broad"
+          "2:sprint10",
+          "2:sprint30",
+          "2:broad"
         ]
       },
       "today fits one screen": {
-        "pass": true,
+        "pass": false,
         "detail": {
-          "h": 844,
+          "h": 921,
           "v": 844,
           "cards": [
             "DIV",
             "card",
             "card todaycard",
-            "card todaycard nextup",
-            "card todaycard",
-            "quick"
+            "card todaycard amber src-card",
+            "card todaycard qod"
           ]
         }
       },
@@ -164,12 +163,14 @@
       "how-to with photos and muscle map": {
         "pass": true,
         "detail": {
-          "exercises": 4,
+          "exercises": 6,
           "withPhotos": 2,
           "withMap": 2,
           "missing": [
+            "Leg swings",
             "Sprint 10 m",
-            "Sprint 20 m"
+            "Sprint 20 m",
+            "Sprint 30 m"
           ]
         }
       },
@@ -209,7 +210,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeE5XSM6CopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeQ9DP3RCopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -263,79 +264,77 @@
       }
     },
     "timings": {
-      "landing load": 182,
-      "sign-up": 2909,
-      "save setup": 2868,
-      "first plan": 11930,
-      "save session": 420,
-      "rebuild": 10927
+      "landing load": 299,
+      "sign-up": 1901,
+      "save setup": 863,
+      "first plan": 50973,
+      "save session": 401,
+      "rebuild": 12934
     },
     "errors": [],
     "console": [],
     "notes": [],
     "onboardingSteps": [
-      "Let's start with you",
-      "What do you play or train?",
-      "What are you working toward?",
-      "When can you train?",
-      "What do you have access to?",
-      "Anything on the calendar?",
-      "Eating to match",
-      "Here is your setup"
+      "Hi! Let's build your plan",
+      "Where are you now, and where to?",
+      "Your week",
+      "Where do you train?"
     ],
     "firstPlan": {
-      "source": "profile",
+      "source": "template",
       "sessions": 7,
       "real": 3,
       "days": 7,
-      "rationale": "As a beginner with a primary goal of speed for Ultimate Frisbee, this week establishes high-quality acceleration and change-of-direction mechanics without overwhelming your recovery capacity. Sessions are capped at 30 minutes with strict work-to-rest ratios to keep every effort crisp and high-veloci",
+      "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
       "titles": [
-        "0:speed:Speed Acceleration & Mechanics",
-        "1:rest:Rest & Active Recovery",
-        "2:strength:Lower Body Power & Strength",
-        "3:rest:Rest & Mobility",
-        "4:speed:Agility & Lateral Speed",
-        "5:rest:Rest Day",
-        "6:rest:Rest & Recovery"
+        "0:skills:Skills and agility",
+        "1:rest:Rest",
+        "2:speed:Speed and acceleration",
+        "3:rest:Rest",
+        "4:strength:Full-body strength",
+        "5:rest:Rest",
+        "6:rest:Rest"
       ]
     },
     "howto": {
-      "exercises": 4,
+      "exercises": 6,
       "withPhotos": 2,
       "withMap": 2,
       "missing": [
+        "Leg swings",
         "Sprint 10 m",
-        "Sprint 20 m"
+        "Sprint 20 m",
+        "Sprint 30 m"
       ]
     },
     "rebuiltPlan": {
       "source": "profile",
       "note": "Left ankle sprain, no jumping this week",
-      "rationale": "Since your primary goal is speed but you have a left ankle sprain, all plyometrics and jump drills have been completely removed this week. We are using low-impact wall acceleration drills, sled pushes, and controlled strength work to keep building your athletic engine safely. Sessions are kept tight at 30 minutes with exercises that preserve strength without putting your ankle under stress.",
+      "rationale": "Given your left ankle sprain, all plyometrics, jumps, and high-impact speed work have been removed for this week. We kept your Monday skills commitment fixed and scheduled strength sessions on Wednesday and Friday to build handler acceleration power safely using stable trunk and posterior chain lifts. Loads remain controlled at RPE 6-7 to support healing while keeping you moving.",
       "titles": [
-        "0:speed:Low-Impact Speed & Wall Drills",
-        "1:rest:Rest & Recovery",
-        "2:strength:Non-Impact Lower & Upper Express",
-        "3:rest:Rest & Recovery",
-        "4:strength:Ankle-Safe Posterior Chain & Speed",
+        "0:skills:Handler Skills & Throwing",
+        "1:rest:Rest & Active Recovery",
+        "2:strength:Gym Lower Push & Acceleration",
+        "3:rest:Rest & Upper Mobility",
+        "4:strength:Gym Lower Pull & Upper Body",
         "5:rest:Rest & Recovery",
-        "6:rest:Rest & Recovery"
+        "6:rest:Rest & Mobility"
       ],
       "exercises": [
+        "Thoracic rotation",
+        "Pallof press",
         "10 m sprint test",
         "30 m sprint test",
         "Standing broad jump test",
-        "Acceleration wall drill",
-        "A-skip",
-        "Sled push",
         "Goblet squat",
+        "Acceleration wall drill",
         "Dumbbell row",
-        "Bench press",
+        "Glute bridge",
         "Plank",
         "Romanian deadlift",
-        "Push-up",
+        "Bench press",
         "Lat pulldown",
-        "Pallof press"
+        "Side plank"
       ]
     },
     "club": {
@@ -346,6 +345,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-11-09T07:56:32.538Z"
+    "finished": "2026-11-09T15:13:33.837Z"
   }
 }
