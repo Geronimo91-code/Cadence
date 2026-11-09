@@ -81,7 +81,7 @@
   },
   "errors": [],
   "journey": {
-    "started": "2026-11-09T16:10:33.234Z",
+    "started": "2026-11-09T16:54:56.394Z",
     "checks": {
       "landing shows for a new visitor": {
         "pass": true,
@@ -103,32 +103,39 @@
         "pass": true,
         "detail": null
       },
+      "first week revealed after setup": {
+        "pass": true,
+        "detail": {
+          "days": 7,
+          "lines": 0
+        }
+      },
       "onboarding completed": {
         "pass": true,
-        "detail": "4 screens"
+        "detail": "6 screens"
       },
       "first plan generated": {
         "pass": true,
         "detail": {
-          "source": "template",
+          "source": "profile",
           "sessions": 7,
           "real": 3,
           "days": 7,
-          "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
+          "rationale": "As a beginner ultimate handler focused on speed, this week builds foundational acceleration drills and basic resistance exercises on Wednesday and Friday around your fixed Monday team practice. Since you enjoy lifting and want to be pushed, we keep intensity at an achievable RPE 7 to build great tec",
           "titles": [
-            "0:skills:Skills and agility",
-            "1:rest:Rest",
-            "2:speed:Speed and acceleration",
-            "3:rest:Rest",
-            "4:strength:Full-body strength",
-            "5:rest:Rest",
-            "6:rest:Rest"
+            "0:skills:Monday Practice & Activation",
+            "1:rest:Rest & Active Recovery",
+            "2:strength:Acceleration & Full Gym Strength",
+            "3:rest:Rest & Recovery",
+            "4:strength:Change of Direction & Upper Push/Pull",
+            "5:rest:Rest & Mobility",
+            "6:rest:Rest & Recovery"
           ]
         }
       },
       "first plan is AI-made (not template)": {
-        "pass": false,
-        "detail": "template"
+        "pass": true,
+        "detail": "profile"
       },
       "plan covers 7 days": {
         "pass": true,
@@ -151,8 +158,8 @@
             "DIV",
             "card",
             "card todaycard",
-            "card todaycard amber src-card",
-            "card todaycard qod collapsed"
+            "card todaycard qod collapsed",
+            "card todaycard"
           ]
         }
       },
@@ -164,13 +171,10 @@
         "pass": true,
         "detail": {
           "exercises": 6,
-          "withPhotos": 2,
-          "withMap": 2,
+          "withPhotos": 5,
+          "withMap": 5,
           "missing": [
-            "Leg swings",
-            "Sprint 10 m",
-            "Sprint 20 m",
-            "Sprint 30 m"
+            "Sprint 10 m"
           ]
         }
       },
@@ -208,7 +212,7 @@
       },
       "club created": {
         "pass": true,
-        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeK7M6S8CopyShare it with player"
+        "detail": "QA Journey Club+ Another club\n    \n      QA Journey ClubUltimate Frisbee\n      Invite codeMMPBGJCopyShare it with player"
       },
       "invite code registered for joining": {
         "pass": true,
@@ -262,47 +266,49 @@
       }
     },
     "timings": {
-      "landing load": 256,
+      "landing load": 323,
       "sign-up": 1945,
-      "save setup": 367,
-      "first plan": 42995,
-      "save session": 426,
-      "rebuild": 41988
+      "first plan": 35950,
+      "save session": 425,
+      "rebuild": 41983
     },
     "errors": [],
     "console": [],
     "notes": [],
+    "reveal": {
+      "days": 7,
+      "lines": 0
+    },
     "onboardingSteps": [
       "Hi! Let's build your plan",
       "Where are you now, and where to?",
+      "A bit about you",
       "Your week",
-      "Where do you train?"
+      "Where do you train?",
+      "What you like"
     ],
     "firstPlan": {
-      "source": "template",
+      "source": "profile",
       "sessions": 7,
       "real": 3,
       "days": 7,
-      "rationale": "The plan service was unavailable, so this week follows a standard template shaped by your training days, goals and session length. Rebuild it later for a tailored week.",
+      "rationale": "As a beginner ultimate handler focused on speed, this week builds foundational acceleration drills and basic resistance exercises on Wednesday and Friday around your fixed Monday team practice. Since you enjoy lifting and want to be pushed, we keep intensity at an achievable RPE 7 to build great tec",
       "titles": [
-        "0:skills:Skills and agility",
-        "1:rest:Rest",
-        "2:speed:Speed and acceleration",
-        "3:rest:Rest",
-        "4:strength:Full-body strength",
-        "5:rest:Rest",
-        "6:rest:Rest"
+        "0:skills:Monday Practice & Activation",
+        "1:rest:Rest & Active Recovery",
+        "2:strength:Acceleration & Full Gym Strength",
+        "3:rest:Rest & Recovery",
+        "4:strength:Change of Direction & Upper Push/Pull",
+        "5:rest:Rest & Mobility",
+        "6:rest:Rest & Recovery"
       ]
     },
     "howto": {
       "exercises": 6,
-      "withPhotos": 2,
-      "withMap": 2,
+      "withPhotos": 5,
+      "withMap": 5,
       "missing": [
-        "Leg swings",
-        "Sprint 10 m",
-        "Sprint 20 m",
-        "Sprint 30 m"
+        "Sprint 10 m"
       ]
     },
     "rebuiltPlan": {
@@ -345,6 +351,6 @@
       "joined": true
     },
     "cleanup": "deleted",
-    "finished": "2026-11-09T16:12:43.012Z"
+    "finished": "2026-11-09T16:57:00.375Z"
   }
 }
