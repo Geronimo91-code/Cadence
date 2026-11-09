@@ -271,6 +271,7 @@ es: {
 (function () {
   const add = {
     fr: {
+    "Answer": "Répondre",
     "Hi! Let's build your plan": "Salut ! Construisons ton plan",
     "Four quick screens. I'll learn the rest as we go.": "Quatre écrans rapides. J’apprendrai le reste au fil du temps.",
     "Choose your position.": "Choisis ton poste.",
@@ -629,6 +630,7 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+    "Answer": "Beantwoorden",
     "Hi! Let's build your plan": "Hoi! Laten we je plan maken",
     "Four quick screens. I'll learn the rest as we go.": "Vier korte schermen. De rest leer ik onderweg.",
     "Choose your position.": "Kies je positie.",
@@ -987,6 +989,7 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+    "Answer": "Yanıtla",
     "Hi! Let's build your plan": "Merhaba! Planını oluşturalım",
     "Four quick screens. I'll learn the rest as we go.": "Dört kısa ekran. Gerisini zamanla öğrenirim.",
     "Choose your position.": "Pozisyonunu seç.",
@@ -1345,6 +1348,7 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+    "Answer": "Responder",
     "Hi! Let's build your plan": "¡Hola! Vamos a crear tu plan",
     "Four quick screens. I'll learn the rest as we go.": "Cuatro pantallas rápidas. El resto lo aprenderé sobre la marcha.",
     "Choose your position.": "Elige tu posición.",

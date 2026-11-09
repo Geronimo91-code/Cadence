@@ -670,14 +670,21 @@ export function applyTests(plan, profile = {}, { fromDay = 0 } = {}) {
   const mon = mondayOf(plan.weekId);
   const days = [0, 1, 2, 3, 4, 5, 6].map((d) => new Date(mon.getTime() + d * 864e5).toISOString().slice(0, 10));
   if (upcomingEvents(profile, new Date(mon.getTime() - 864e5), 8).some((e) => days.some((d) => d >= e.start && d <= e.end))) return plan;
+  // injuries come first: a note about pain this week means no testing at all; standing limits drop the tests that load them
+  const note = String(profile.weekNote || plan.weekNote || '');
+  if (/pain|injur|sprain|strain|hurt|sore|blessure|douleur|pijn|ağrı|sakat|dolor|lesi/i.test(note)) return plan;
+  const limits = `${note} ${profile.injuries || ''} ${profile.about?.['Injury history'] || ''}`;
+  const blocked = new Set();
+  if (/jump|ankle|knee|achilles|saut|cheville|genou|enkel|knie|diz|bilek|tobillo|rodilla/i.test(limits)) blocked.add('broad');
+  if (/hamstring|calf|groin|ischio|mollet|kuit|lies|arka adale|baldır|kasık|isquio|gemelo|ingle/i.test(limits)) { blocked.add('sprint10'); blocked.add('sprint30'); blocked.add('agility'); }
   const set = weekNo(plan.weekId) % 2 === 0 ? 'A' : 'B';
   const open = (types) => (plan.sessions || []).filter((s) => s.day >= fromDay && !s.fixed && !s.eased && types.includes(s.type)).sort((a, b) => a.day - b.day)[0];
   const host = open(['speed']) || open(['skills', 'conditioning']) || open(['strength']);
   if (!host) return plan;
   const mk = (key) => { const t = FITNESS_TESTS[key]; return { name: t.name, sets: t.sets, reps: t.reps, load: 'full effort, timed', restSec: t.restSec, cues: '', test: key }; };
-  if (set === 'A') host.exercises = [mk('sprint10'), mk('sprint30'), mk('broad'), ...(host.exercises || [])];
+  if (set === 'A') host.exercises = [...['sprint10', 'sprint30', 'broad'].filter((k) => !blocked.has(k)).map(mk), ...(host.exercises || [])];
   else {
-    host.exercises = [mk('agility'), ...(host.exercises || [])];
+    if (!blocked.has('agility')) host.exercises = [mk('agility'), ...(host.exercises || [])];
     // the Yo-Yo is exhausting: a conditioning session of its own if there is one, otherwise last in the same session
     const cond = (plan.sessions || []).filter((s) => s !== host && s.day >= fromDay && !s.fixed && !s.eased && s.type === 'conditioning').sort((a, b) => a.day - b.day)[0];
     if (cond) cond.exercises = [mk('yoyo'), ...(cond.exercises || [])];
