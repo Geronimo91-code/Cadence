@@ -200,7 +200,7 @@ Next week is ${nextId}, starting ${DAY_NAMES[0]} ${nextMonday.toISOString().slic
   {
     let out = null, next, modelFailed = null;
     try {
-      out = await callModel({ system, user: userMsg, maxTokens: 9000, retries: 0, deadline: started + 50000 });
+      out = await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + 200000 });
       next = validatePlan(out.nextWeek);
       next.source = 'review';
     } catch (e) {

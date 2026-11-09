@@ -60,10 +60,11 @@ function providers() {
   return list;
 }
 
-export async function callModel({ system, user, image, maxTokens = 4000, retries = 1, timeoutMs = 40000, deadline }) {
+// think: let Gemini reason a little before answering (better plans, slower); the retry goes without it
+export async function callModel({ system, user, image, maxTokens = 4000, retries = 1, timeoutMs = 40000, deadline, think = false }) {
   const provs = providers();
   if (!provs.length) throw new Error('No model provider configured (set GEMINI_API_KEY or OPENROUTER_API_KEY)');
-  const endBy = deadline || Date.now() + 50000; // stay inside the 60s function limit
+  const endBy = deadline || Date.now() + 50000; // callers that build plans pass a longer deadline (functions may run 300 s)
   const failures = [];
   let lastErr;
   for (const prov of provs) {
@@ -80,7 +81,8 @@ export async function callModel({ system, user, image, maxTokens = 4000, retries
           body: JSON.stringify({
             model: prov.model,
             ...(prov.extra || {}),
-            max_tokens: maxTokens,
+            ...(think && attempt === 0 && prov.name === 'gemini' && prov.extra ? { reasoning_effort: 'low' } : {}),
+            max_tokens: think && attempt === 0 ? maxTokens + 6000 : maxTokens,
             temperature: 0.4,
             messages: [
               { role: 'system', content: system + '\n\nRespond with a single JSON object and nothing else. No markdown, no commentary.' },

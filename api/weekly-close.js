@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const results = { reviewed: 0, skipped: 0, failed: 0 };
   const started = Date.now();
   for (const u of users.docs) {
-    if (Date.now() - started > 40000) break; // functions stop at 60s; whoever is left closes next run or manually
+    if (Date.now() - started > 60000) break; // each review may take up to ~200 s and functions stop at 300 s; whoever is left closes next run or manually
     const profile = u.data().profile; if (!profile) continue;
     const [cur, prev, rev] = await Promise.all([
       db().doc(`users/${u.id}/plans/${thisWeek}`).get(),

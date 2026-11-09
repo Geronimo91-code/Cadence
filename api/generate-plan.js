@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   // Quiet retry of a backup week: never saves a template, never counts against rebuilds
   if (body.upgrade) {
     if (!(await checkLimit(user.uid, 'upgrade', 30, 60))) return res.status(200).json({ upgraded: false, reason: 'limit' });
-    return res.status(200).json(await upgradeBackupWeek(user.uid, { deadlineMs: 45000 }));
+    return res.status(200).json(await upgradeBackupWeek(user.uid, { deadlineMs: 170000 }));
   }
   if (!(await checkLimit(user.uid, 'plan', 12, 30))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const started = Date.now();
@@ -58,7 +58,7 @@ ${planShape(id)}`;
   const userMsg = athleteBlock(profile, id) + (history ? '\n' + history : '') + '\nDays already passed this week should still be filled in for reference.';
 
   try {
-    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, deadline: started + 40000 }));
+    const plan = validatePlan(await callModel({ system, user: userMsg, maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + 170000 }));
     plan.weekId = id;
     plan.createdAt = new Date().toISOString();
     plan.source = 'profile';
@@ -111,7 +111,7 @@ ${planShape(id)}`;
   const history = await trainingHistoryBlock(uid);
   let fresh;
   try {
-    fresh = validatePlan(await callModel({ system, user: athleteBlock(profile, id) + (history ? '\n' + history : ''), maxTokens: 9000, retries: 0, deadline: started + deadlineMs }));
+    fresh = validatePlan(await callModel({ system, user: athleteBlock(profile, id) + (history ? '\n' + history : ''), maxTokens: 9000, retries: 1, timeoutMs: 90000, think: true, deadline: started + deadlineMs }));
   } catch (e) { return { upgraded: false, reason: String(e.message || e).slice(0, 120) }; }
   const today = (new Date(new Date().toLocaleString('en-US', { timeZone: profile.timezone || 'Europe/Brussels' })).getDay() + 6) % 7;
   const logs = await db().collection(`users/${uid}/logs`).where('weekId', '==', id).get();

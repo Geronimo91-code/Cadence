@@ -1904,7 +1904,7 @@ async function buildFirstWeek(mode = 'first') {
   };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   let done = false, result = null, error = null;
-  const run = (body) => { done = false; result = null; error = null; return api('/api/generate-plan', body, { slowMsg: null, timeoutMs: 80000 }).then((r) => { result = r; }, (e) => { error = e; }).finally(() => { done = true; }); };
+  const run = (body) => { done = false; result = null; error = null; return api('/api/generate-plan', body, { slowMsg: null, timeoutMs: 200000 }).then((r) => { result = r; }, (e) => { error = e; }).finally(() => { done = true; }); };
   const creep = async (from, to) => { let f = from; while (!done) { f = Math.min(to, f + 0.004); setPct(f); await wait(400); } };
   run(upgrade ? { upgrade: true } : undefined);
   const t0 = Date.now(); let shown = 0;
@@ -1918,7 +1918,7 @@ async function buildFirstWeek(mode = 'first') {
   // the server timed out or the connection dropped: one more go before giving up
   if (error && !upgrade) { addLine(T('Taking longer than usual, trying again')); run(undefined); await creep(0.93, 0.96); }
   // the AI was busy and a backup week was saved: ask the AI once more while the athlete is still watching
-  if (!upgrade && result?.fallback) { addLine(T('The AI coach is busy, asking once more')); const first = result; run({ upgrade: true }); await creep(0.93, 0.98); result = result?.upgraded ? { ...first, fallback: false } : first; error = null; }
+  if (!upgrade && result?.fallback && Date.now() - t0 < 90000) { addLine(T('The AI coach is busy, asking once more')); const first = result; run({ upgrade: true }); await creep(0.93, 0.98); result = result?.upgraded ? { ...first, fallback: false } : first; error = null; }
   if (upgrade && (error || !result?.upgraded)) {
     ov.querySelector('.build-in').insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:14px">${T('The AI is still busy. Your backup week stays for now and I keep trying in the background.')}</p><button class="btn" id="buildOk" style="margin-top:12px">${T('OK')}</button>`);
     ul.lastElementChild?.classList.add('ok');
@@ -3566,7 +3566,7 @@ async function upgradeBackupSoon() {
   try { localStorage.setItem('cadence.upgradeTry', String(Date.now())); } catch (_) {}
   const card = $('#btnSrcRetry'); if (card) { card.disabled = true; card.textContent = T('Trying…'); }
   try {
-    const r = await api('/api/generate-plan', { upgrade: true }, { slowMsg: null, timeoutMs: 70000 });
+    const r = await api('/api/generate-plan', { upgrade: true }, { slowMsg: null, timeoutMs: 200000 });
     if (r.upgraded) {
       await loadPlan(); toast(T('Your AI plan is ready. It replaced the backup week from today on.'));
       if (!document.querySelector('.sheet')) navigate(state.view);

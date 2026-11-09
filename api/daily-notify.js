@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     for (const u of us.docs) {
       if (Date.now() - t0 > 4000) break;
       const p = await db().doc(`users/${u.id}/plans/${wk}`).get();
-      if (p.exists && p.data().source === 'template') { const r = await upgradeBackupWeek(u.id, { deadlineMs: 25000 }); upgraded = { uid: u.id.slice(0, 6), ok: r.upgraded, reason: r.reason || null }; break; }
+      if (p.exists && p.data().source === 'template') { const r = await upgradeBackupWeek(u.id, { deadlineMs: 60000 }); upgraded = { uid: u.id.slice(0, 6), ok: r.upgraded, reason: r.reason || null }; break; }
     }
   } catch (e) { upgraded = String(e.message || e).slice(0, 120); }
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_SUBJECT) {
