@@ -770,6 +770,7 @@ a.btn { text-decoration: none; }
 .test-ex{border-left:3px solid var(--accent,#1f6b4a);padding-left:12px}.test-in{display:grid;gap:6px;margin-top:10px}.test-in label{font-size:.85rem;font-weight:600}
 .qod-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}.qod-q{display:block;font-size:1.05rem;margin-bottom:2px}.qod-act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.qod .chips{margin-top:2px}
 .why{margin:10px 0 0;padding-left:10px;border-left:3px solid var(--accent,#1f6b4a);font-size:.92rem;line-height:1.4;color:var(--ink)}.why-s{margin:10px 0 4px}
+.coachline{margin:4px 0 0;font-size:.95rem;color:var(--ink-2);line-height:1.4}.coachline b{color:var(--ink)}
 .g-code{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--surface-2,rgba(127,127,127,.12));padding:10px;border-radius:10px;margin:8px 0}
 .g-tag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:rgba(0,122,204,.14);color:#0a6fb8;vertical-align:middle}
 .wk-stats b.g-low{color:var(--bad,#c0392b)}.wk-stats b.g-high{color:var(--ok,#2e8b57)}
@@ -1755,7 +1756,7 @@ async function viewToday(el) {
   // header: greeting and, if set, the countdown — one line each, no card
   const head = document.createElement('div');
   head.innerHTML = `<div class="todayhead"><h1 style="font-size:1.6rem">${greeting()}, ${esc(p.name)}</h1><button type="button" class="streak hidden" id="streakPill"></button></div>` +
-    (p.deadline ? `<p class="muted small" style="margin-top:2px">${esc(p.deadline.name)} · ${Math.max(0, Math.ceil((new Date(p.deadline.date) - Date.now()) / 864e5))} ${T('days to go')}</p>` : '');
+    (() => { const line = coachLine(p, planIsCurrent() ? (state.plan.sessions || []).filter((x) => x.day === todayIndex() && x.type !== 'rest') : []); return line ? `<p class="coachline">${line}</p>` : ''; })();
   el.append(head);
   paintStreak();
 
@@ -3709,6 +3710,31 @@ function viewProfile(el) {
 }
 function profileToOb(p) {
   return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), doubles: p.doubles || 'no', dayPrefs: JSON.parse(JSON.stringify(p.dayPrefs || {})), hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
+}
+// One personal line under the greeting: the most relevant thing Cadence knows about today
+function coachLine(p, todays = []) {
+  const today = dateKey();
+  const days = (iso) => Math.round((Date.parse(iso + 'T12:00:00') - Date.parse(today + 'T12:00:00')) / 864e5);
+  const ev = [...(p.events || []).map((e) => ({ name: e.name, start: e.start })), ...(p.deadline ? [{ name: p.deadline.name, start: p.deadline.date }] : [])].filter((e) => e.start >= today).sort((a, b) => a.start.localeCompare(b.start))[0];
+  if (ev && days(ev.start) === 0) return `🥏 <b>${esc(ev.name)}</b> ${T('is today. Play well!')}`;
+  if (ev && days(ev.start) <= 14) return `<b>${days(ev.start)} ${T('days to')} ${esc(ev.name)}.</b> ${T('This week is built around it.')}`;
+  const eased = todays.find((x) => x.eased);
+  if (eased) return `${T('Your watch says you need an easier day, so today is lighter.')}`;
+  const g = state.garminDay;
+  if (g && g.readiness >= 75 && todays.some((x) => ['speed', 'strength', 'conditioning'].includes(x.type))) return `${T('Readiness')} <b>${g.readiness}</b>. ${T('A good day to push.')}`;
+  const recent = (testHistory || []).filter((r) => (Date.now() - Date.parse(r.at)) / 864e5 <= 7);
+  for (const r of recent) {
+    const t = TESTS[r.key]; if (!t) continue;
+    const older = (testHistory || []).filter((x) => x.key === r.key && x.at < r.at);
+    if (older.length && older.every((x) => (t.better === 'lower' ? r.value < x.value : r.value > x.value))) return `🏅 ${T('New best')}: ${esc(T(t.short))} <b>${r.value} ${t.unit}</b>.`;
+  }
+  for (const sx of todays) { const up = (sx.exercises || []).find((e) => e.progression === 'up'); if (up) return `${esc(up.name)} ${T('goes up to')} <b>${esc(up.load)}</b> ${T('today.')}`; }
+  const weak = p.about?.['Wants to improve most'];
+  const pos = POSITIONS[p.sports?.[0]]?.find((x) => x[0] === p.position)?.[1];
+  if (weak && pos) return `${T('Your focus as a')} ${esc(T(pos).toLowerCase())}: <b>${esc(T(weak).toLowerCase())}</b>.`;
+  if (weak) return `${T('Your focus')}: <b>${esc(T(weak).toLowerCase())}</b>.`;
+  if (pos) return `${T('Plan built for a')} ${esc(T(pos).toLowerCase())}.`;
+  return '';
 }
 function greeting() { const h = new Date().getHours(); return h < 12 ? T('Good morning') : h < 18 ? T('Good afternoon') : T('Good evening'); }
 

@@ -167,7 +167,7 @@ ${PLAN_RULES}
 
 Return ONLY a JSON object with this shape:
 {
- "summary": "3–4 sentences, written to the athlete, plain and specific",
+ "summary": "3–4 sentences, written to the athlete like their own coach: start with their first name, name one specific highlight from THEIR week (a best set, a test improvement, a hard session finished, a game played), and connect next week to what they told you (position, what they want to improve, next tournament). Plain and specific, never generic.",
  "wins": ["1–3 short bullets"],
  "watchouts": ["0–3 short bullets: fatigue, pain, missed patterns"],
  "adjustments": ["2–4 short bullets: exactly what changes next week and why"],
