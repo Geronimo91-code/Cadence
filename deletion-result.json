@@ -1,18 +1,29 @@
 {
-  "step": "seed",
-  "email": "cadence-qa-1794239719049@example.com",
-  "oldUid": "3BQmg25IHjOOGC8Xw886vEREljy1",
-  "newUid": null,
-  "sameUid": null,
-  "seededToday": null,
-  "deleteStatus": null,
-  "deleteBody": null,
-  "reSignup": null,
+  "step": "done",
+  "email": "cadence-qa-1794240472509@example.com",
+  "oldUid": "IpXEABw4wnYMrWbfB2zJis1cZym2",
+  "newUid": "ozhehsvgr2e2y6A4jCQd8dOSspz1",
+  "sameUid": false,
+  "seededToday": true,
+  "deleteStatus": 200,
+  "deleteBody": "{\"ok\":true,\"clubsLeft\":1,\"clubsDeleted\":1,\"coachPromoted\":0,\"verified\":{\"nothingLeft\":true,\"authUserGone\":true}}",
+  "reSignup": "onboarding",
   "reSignupError": null,
-  "stateAfterSignup": null,
-  "todayShowsOldData": null,
-  "reviewCardShowsOld": null,
-  "clubStillExists": null,
-  "afterReload": null,
+  "stateAfterSignup": {
+    "planTitles": null,
+    "plans": 0,
+    "logs": 0,
+    "review": false,
+    "exHistorySize": null,
+    "clubIds": [],
+    "clubName": null
+  },
+  "todayShowsOldData": false,
+  "reviewCardShowsOld": false,
+  "clubStillExists": "unreadable: permission-denied",
+  "afterReload": {
+    "hasOldPlan": false,
+    "text": "Good afternoon, QA2No plan yetCadence will build your first week from the setup you just completed.Build my first week"
+  },
   "errors": []
 }
