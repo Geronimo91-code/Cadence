@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const description = String(req.body?.description || '').slice(0, 300).trim();
   const raw = typeof req.body?.image === 'string' ? req.body.image : '';
   if (raw && !raw.startsWith('data:image/')) return res.status(400).json({ error: 'That image format is not supported.' });
-  if (raw.length >= 3_500_000) return res.status(413).json({ error: 'That photo is too large. Try again — Cadence shrinks it first.' });
+  if (raw.length >= 3_500_000) return res.status(413).json({ error: 'That photo is too large. Try again — Yosh shrinks it first.' });
   const image = raw || null;
   if (!description && !image) return res.status(400).json({ error: 'Describe the meal or add a photo' });
   if (!(await checkLimit(user.uid, 'estimate', 40, 150))) return res.status(429).json({ error: 'Daily estimate limit reached. Enter the numbers manually for now.' });

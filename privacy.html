@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cadence — Privacy</title>
+<title>Yosh — Privacy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F6F7F4;--ink:#15201B;--ink2:#4A5A52;--line:#DCE3DE;--green:#1E6B49}
-@media (prefers-color-scheme: dark){:root{--bg:#0E1012;--ink:#F2F3F1;--ink2:#A7AFAB;--line:#262A2D;--green:#3DBE84}}
+:root{--bg:#F6F7F4;--ink:#15201B;--ink2:#4A5A52;--line:#DCE3DE;--green:#17181A}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1012;--ink:#F2F3F1;--ink2:#A7AFAB;--line:#262A2D;--green:#FFC531}}
 *{box-sizing:border-box;margin:0;padding:0}body{font-family:'Instrument Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
 .wrap{max-width:680px;margin:0 auto;padding:48px 20px 80px}
 h1,h2{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.015em;line-height:1.15}
@@ -16,11 +16,11 @@ a{color:var(--green)}.date{color:var(--ink2);font-size:.9rem;margin-bottom:28px}
 table{width:100%;border-collapse:collapse;margin:10px 0 18px}td,th{text-align:left;padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top;font-size:.95rem}
 th{font-weight:600;color:var(--ink)}td{color:var(--ink2)}
 </style></head><body><div class="wrap">
-<a class="back" href="/">‹ Cadence</a>
+<a class="back" href="/">‹ Yosh</a>
 <h1>Privacy</h1>
 <p class="date">Last updated 12 September 2026</p>
 
-<p>Cadence is a training planner run by an individual, not a company. This page explains what it stores, who can see it, and how to get rid of it. Plain language, no legal padding.</p>
+<p>Yosh is a training planner run by an individual, not a company. This page explains what it stores, who can see it, and how to get rid of it. Plain language, no legal padding.</p>
 
 <h2>What is stored</h2>
 <table>
@@ -37,16 +37,16 @@ th{font-weight:600;color:var(--ink)}td{color:var(--ink2)}
 <tr><td>The date you gave consent, and the version you agreed to</td><td>Proof of consent</td></tr>
 </table>
 <h2>Health-type data and consent</h2>
-<p>Some of this, such as injuries, sleep, heart rate and weight, counts as health data under the GDPR. Cadence processes it only because you explicitly agreed to it when you created your account (or when asked once afterwards), and only to build and adjust your training. You can withdraw that consent at any time by deleting your account in Profile, which erases the data.</p>
+<p>Some of this, such as injuries, sleep, heart rate and weight, counts as health data under the GDPR. Yosh processes it only because you explicitly agreed to it when you created your account (or when asked once afterwards), and only to build and adjust your training. You can withdraw that consent at any time by deleting your account in Profile, which erases the data.</p>
 
 <h2>Where it goes</h2>
 <ul>
 <li><strong>Google Firebase</strong> (Firestore and Authentication) stores your account and data.</li>
 <li><strong>Vercel</strong> hosts the app and runs its server functions.</li>
-<li><strong>AI model providers</strong> — Google Gemini, and OpenRouter as a fallback — receive the parts of your profile and logs needed to write a plan, a weekly review or a meal estimate. Photos you send for meal estimation are processed by the same providers and are not stored by Cadence.</li>
+<li><strong>AI model providers</strong> — Google Gemini, and OpenRouter as a fallback — receive the parts of your profile and logs needed to write a plan, a weekly review or a meal estimate. Photos you send for meal estimation are processed by the same providers and are not stored by Yosh.</li>
 </ul>
-<p>Exercise photos and instructions come from the public-domain Free Exercise DB and are served from Cadence's own domain, so viewing them contacts no one else. The <strong>Watch on YouTube</strong> button is an ordinary link: it opens a YouTube search in your browser or app only when you tap it, and Cadence sends YouTube nothing about you.</p>
-<p>Cadence does not sell your data, does not show ads, and does not share anything with anyone else.</p>
+<p>Exercise photos and instructions come from the public-domain Free Exercise DB and are served from Yosh's own domain, so viewing them contacts no one else. The <strong>Watch on YouTube</strong> button is an ordinary link: it opens a YouTube search in your browser or app only when you tap it, and Yosh sends YouTube nothing about you.</p>
+<p>Yosh does not sell your data, does not show ads, and does not share anything with anyone else.</p>
 
 <h2>Who can see your data inside the app</h2>
 <ul>
@@ -69,7 +69,7 @@ th{font-weight:600;color:var(--ink)}td{color:var(--ink2)}
 <p>Until you delete it. There is no automatic expiry, because training history is more useful the longer it runs.</p>
 
 <h2>Children</h2>
-<p>Cadence is not intended for anyone under 16. If a minor plays in your club, they should use it through a parent or coach account.</p>
+<p>Yosh is not intended for anyone under 16. If a minor plays in your club, they should use it through a parent or coach account.</p>
 
 <h2>Security</h2>
 <p>Traffic is encrypted. Database rules restrict every document to its owner, with the narrow coach exception above. No system is perfect; please don't store anything here you would be upset to lose or reveal.</p>

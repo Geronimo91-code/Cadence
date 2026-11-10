@@ -1,4 +1,4 @@
-// Shared helpers for Cadence API routes (Vercel serverless, Node 18+)
+// Shared helpers for Yosh API routes (Vercel serverless, Node 18+)
 import admin from 'firebase-admin';
 
 let app;
@@ -63,7 +63,7 @@ function providers() {
     const models = [...new Set([process.env.GEMINI_MODEL || 'gemini-3.6-flash', ...GEMINI_FALLBACKS])];
     for (const model of models) list.push({ name: 'gemini', model, url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', key: process.env.GEMINI_API_KEY, extra: { reasoning_effort: 'none', response_format: { type: 'json_object' } } });
   }
-  if (process.env.OPENROUTER_API_KEY) list.push({ name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: process.env.OPENROUTER_API_KEY, model: process.env.OPENROUTER_MODEL || 'openrouter/free', headers: { 'HTTP-Referer': 'https://cadence.app', 'X-Title': 'Cadence' } });
+  if (process.env.OPENROUTER_API_KEY) list.push({ name: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: process.env.OPENROUTER_API_KEY, model: process.env.OPENROUTER_MODEL || 'openrouter/free', headers: { 'HTTP-Referer': 'https://cadence.app', 'X-Title': 'Yosh' } });
   return list;
 }
 const quotaRef = () => db().doc('system/aiQuota');
@@ -299,7 +299,7 @@ function baselineLines(p) {
   return parts.length ? `\n- Starting numbers the athlete gave: ${parts.join('; ')}. Until there is training history, set first working loads at about 70–75% of the estimated 1RM and run volumes from these.` : '';
 }
 
-// What the athlete told Cadence over time (question of the day), as "Label: answer" pairs
+// What the athlete told Yosh over time (question of the day), as "Label: answer" pairs
 function aboutLines(p) {
   const a = p.about && typeof p.about === 'object' ? Object.entries(p.about).filter(([, v]) => v != null && String(v).trim()) : [];
   return a.length ? '\n- What the athlete has told you (use it, and refer to it in each session\'s "why"): ' + a.map(([k, v]) => `${k}: ${String(v).slice(0, 120)}`).join('; ') : '';

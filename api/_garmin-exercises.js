@@ -1,4 +1,4 @@
-// Cadence exercise name (lowercase) → Garmin Connect [category, exerciseName], from python-garminconnect's catalog
+// Yosh exercise name (lowercase) → Garmin Connect [category, exerciseName], from python-garminconnect's catalog
 export default {
 "a-skip": [
 "WARM_UP",

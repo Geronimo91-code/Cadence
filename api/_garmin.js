@@ -67,7 +67,7 @@ const ymd = (d) => d.toISOString().slice(0, 10);
 const dayIndex = (dateStr) => { const [y, m, d] = dateStr.split('-').map(Number); return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7; };
 const weekOf = (dateStr) => { const [y, m, d] = dateStr.split('-').map(Number); return weekId(new Date(y, m - 1, d)); };
 
-// Garmin activity type → Cadence session type
+// Garmin activity type → Yosh session type
 export function kindOf(typeKey) {
   const k = String(typeKey || '').toLowerCase();
   if (/ultimate|disc|soccer|football|basketball|volleyball|rugby|hockey|handball|lacrosse|tennis|padel|squash|badminton|team_sport/.test(k)) return 'skills';
@@ -121,7 +121,7 @@ async function syncActivities(tok, uid, since) {
       durationMin: Math.max(1, Math.round((a.duration || a.movingDuration || 0) / 60)), sessionRpe: rpeOf(a), note: '',
       exercises: null, setsDone: 0, setsTotal: 0, loggedAt: String(a.startTimeGMT || a.startTimeLocal).replace(' ', 'T') + 'Z', updatedAt: now,
     };
-    // Recorded on the watch but not marked in Cadence: if a planned session that day is the same kind and still open, this IS that session
+    // Recorded on the watch but not marked in Yosh: if a planned session that day is the same kind and still open, this IS that session
     if (!rec.linkedTo && !rec.hidden && rec.status !== 'skipped') {
       const plan = await planOf(wk);
       const open = [];
@@ -332,14 +332,14 @@ export async function garminPairFinish(rawCode, tokens) {
   if (code.length !== 8) throw new GarminError('That pairing code looks wrong. It has 8 letters and numbers, like K7Q2-M9XD.', 'input');
   const ref = db().doc(`garminPair/${code}`);
   const snap = await ref.get();
-  if (!snap.exists || snap.data().exp < Date.now()) throw new GarminError('That pairing code is unknown or expired. Tap Connect in Cadence again for a new one.', 'input');
+  if (!snap.exists || snap.data().exp < Date.now()) throw new GarminError('That pairing code is unknown or expired. Tap Connect in Yosh again for a new one.', 'input');
   const { uid } = snap.data();
   await ref.delete(); // single use
   return garminConnect(uid, tokens);
 }
 
 // ---------------- Plan → Garmin workouts on the calendar ----------------
-// Each upcoming Cadence session becomes a Garmin workout scheduled on its day, so it reaches the watch.
+// Each upcoming Yosh session becomes a Garmin workout scheduled on its day, so it reaches the watch.
 // garminPush/{uid} remembers what was sent (workout id + a fingerprint), so only changed sessions are re-sent.
 const COND = {
   lap: { conditionTypeId: 1, conditionTypeKey: 'lap.button', displayOrder: 1, displayable: true },
@@ -399,7 +399,7 @@ export function sessionToWorkout(sess, dateLabel) {
   }
   if ((sess.cooldown || []).length) steps.push(step('cooldown', { cond: COND.lap }, 'Cool-down: ' + sess.cooldown.join(' · ')));
   return {
-    workoutName: clip(`Cadence ${dateLabel} · ${sess.title}`, 80),
+    workoutName: clip(`Yosh ${dateLabel} · ${sess.title}`, 80),
     description: clip(sess.intent || '', 500),
     sportType: SPORTS[sport],
     estimatedDurationInSecs: (Number(sess.durationMin) || 45) * 60,
@@ -446,12 +446,12 @@ export async function garminPushPlan(uid, { force = false } = {}) {
       { await call(tok, `/workout-service/workout/${old.workoutId}`, null, { method: 'DELETE' }).catch((e) => { if (e.code === 'auth') throw e; }); out.removed++; }
     }
     if (force) {
-      // also remove Cadence workouts this record lost track of (older versions that were never replaced)
+      // also remove Yosh (or older Cadence) workouts this record lost track of (older versions that were never replaced)
       const known = new Set(Object.values(next).map((x) => String(x.workoutId)));
       const list = await call(tok, '/workout-service/workouts', { start: '0', limit: '200' }).catch((e) => { if (e.code === 'auth') throw e; return []; }) || [];
       for (const w of Array.isArray(list) ? list : []) {
-        if (!/^Cadence /.test(w.workoutName || '') || known.has(String(w.workoutId))) continue;
-        const dm = String(w.workoutName).match(/ (\d{2})\/(\d{2}) /); // "Cadence Mon 19/10 · …"
+        if (!/^(Cadence|Yosh) /.test(w.workoutName || '') || known.has(String(w.workoutId))) continue;
+        const dm = String(w.workoutName).match(/ (\d{2})\/(\d{2}) /); // "Yosh Mon 19/10 · …" (older ones start with "Yosh")
         if (dm && `${today.slice(0, 4)}-${dm[2]}-${dm[1]}` < today) continue; // past ones stay as history
         await call(tok, `/workout-service/workout/${w.workoutId}`, null, { method: 'DELETE' }).catch((e) => { if (e.code === 'auth') throw e; });
         out.removed++;

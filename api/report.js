@@ -14,7 +14,7 @@ const clip = (v, n) => (v == null ? '' : String(v).slice(0, n));
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-  // Garmin login notebook: no Cadence sign-in there, the single-use pairing code ties it to the account
+  // Garmin login notebook: no Yosh sign-in there, the single-use pairing code ties it to the account
   if ((req.body || {}).action === 'garmin-pair') {
     try { const r = await garminPairFinish(req.body.code, req.body.tokens); return res.status(r.error ? 502 : 200).json({ ok: !r.error, activities: r.activities || 0, days: r.days || 0, error: r.error || null }); } catch (e) { return res.status(e.code === 'input' ? 400 : 502).json({ ok: false, error: String(e.message || e).slice(0, 200) }); }
   }

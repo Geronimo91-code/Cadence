@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       if (!plan) {
         // no plan this week: say so once a week instead of going quiet
         if (sub.lastNudgeWeek !== today.weekId) {
-          payload = { title: 'No plan for this week yet', body: 'Open Cadence to close last week and get your new plan.', url: '/?view=plan' };
+          payload = { title: 'No plan for this week yet', body: 'Open Yosh to close last week and get your new plan.', url: '/?view=plan' };
           outcome = 'nudged: no plan this week';
         } else outcome = 'skipped: no plan this week (already nudged)';
       } else {

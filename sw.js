@@ -1,5 +1,5 @@
-// Cadence service worker — app shell cache + push handling
-const CACHE_NAME = 'cadence-v72';
+// Yosh service worker — app shell cache + push handling
+const CACHE_NAME = 'cadence-v73';
 const SHELL = ['/', '/index.html', '/i18n.js', '/exercise-steps-i18n.json', '/manifest.json', '/icon.svg', '/apple-touch-icon.png', '/icon-192.png', '/privacy.html', '/terms.html'];
 
 self.addEventListener('install', (e) => {
@@ -31,7 +31,7 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('message', (e) => { if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting(); });
 
 self.addEventListener('push', (e) => {
-  let data = { title: 'Cadence', body: 'Your training for today is ready.', url: '/' };
+  let data = { title: 'Yosh', body: 'Your training for today is ready.', url: '/' };
   try { data = { ...data, ...e.data.json() }; } catch (_) {}
   e.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,

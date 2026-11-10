@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   const pad = (n) => String(n).padStart(2, '0');
   const fmtLocal = (d, h, m) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(h)}${pad(m)}00`;
   const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cadence//Training//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Cadence training', `X-WR-TIMEZONE:${tz}`];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Yosh//Training//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Yosh training', `X-WR-TIMEZONE:${tz}`];
   for (const plan of plans) {
     const mon = mondayOf(plan.weekId);
     for (const s of plan.sessions) {
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       const end = `${endD.getUTCFullYear()}${pad(endD.getUTCMonth() + 1)}${pad(endD.getUTCDate())}T${pad(endD.getUTCHours())}${pad(endD.getUTCMinutes())}00`;
       const desc = [s.intent, '', ...(s.exercises || []).map((x) => `• ${x.name} ${x.sets ? x.sets + '×' : ''}${x.reps}${x.load ? ' · ' + x.load : ''}`)].join('\n');
       lines.push('BEGIN:VEVENT', `UID:cadence-${u}-${plan.weekId}-${s.day}-${s.slot || 0}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
-        `DTSTART;TZID=${tz}:${start}`, `DTEND;TZID=${tz}:${end}`, `SUMMARY:${esc('Cadence · ' + s.title)}`, `DESCRIPTION:${esc(desc)}`,
+        `DTSTART;TZID=${tz}:${start}`, `DTEND;TZID=${tz}:${end}`, `SUMMARY:${esc('Yosh · ' + s.title)}`, `DESCRIPTION:${esc(desc)}`,
         'BEGIN:VALARM', 'TRIGGER:-PT60M', 'ACTION:DISPLAY', `DESCRIPTION:${esc(s.title)} in 1 hour`, 'END:VALARM', 'END:VEVENT');
     }
   }

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cadence</title>
-<meta name="theme-color" content="#1E6B49">
+<title>Yosh</title>
+<meta name="theme-color" content="#FFC531">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="/manifest.json">
@@ -12,37 +12,38 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,600;0,800;0,900;1,900&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #F6F7F4;
-  --ink: #15201B;
-  --ink-2: #4A5A52;
-  --ink-3: #8A978F;
-  --line: #DCE3DE;
-  --sage: #D5E1D8;
+  --bg: #F4F4F2;
+  --ink: #17181A;
+  --ink-2: #4E5055;
+  --ink-3: #8C8E93;
+  --line: #DEDED9;
+  --sage: #E2E2DE;
   --t-speed: #D2701F; --t-strength: #3A4FC4; --t-cond: #C93B55; --t-team: #7347C4; --t-mob: #0E8BB5; --t-rest: #8A968F;
-  --sage-2: #E9F0EB;
-  --green: #1E6B49;
-  --green-2: #16543A;
+  --sage-2: #ECECE8;
+  --green: #17181A;
+  --green-2: #3A3B3F;
+  --yellow: #FFC531;
   --amber: #D9962E;
-  --amber-2: #FFF3DF;
+  --amber-2: #FFF1C4;
   --red: #B84A3C;
   --white: #FFFFFF;
   --r-s: 8px;
   --r-m: 14px;
   --r-l: 22px;
   --tab-h: 64px;
-  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-display: 'Archivo', system-ui, sans-serif;
   --font-body: 'Instrument Sans', system-ui, sans-serif;
   --warm-ink: var(--warm-ink);
   --scrim: rgba(21, 32, 27, .45);
-  --on-accent: #FFFFFF;
+  --on-accent: #FFC531;
 }
 
-/* Dark: near-black surfaces with the same green brand as light mode */
+/* Dark: near-black surfaces with the Yosh yellow as the accent */
 :root[data-theme="dark"] {
-  --bg: #0E1012;
+  --bg: #111214;
   --ink: #F2F3F1;
   --ink-2: #A7AFAB;
   --ink-3: #79817E;
@@ -50,19 +51,19 @@
   --sage: #232829;
   --t-speed: #F49A4E; --t-strength: #95A3F6; --t-cond: #F07C8F; --t-team: #B297F2; --t-mob: #5CC6EC; --t-rest: #7D8982;
   --sage-2: #1A1E20;
-  --green: #3DBE84;
-  --green-2: #74D6A6;
+  --green: #FFC531; --yellow: #FFC531;
+  --green-2: #FFD766;
   --amber: #F5B23C;
-  --amber-2: #2A2015;
+  --amber-2: #2B2410;
   --red: #E4695B;
   --white: #17191B;
   --warm-ink: #F5C98A;
   --scrim: rgba(0, 0, 0, .6);
-  --on-accent: #0A1A12;
+  --on-accent: #17181A;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0E1012;
+    --bg: #111214;
     --ink: #F2F3F1;
     --ink-2: #A7AFAB;
     --ink-3: #79817E;
@@ -70,15 +71,15 @@
     --sage: #232829;
     --t-speed: #F49A4E; --t-strength: #95A3F6; --t-cond: #F07C8F; --t-team: #B297F2; --t-mob: #5CC6EC; --t-rest: #7D8982;
     --sage-2: #1A1E20;
-    --green: #3DBE84;
-    --green-2: #74D6A6;
+    --green: #FFC531; --yellow: #FFC531;
+    --green-2: #FFD766;
     --amber: #F5B23C;
-    --amber-2: #2A2015;
+    --amber-2: #2B2410;
     --red: #E4695B;
     --white: #17191B;
     --warm-ink: #F5C98A;
     --scrim: rgba(0, 0, 0, .6);
-    --on-accent: #0A1A12;
+    --on-accent: #17181A;
   }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -90,7 +91,7 @@ body {
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
-h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.1; letter-spacing: -0.015em; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 800; line-height: 1.1; letter-spacing: -0.015em; }
 h1 { font-size: 2rem; }
 h2 { font-size: 1.5rem; }
 h3 { font-size: 1.1rem; }
@@ -371,13 +372,14 @@ textarea.input { min-height: 90px; resize: vertical; }
 .lift-row { display: grid; grid-template-columns: 1fr 96px auto 96px; gap: 8px; align-items: center; margin-bottom: 10px; } .lift-row .unit-input input { padding-right: 34px; }
 .cc-list { margin: 4px 0 0; padding-left: 18px; } .cc-list li { margin: 2px 0; }
 .coachline { display: flex; align-items: center; gap: 10px; }
-.coach-mark { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: var(--white); }
-.coach-mark svg { width: 17px; height: 17px; }
+.coach-mark { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: var(--on-accent); }
+.coach-mark svg { width: 21px; height: 21px; }
 .ob-step h2 .coach-mark { width: 40px; height: 40px; margin-bottom: 12px; } .ob-step h2 .coach-mark svg { width: 22px; height: 22px; }
 .sess-photo { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--sage-2); flex: 0 0 auto; }
 .sess-head { display: flex; gap: 12px; align-items: flex-start; } .sess-head > div { flex: 1; min-width: 0; }
 .top-date { font-size: 1rem !important; color: var(--ink-2); font-family: var(--font-body) !important; font-weight: 600 !important; }
 .ai-tbl { display: grid; gap: 6px; margin-top: 10px; font-size: .78rem; } .ai-tbl > div { display: grid; grid-template-columns: 1fr 1.2fr 1.6fr .6fr 1fr; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); } .ai-tbl span { min-width: 0; overflow-wrap: anywhere; color: var(--ink-2); }
+.brand-word { font-family: 'Archivo', system-ui, sans-serif !important; font-style: italic; font-weight: 900 !important; letter-spacing: -0.02em; }
 .obq { margin: 0 0 26px; } .obq h3 { margin: 0 0 2px; } .obq > p.muted { margin: 0 0 10px; }
 .build-ov { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; display: flex; align-items: center; justify-content: center; transition: opacity .25s; }
 .build-ov:has(.reveal) { align-items: flex-start; }
@@ -602,40 +604,40 @@ a.btn { text-decoration: none; }
 #loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
 
 /* ============================================================
-   Landing (signed-out visitors). Green in light mode, near-black + green in dark, like the app.
+   Landing (signed-out visitors). Yellow hero in light mode, near-black + yellow in dark, like the app.
    ============================================================ */
 .ld {
-  --ld-page: #F5F6F0;
-  --ld-ink: #12211A;
-  --ld-ink2: #4A5A52;
-  --ld-hero: #0F3D2A;
-  --ld-hero-ink: #F5F6F0;
-  --ld-hero-ink2: #CFDCD3;
-  --ld-hero-deep: #0A2A1D;
-  --ld-hero-chip: #1E5640;
-  --ld-hero-line: #3E6B55;
-  --ld-acc: #C8F169;
-  --ld-on-acc: #0F3D2A;
-  --ld-brand: #1F7A4D;
-  --ld-on-brand: #FFFFFF;
+  --ld-page: #F4F4F2;
+  --ld-ink: #17181A;
+  --ld-ink2: #4E5055;
+  --ld-hero: #FFC531;
+  --ld-hero-ink: #17181A;
+  --ld-hero-ink2: #3B3D41;
+  --ld-hero-deep: #E9AE10;
+  --ld-hero-chip: #FFD766;
+  --ld-hero-line: #E0A800;
+  --ld-acc: #17181A;
+  --ld-on-acc: #FFC531;
+  --ld-brand: #17181A;
+  --ld-on-brand: #FFC531;
   --ld-card: #FFFFFF;
-  --ld-card-line: #DDE3DA;
-  --ld-tint: #E3F2E8;
-  --ld-tint-2: #CFE6D7;
-  --ld-tint-ink: #0F3D2A;
-  --ld-g1: #9CCBAE;
-  --ld-g2: #6FB28A;
-  --ld-g3: #3F9367;
-  --ld-ring-line: #BFD3C6;
+  --ld-card-line: #DEDED9;
+  --ld-tint: #FFF1C4;
+  --ld-tint-2: #FFE38A;
+  --ld-tint-ink: #17181A;
+  --ld-g1: #FFE38A;
+  --ld-g2: #FFD24D;
+  --ld-g3: #17181A;
+  --ld-ring-line: #E2E2DE;
   --ld-scr: #FFFFFF;
-  --ld-scr-2: #F5F6F0;
-  --ld-frame: #071F15;
-  --ld-frame-2: #0A2A1D;
+  --ld-scr-2: #F4F4F2;
+  --ld-frame: #17181A;
+  --ld-frame-2: #111214;
   --ld-amber: #E9A23B;
-  --ld-trust: #2C4A3B;
-  --ld-strong: #0F3D2A;
-  --ld-strong-ink: #C8F169;
-  --ld-off: #DDE3DA;
+  --ld-trust: #3B3D41;
+  --ld-strong: #17181A;
+  --ld-strong-ink: #FFC531;
+  --ld-off: #DEDED9;
 }
 :root[data-theme="dark"] .ld {
   --ld-page: #0E1012;
@@ -645,20 +647,20 @@ a.btn { text-decoration: none; }
   --ld-hero-ink: #F2F3F1;
   --ld-hero-ink2: #A7AFAB;
   --ld-hero-deep: #0E1012;
-  --ld-hero-chip: #16271F;
+  --ld-hero-chip: #2B2410;
   --ld-hero-line: #33383B;
-  --ld-acc: #3DBE84;
-  --ld-on-acc: #0A1A12;
-  --ld-brand: #3DBE84;
-  --ld-on-brand: #0A1A12;
+  --ld-acc: #FFC531;
+  --ld-on-acc: #17181A;
+  --ld-brand: #FFC531;
+  --ld-on-brand: #17181A;
   --ld-card: #17191B;
   --ld-card-line: #262A2D;
   --ld-tint: #1F2326;
   --ld-tint-2: #2A2F32;
-  --ld-tint-ink: #74D6A6;
-  --ld-g1: #18382A;
-  --ld-g2: #1F5A40;
-  --ld-g3: #2E8C60;
+  --ld-tint-ink: #FFD766;
+  --ld-g1: #3A300F;
+  --ld-g2: #7A5F12;
+  --ld-g3: #FFC531;
   --ld-ring-line: #33383B;
   --ld-scr: #1A1D1F;
   --ld-scr-2: #23272A;
@@ -666,8 +668,8 @@ a.btn { text-decoration: none; }
   --ld-frame-2: #050607;
   --ld-amber: #F5D7A8;
   --ld-trust: #A7AFAB;
-  --ld-strong: #3DBE84;
-  --ld-strong-ink: #0A1A12;
+  --ld-strong: #FFC531;
+  --ld-strong-ink: #17181A;
   --ld-off: #33383B;
 }
 @media (prefers-color-scheme: dark) {
@@ -679,20 +681,20 @@ a.btn { text-decoration: none; }
     --ld-hero-ink: #F2F3F1;
     --ld-hero-ink2: #A7AFAB;
     --ld-hero-deep: #0E1012;
-    --ld-hero-chip: #16271F;
+    --ld-hero-chip: #2B2410;
     --ld-hero-line: #33383B;
-    --ld-acc: #3DBE84;
-    --ld-on-acc: #0A1A12;
-    --ld-brand: #3DBE84;
-    --ld-on-brand: #0A1A12;
+    --ld-acc: #FFC531;
+    --ld-on-acc: #17181A;
+    --ld-brand: #FFC531;
+    --ld-on-brand: #17181A;
     --ld-card: #17191B;
     --ld-card-line: #262A2D;
     --ld-tint: #1F2326;
     --ld-tint-2: #2A2F32;
-    --ld-tint-ink: #74D6A6;
-    --ld-g1: #18382A;
-    --ld-g2: #1F5A40;
-    --ld-g3: #2E8C60;
+    --ld-tint-ink: #FFD766;
+    --ld-g1: #3A300F;
+    --ld-g2: #7A5F12;
+    --ld-g3: #FFC531;
     --ld-ring-line: #33383B;
     --ld-scr: #1A1D1F;
     --ld-scr-2: #23272A;
@@ -700,8 +702,8 @@ a.btn { text-decoration: none; }
     --ld-frame-2: #050607;
     --ld-amber: #F5D7A8;
     --ld-trust: #A7AFAB;
-    --ld-strong: #3DBE84;
-    --ld-strong-ink: #0A1A12;
+    --ld-strong: #FFC531;
+    --ld-strong-ink: #17181A;
     --ld-off: #33383B;
   }
 }
@@ -867,8 +869,8 @@ a.btn { text-decoration: none; }
     <div class="ld-wrap">
       <div class="ld-top">
         <div class="ld-brand">
-          <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#C8F169"/><g fill="#0F3D2A"><rect x="96" y="256" width="40" height="120" rx="14"/><rect x="164" y="200" width="40" height="176" rx="14"/><rect x="232" y="136" width="40" height="240" rx="14"/><rect x="300" y="200" width="40" height="176" rx="14"/><rect x="368" y="256" width="40" height="120" rx="14"/></g></svg>
-          <span>Cadence</span>
+          <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#FFC531"/><g fill="#17181A" transform="translate(256 256) scale(0.84) translate(-262 -268)"><g transform="skewX(-8)"><rect x="250" y="70" width="81" height="244" rx="40.5"/></g><g transform="rotate(-14 256 401)"><rect x="128" y="384" width="256" height="35" rx="17.5"/><rect x="140" y="337" width="47" height="128" rx="15"/><rect x="325" y="337" width="47" height="128" rx="15"/></g></g></svg>
+          <span class="brand-word">Yosh</span>
         </div>
         <div class="ld-langs" role="group" aria-label="Language">
           <button type="button" data-lang="en">EN</button><button type="button" data-lang="fr">FR</button><button type="button" data-lang="nl">NL</button><button type="button" data-lang="tr">TR</button><button type="button" data-lang="es">ES</button>
@@ -967,8 +969,8 @@ a.btn { text-decoration: none; }
   <div class="container">
     <button type="button" class="btn ghost sm auth-back" id="btnAuthBack" data-i18n="Back">Back</button>
     <div class="brand">
-      <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1E6B49"/><g fill="#F6F7F4"><rect x="96" y="256" width="40" height="120" rx="14"/><rect x="164" y="200" width="40" height="176" rx="14"/><rect x="232" y="136" width="40" height="240" rx="14"/><rect x="300" y="200" width="40" height="176" rx="14"/><rect x="368" y="256" width="40" height="120" rx="14"/></g></svg>
-      <h1>Cadence</h1>
+      <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#FFC531"/><g fill="#17181A" transform="translate(256 256) scale(0.84) translate(-262 -268)"><g transform="skewX(-8)"><rect x="250" y="70" width="81" height="244" rx="40.5"/></g><g transform="rotate(-14 256 401)"><rect x="128" y="384" width="256" height="35" rx="17.5"/><rect x="140" y="337" width="47" height="128" rx="15"/><rect x="325" y="337" width="47" height="128" rx="15"/></g></g></svg>
+      <h1 class="brand-word">Yosh</h1>
     </div>
     <h2 class="auth-title" id="authTitle" data-i18n="Welcome back">Welcome back</h2>
     <button class="btn secondary" id="btnGoogle">
@@ -984,7 +986,7 @@ a.btn { text-decoration: none; }
     <div class="error" id="authError"></div>
     <div class="auth-info hidden" id="authInfo"></div>
     <div class="auth-switch" id="authSwitch">New here? <button id="btnToggleMode" data-i18n="Create an account">Create an account</button></div>
-    <p class="muted small auth-note" data-i18n="Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.">Cadence uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Cadence.</p>
+    <p class="muted small auth-note" data-i18n="Yosh uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Yosh.">Yosh uses AI models (Google Gemini or OpenRouter) to write your plans, reviews and meal estimates, and stores your profile, plans and logs in a Firebase database. If you would rather not have your training data processed by AI or stored online, please don't use Yosh.</p>
     <p class="muted small" style="text-align:center;margin-top:12px"><a href="/privacy.html" style="color:var(--ink-2)" data-i18n="Privacy">Privacy</a> · <a href="/terms.html" style="color:var(--ink-2)" data-i18n="Terms">Terms</a></p>
   </div>
 </section>
@@ -1071,7 +1073,7 @@ function applyTheme(t) {
   else document.documentElement.dataset.theme = THEME;
   const dark = THEME === 'dark' || (THEME === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#0E1012' : '#1E6B49');
+  if (meta) meta.setAttribute('content', dark ? '#111214' : '#FFC531');
 }
 applyTheme(THEME);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (THEME === 'system') applyTheme('system'); });
@@ -1176,7 +1178,7 @@ function weekStrip(activeDays, { small = false, readonly = true, onToggle, slots
 let signUpMode = false;
 const CONSENT_VERSION = '2026-11';
 function consentHtml() {
-  return `${T('I agree to the')} <a href="/privacy.html" target="_blank" rel="noopener">${T('Privacy policy')}</a> ${T('and the')} <a href="/terms.html" target="_blank" rel="noopener">${T('Terms')}</a>, ${T('and to Cadence storing my training and health data (like injuries, sleep and weight) and having AI use it to build my plans.')}`;
+  return `${T('I agree to the')} <a href="/privacy.html" target="_blank" rel="noopener">${T('Privacy policy')}</a> ${T('and the')} <a href="/terms.html" target="_blank" rel="noopener">${T('Terms')}</a>, ${T('and to Yosh storing my training and health data (like injuries, sleep and weight) and having AI use it to build my plans.')}`;
 }
 // Consent: ticked at sign-up, or asked once of accounts made before it existed. Stored with its date and version.
 async function ensureConsent(user) {
@@ -1191,7 +1193,7 @@ async function ensureConsent(user) {
   return new Promise((resolve) => {
     const sheet = document.createElement('div'); sheet.className = 'sheet consent-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Before you continue'));
     sheet.innerHTML = `<div class="container"><h2 style="margin-top:24px">${T('Before you continue')}</h2>
-      <p class="muted">${T('Cadence stores your training and health data (like injuries, sleep and weight) and uses AI to write your plans. You can export or delete everything at any time in Profile.')}</p>
+      <p class="muted">${T('Yosh stores your training and health data (like injuries, sleep and weight) and uses AI to write your plans. You can export or delete everything at any time in Profile.')}</p>
       <label class="consent" style="margin-top:16px"><input type="checkbox" id="consentBox2"><span>${consentHtml()}</span></label>
       <div class="error" id="consentErr"></div>
       <button class="btn" id="consentAgree" style="margin-top:12px">${T('Agree and continue')}</button>
@@ -1351,7 +1353,7 @@ const STEPS = [
   { key: 'goal', title: T('What are you working toward?'), sub: T('Pick up to three, in order of importance. The first one leads the plan.'), render: renderGoal, validate: () => { if (!ob.data.goals?.length) return T('Choose at least one goal.'); } },
   { key: 'availability', title: T('When can you train?'), sub: T('Tap the days you can commit to. Club practices and matches count too.'), render: renderAvailability, validate: () => { if (!ob.data.days?.length) return T('Pick at least one day.'); if (!ob.data.sessionMin) return T('Choose a session length.'); if (!ob.data.doubles) return T('Choose whether you can train twice in a day.'); } },
   { key: 'setup', optional: false, title: T('What do you have access to?'), sub: T('And anything the plan should work around.'), render: renderSetup, validate: () => { if (!ob.data.equipment?.length) return T('Pick at least one option.'); } },
-  { key: 'deadline', optional: true, title: T('Anything on the calendar?'), sub: T('A tournament, a race, a season start. Cadence builds toward it and tapers before it.'), render: renderDeadline, validate: () => { if (ob.data.hasDeadline && (!ob.data.deadlineDate || !ob.data.deadlineName)) return T('Add the event name and date.'); } },
+  { key: 'deadline', optional: true, title: T('Anything on the calendar?'), sub: T('A tournament, a race, a season start. Yosh builds toward it and tapers before it.'), render: renderDeadline, validate: () => { if (ob.data.hasDeadline && (!ob.data.deadlineDate || !ob.data.deadlineName)) return T('Add the event name and date.'); } },
   { key: 'nutrition', optional: true, title: T('Eating to match'), sub: T('Daily calorie and protein targets, adjusted with your training week.'), render: renderNutrition, validate: () => { if (!ob.data.nutritionGoal) return T('Choose an option.'); } },
   { key: 'review', title: T('Here is your setup'), sub: T('Check it over. You can edit any of this later from Profile.'), render: renderReview },
 ];
@@ -1648,16 +1650,16 @@ function renderAvailability(el) {
   const prefWrap = document.createElement('div'); prefWrap.className = 'dayprefs'; el.append(prefWrap); renderDayPrefs(prefWrap);
   el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fTime">${T('Usual start time')}</label><input class="input" id="fTime" type="time"><span class="hint">${T('Used for calendar reminders. Sessions themselves aren\'t locked to it.')}</span></div>`);
   bind($('#fTime'), 'sessionTime'); if (!$('#fTime').value) { $('#fTime').value = '18:00'; ob.data.sessionTime = ob.data.sessionTime || '18:00'; }
-  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">${T('Fixed commitments')} <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fFixed" placeholder="${T('e.g. Club practice Tue & Thu 19:30, matches most Sundays')}"></textarea><span class="hint">${T('Cadence plans around these instead of replacing them.')}</span></div>`);
+  el.insertAdjacentHTML('beforeend', `<div class="field" style="margin-top:22px"><label for="fFixed">${T('Fixed commitments')} <span class="muted">${T('(optional)')}</span></label><textarea class="input" id="fFixed" placeholder="${T('e.g. Club practice Tue & Thu 19:30, matches most Sundays')}"></textarea><span class="hint">${T('Yosh plans around these instead of replacing them.')}</span></div>`);
   bind($('#fFixed'), 'fixed');
 }
-const FOCUS_OPTIONS = [['', 'Let Cadence decide'], ['strength', 'Strength'], ['speed', 'Speed'], ['conditioning', 'Conditioning'], ['skills', 'Skills / practice'], ['mobility', 'Mobility'], ['match', 'Match']];
+const FOCUS_OPTIONS = [['', 'Let Yosh decide'], ['strength', 'Strength'], ['speed', 'Speed'], ['conditioning', 'Conditioning'], ['skills', 'Skills / practice'], ['mobility', 'Mobility'], ['match', 'Match']];
 const TIME_OPTIONS = [['', 'Any time'], ['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening']];
 function renderDayPrefs(wrap, data) {
   const d = data || ob.data; d.dayPrefs = d.dayPrefs || {};
   wrap.innerHTML = '';
   if (!d.days.length) return;
-  wrap.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin:6px 0 0">${T('Optional: fix a time or a focus for any day. Leave it to Cadence and it decides.')}</p>`);
+  wrap.insertAdjacentHTML('beforeend', `<p class="muted small" style="margin:6px 0 0">${T('Optional: fix a time or a focus for any day. Leave it to Yosh and it decides.')}</p>`);
   const allowDouble = (d.doubles || 'no') !== 'no';
   d.days.forEach((day) => {
     const slots = d.dayPrefs[day] || (d.dayPrefs[day] = [{ time: '', focus: '' }]);
@@ -1955,8 +1957,8 @@ function syncTabs() {
 }
 
 
-// the coach's mark: a whistle in a circle, used wherever the coach speaks
-const COACH_MARK = '<span class="coach-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9h6v4h-3.5"/><circle cx="9" cy="14" r="5"/><path d="M9 4v3M5 6l1.5 2M13 6l-1.5 2"/></svg></span>';
+// the coach's mark: the Yosh “!” with a barbell for a dot, wherever the coach speaks
+const COACH_MARK = '<span class="coach-mark" aria-hidden="true"><svg viewBox="0 0 88 88" fill="currentColor"><g transform="skewX(-8)"><rect x="44" y="10" width="15" height="44" rx="7.5"/></g><g transform="rotate(-14 44 69)"><rect x="20" y="65" width="48" height="7" rx="3.5"/><rect x="22" y="56" width="9" height="25" rx="3"/><rect x="57" y="56" width="9" height="25" rx="3"/></g></svg></span>';
 // the main movement's photo on a session card, when the exercise library has one
 async function sessionPhoto(card, sess) {
   try {
@@ -2123,7 +2125,7 @@ async function viewToday(el) {
 
   if (!state.plan) {
     const c = document.createElement('div'); c.className = 'card';
-    c.innerHTML = `<div class="empty"><h3>${T('No plan yet')}</h3><p>${T('Cadence will build your first week from the setup you just completed.')}</p><button class="btn" id="btnGen">${T('Build my first week')}</button></div>`;
+    c.innerHTML = `<div class="empty"><h3>${T('No plan yet')}</h3><p>${T('Yosh will build your first week from the setup you just completed.')}</p><button class="btn" id="btnGen">${T('Build my first week')}</button></div>`;
     el.append(c);
     $('#btnGen').onclick = () => buildFirstWeek();
     return;
@@ -2204,7 +2206,7 @@ async function viewToday(el) {
   // ---- backup week: say so plainly, with a retry ----
   if (state.plan.source === 'template' && planIsCurrent()) {
     const c = document.createElement('div'); c.className = 'card todaycard amber src-card';
-    c.innerHTML = `<div style="flex:1;min-width:0"><strong>${T('Backup week')}</strong><div class="muted small">${T('The AI was busy, so these are standard sessions. Cadence keeps trying in the background.')}</div></div><button class="btn sm" id="btnSrcRetry">${T('Try again')}</button>`;
+    c.innerHTML = `<div style="flex:1;min-width:0"><strong>${T('Backup week')}</strong><div class="muted small">${T('The AI was busy, so these are standard sessions. Yosh keeps trying in the background.')}</div></div><button class="btn sm" id="btnSrcRetry">${T('Try again')}</button>`;
     el.append(c);
     $('#btnSrcRetry').onclick = () => buildFirstWeek('upgrade');
   }
@@ -2501,7 +2503,7 @@ function openRebuild() {
     <div class="block"><h3>${T('Days you can train')}</h3><div id="rbDays"></div></div>
     <div class="block"><h3>${T('Focus per day')}</h3><div class="dayprefs" id="rbPrefs"></div></div>
     <div class="block">
-      <h3>${T('Anything Cadence should know?')}</h3>
+      <h3>${T('Anything Yosh should know?')}</h3>
       <p class="muted small" style="margin:4px 0 8px">${T('Injuries, travel, a heavy week at work, a tournament on Sunday — it plans around what you write here.')}</p>
       <textarea class="input" id="rbNote" placeholder="${T('e.g. Left ankle rolled on Saturday, no jumping or cutting this week')}">${state.plan?.weekId === isoWeekId() ? esc(state.plan.weekNote || '') : ''}</textarea>
       <div class="list" style="margin-top:6px"><div class="li"><div><div>${T('Keep this as an ongoing limit')}</div><span class="muted">${T('Adds it to your profile so future weeks respect it too.')}</span></div><button class="switch" id="rbKeep" role="switch" aria-checked="false"></button></div></div>
@@ -2812,7 +2814,7 @@ function openRpeInfo() {
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>RPE</h2></div>
     <h1>${T('RPE — Rate of Perceived Exertion')}</h1>
-    <div class="intent">${T('A 1–10 scale of how hard something felt. Cadence uses it to decide how next week progresses.')}</div>
+    <div class="intent">${T('A 1–10 scale of how hard something felt. Yosh uses it to decide how next week progresses.')}</div>
     <div class="block">${rows.map(([n, txt]) => `<div class="ex" style="display:flex;gap:14px;align-items:baseline"><span class="rx" style="font-family:var(--font-display);font-weight:700;min-width:44px">${n}</span><span class="muted">${T(txt)}</span></div>`).join('')}</div>
     <p class="muted" style="margin-top:20px">${T('Done at RPE 8 or below → next week progresses. RPE 9–10 → the load holds. Pain in your notes overrides both.')}</p>
   </div>`;
@@ -3471,7 +3473,7 @@ async function showInboxIfAdmin(el) {
 }
 
 
-/* ---------- question of the day: Cadence learns the athlete one answer at a time ---------- */
+/* ---------- question of the day: Yosh learns the athlete one answer at a time ---------- */
 // label = how the answer is written into profile.about (English, for the plan); apply = extra profile fields
 const isUlt = (p) => (p.sports || [])[0] === 'Ultimate Frisbee';
 const isTeamSport = (p) => TEAM_SPORTS.includes((p.sports || [])[0]);
@@ -3513,7 +3515,7 @@ function nextQuestion() {
 }
 function questionCard(forced, onDone) {
   const n = forced ? { q: forced, left: 0 } : nextQuestion(); if (!n) return null;
-  const { q } = n; const c = document.createElement('div'); c.className = 'card todaycard qod'; // never trimmed: this is how Cadence gets to know the athlete
+  const { q } = n; const c = document.createElement('div'); c.className = 'card todaycard qod'; // never trimmed: this is how Yosh gets to know the athlete
   const input = q.type === 'number' ? `<div class="unit-input"><input class="input" id="qodIn" type="number" inputmode="decimal" min="${q.min}" max="${q.max}" step="${q.step || 1}"><span>${q.unit}</span></div>`
     : q.type === 'text' ? `<input class="input" id="qodIn" maxlength="120" placeholder="${esc(T(q.placeholder || ''))}">` : '<div class="chips" id="qodChips"></div>';
   c.innerHTML = `<button type="button" class="qod-head"><span class="qod-top"><span class="muted small" style="font-weight:600">${T('Getting to know you')}</span>${forced ? '' : `<span class="muted small">${n.left} ${T('left')}</span>`}</span><strong class="qod-q">${esc(T(q.q))}</strong><span class="qod-open">${T('Answer')} ›</span></button><div class="qod-more"><div class="muted small">${esc(T(q.why))}</div><div style="margin-top:10px">${input}</div><div class="qod-act">${q.type === 'chips' || q.type === 'action' ? '' : `<button class="btn sm" id="qodSave">${T('Save')}</button>`}${q.type === 'chips' && q.multi ? `<button class="btn sm" id="qodSave">${T('Save')}</button>` : ''}<button class="btn sm ghost" id="qodLater">${T('Not now')}</button></div></div>`;
@@ -3562,12 +3564,12 @@ function questionCard(forced, onDone) {
 async function inviteTeammate() {
   track('invite');
   const url = `${location.origin}/?ref=${state.user.uid}`;
-  const text = T('I train with Cadence: a weekly plan that fits around team practice and gets smarter every week. Try it:');
-  try { if (navigator.share) { await navigator.share({ title: 'Cadence', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const text = T('I train with Yosh: a weekly plan that fits around team practice and gets smarter every week. Try it:');
+  try { if (navigator.share) { await navigator.share({ title: 'Yosh', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   try { await navigator.clipboard.writeText(`${text} ${url}`); toast(T('Invite link copied. Paste it in your team chat.')); } catch (_) { prompt(T('Copy this link'), url); }
 }
 
-/* ---------- My profile: everything Cadence has learned, in one place ---------- */
+/* ---------- My profile: everything Yosh has learned, in one place ---------- */
 async function openMyProfile() {
   track('my_profile');
   const p = state.profile;
@@ -3823,7 +3825,7 @@ function openGarminConnect() {
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Connect Garmin');
   sheet.innerHTML = `<div class="container">
     <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>Connect Garmin</h2></div>
-    <p class="muted small">Garmin has no public way to do this, so you sign in to Garmin once in a free Google notebook. Your password goes only to Garmin, never to Cadence.</p>
+    <p class="muted small">Garmin has no public way to do this, so you sign in to Garmin once in a free Google notebook. Your password goes only to Garmin, never to Yosh.</p>
     <div class="block" style="margin-top:14px"><h3>1. Your pairing code</h3>
       <div class="g-pair" id="gPair">…</div>
       <p class="muted small">Valid for 20 minutes. Keep this screen open, or come back to it.</p></div>
@@ -3952,7 +3954,7 @@ function openEvents() {
   track('tournaments');
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Tournaments'));
   sheet.innerHTML = `<div class="container"><div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Tournaments')}</h2></div>
-    <p class="muted small">${T('Cadence lightens the week before, keeps the two days before easy, plans the tournament days with between-game tips, and makes the day after a recovery day.')}</p>
+    <p class="muted small">${T('Yosh lightens the week before, keeps the two days before easy, plans the tournament days with between-game tips, and makes the day after a recovery day.')}</p>
     <div id="evList" style="margin-top:12px"></div>
     <div class="card" style="margin-top:12px"><h3>${T('Add a tournament')}</h3>
       <div class="field"><label for="evName">${T('Name')}</label><input class="input" id="evName" maxlength="60" placeholder="${T('e.g. Indoor Nationals')}"></div>
@@ -4113,7 +4115,7 @@ function viewProfile(el) {
         <button class="btn sm secondary" id="btnTestPush" style="margin-top:10px">${T('Send a test notification')}</button>
       </details>
       <div class="set-row">${ico(I.cal)}<span class="set-main"><span>${T('Calendar feed')}</span><small>${T('Your sessions in Google or Apple Calendar.')}</small></span><button class="btn sm secondary" id="btnCal">${T('Get link')}</button></div>
-      <div class="set-row" id="installRow">${ico(I.phone)}<span class="set-main"><span>${T('Install Cadence')}</span><small id="installHint">${T('Add it to your home screen for the full app experience.')}</small></span><button class="btn sm secondary hidden" id="btnInstall">${T('Install')}</button></div>
+      <div class="set-row" id="installRow">${ico(I.phone)}<span class="set-main"><span>${T('Install Yosh')}</span><small id="installHint">${T('Add it to your home screen for the full app experience.')}</small></span><button class="btn sm secondary hidden" id="btnInstall">${T('Install')}</button></div>
     </div>
 
     <h4 class="set-title">${T('Help')}</h4>
@@ -4126,7 +4128,7 @@ function viewProfile(el) {
 
     <h4 class="set-title">${T('Account')}</h4>
     <div class="card set-group">
-      <button type="button" class="set-row" id="btnExport">${ico(I.down)}<span class="set-main"><span>${T('Export my data')}</span><small>${T('Everything Cadence stores about you, as a JSON file.')}</small></span><span class="chev">›</span></button>
+      <button type="button" class="set-row" id="btnExport">${ico(I.down)}<span class="set-main"><span>${T('Export my data')}</span><small>${T('Everything Yosh stores about you, as a JSON file.')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" id="btnReset">${ico(I.reset)}<span class="set-main"><span>${T('Start fresh')}</span><small>${T('Delete plans, logs and history but keep your account and setup.')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" id="btnSignOut">${ico(I.out)}<span class="set-main"><span>${T('Sign out')}</span><small>${esc(state.user.email || T('Google account'))}</small></span></button>
       <button type="button" class="set-row danger" id="btnDelete">${ico(I.trash)}<span class="set-main"><span>${T('Delete my account')}</span><small>${T('Removes your profile, plans, logs and meals permanently.')}</small></span></button>
@@ -4170,7 +4172,7 @@ function viewProfile(el) {
   };
   $('#btnReset').onclick = () => openReset();
   $('#btnDelete').onclick = async (ev) => {
-    if (!confirm(T('Delete your Cadence account and all data? This cannot be undone.'))) return;
+    if (!confirm(T('Delete your Yosh account and all data? This cannot be undone.'))) return;
     if (prompt(T('Type DELETE to confirm')) !== 'DELETE') return;
     const b = ev.currentTarget; b.disabled = true;
     try {
@@ -4202,7 +4204,7 @@ function viewProfile(el) {
 function profileToOb(p) {
   return { ...p, goals: p.goals || (p.goal ? [p.goal] : []), doubles: p.doubles || 'no', dayPrefs: JSON.parse(JSON.stringify(p.dayPrefs || {})), hasDeadline: !!p.deadline, deadlineName: p.deadline?.name || '', deadlineDate: p.deadline?.date || '', nutritionGoal: p.nutrition ? p.nutrition.goal : 'none', diet: p.nutrition?.diet || ['No restrictions'] };
 }
-// One personal line under the greeting: the most relevant thing Cadence knows about today
+// One personal line under the greeting: the most relevant thing Yosh knows about today
 function coachLine(p, todays = []) {
   const today = dateKey();
   const days = (iso) => Math.round((Date.parse(iso + 'T12:00:00') - Date.parse(today + 'T12:00:00')) / 864e5);
@@ -4235,7 +4237,7 @@ function greeting() { const h = new Date().getHours(); return h < 12 ? T('Good m
 async function setupPushToggle() {
   const sw = $('#swPush');
   const supported = 'serviceWorker' in navigator && 'PushManager' in window && VAPID_PUBLIC_KEY;
-  if (!supported) { sw.disabled = true; sw.parentElement.querySelector('.muted').textContent = T('Install Cadence to your home screen to enable reminders.'); return; }
+  if (!supported) { sw.disabled = true; sw.parentElement.querySelector('.muted').textContent = T('Install Yosh to your home screen to enable reminders.'); return; }
   const reg = await navigator.serviceWorker.ready;
   const existing = await reg.pushManager.getSubscription();
   sw.setAttribute('aria-checked', !!existing);

@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   if (!sub.exists) return res.status(400).json({ error: 'Reminders are off on this device. Turn the switch on first.' });
   try {
     webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
-    await webpush.sendNotification(sub.data().subscription, JSON.stringify({ title: 'Cadence', body: 'Test notification — reminders are working.', url: '/' }));
+    await webpush.sendNotification(sub.data().subscription, JSON.stringify({ title: 'Yosh', body: 'Test notification — reminders are working.', url: '/' }));
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error('test-notify', e.statusCode, e.message);
