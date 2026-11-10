@@ -1,7 +1,7 @@
 // POST /api/weekly-review — closes the given week: feedback on what was logged + the plan for the following week
 import { sameKind } from './_garmin.js';
 import { coachCheck, logAiCall } from './_lib.js';
-import { requireUser, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, planRules, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, testSummary, logProblem } from './_lib.js';
+import { requireUser, guestAllowed, db, callModel, weekId, weekIdOffset, mondayOf, DAY_NAMES, planRules, planShape, athleteBlock, validatePlan, checkLimit, nutritionTargets, sessionKey, trainingHistoryBlock, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, testSummary, logProblem } from './_lib.js';
 
 export { reviewWeek };
 
@@ -16,6 +16,7 @@ export default async function handler(req, res) {
   const userDoc = await db().doc(`users/${uid}`).get();
   const profile = userDoc.data()?.profile;
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
+  if (!(await guestAllowed(user, 'review', 2, 300))) return res.status(429).json({ error: 'Save your account to keep your weekly reviews going.' });
   if (!(await checkLimit(uid, 'review', 4, 8))) return res.status(429).json({ error: 'Review limit reached for today.' });
   const wk = (req.body && req.body.weekId) || weekId();
   try {

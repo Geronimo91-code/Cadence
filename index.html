@@ -733,7 +733,7 @@ a.btn { text-decoration: none; }
 .ld-btn.ghost { background: transparent; color: var(--ld-hero-ink); border: 1.5px solid var(--ld-hero-line); }
 .ld-btn:active { transform: scale(.98); }
 .ld-get { display: flex; flex-wrap: wrap; gap: 10px; }
-.ld-guest { align-self: flex-start; margin-top: -6px; padding: 6px 2px; border: 0; background: none; color: var(--ld-hero-ink); font: 600 15px var(--font-body); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.ld-guest { align-self: flex-start; margin-top: -6px; min-height: 44px; padding: 6px 2px; border: 0; background: none; color: var(--ld-hero-ink); font: 600 15px var(--font-body); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .ld-guest:disabled { opacity: .6; }
 .guestcard { display: flex; flex-direction: column; gap: 6px; border: 1.5px dashed var(--line); }
 .guestcard small { color: var(--ink-2); line-height: 1.45; }
@@ -2049,7 +2049,7 @@ async function paintStreak() {
   const x = Math.floor(s.thisCount);
   if (!s.streak && !x) return;
   pill.classList.toggle('cold', !s.streak);
-  pill.innerHTML = FLAME + '<span>' + esc(s.streak ? T('{n}-week streak').replace('{n}', s.streak) : T('This week: {x} of {n}').replace('{x}', x).replace('{n}', s.need)) + '</span>';
+  pill.innerHTML = FLAME + '<span>' + esc(s.streak ? T('{n}-week streak').replace('{n}', s.streak) : T('{x} of {n} for your streak').replace('{x}', x).replace('{n}', s.need)) + '</span>';
   pill.classList.remove('hidden');
   pill.onclick = () => toast(T('Weeks in a row with at least {n} sessions logged. This week: {x} of {n}.').replace(/\{n\}/g, s.need).replace('{x}', x));
 }
@@ -3270,7 +3270,7 @@ async function viewNutrition(el) {
       <h3>${T('Add a meal')}</h3>
       <div class="field" style="margin-top:10px"><input class="input" id="mealName" placeholder="${T('e.g. Chicken wrap and a banana')}"></div>
       <div class="grid4"><div><label>kcal</label><input class="input" id="mealK" type="number" inputmode="numeric"></div><div><label>${T('Protein')}</label><input class="input" id="mealP" type="number" inputmode="numeric"></div><div><label>${T('Carbs')}</label><input class="input" id="mealC" type="number" inputmode="numeric"></div><div><label>${T('Fat')}</label><input class="input" id="mealF" type="number" inputmode="numeric"></div></div>
-      <div class="row" style="margin-top:12px"><button class="btn secondary" id="mealEst">${T('Estimate from name')}</button><button class="btn secondary" id="mealPhoto">${T('Photo')}</button><button class="btn" id="mealAdd">Add</button></div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);gap:8px"><button class="btn secondary" id="mealEst" style="padding-inline:10px">${T('Estimate from name')}</button><button class="btn secondary" id="mealPhoto" style="padding-inline:10px">${T('Photo')}</button><button class="btn" id="mealAdd" style="padding-inline:10px">${T('Add')}</button></div>
       <input type="file" id="mealFile" accept="image/*" capture="environment" class="hidden">
       <div id="recentWrap"></div>
     </div>

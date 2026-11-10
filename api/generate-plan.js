@@ -1,5 +1,5 @@
 // POST /api/generate-plan — builds a weekly plan from the user's profile (first plan, or a rebuild)
-import { requireUser, db, callModel, weekId, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem, recentBlock, coachCheck, planSystem, planUser, keepPastDays, logAiCall } from './_lib.js';
+import { requireUser, guestAllowed, db, callModel, weekId, validatePlan, checkLimit, templatePlan, lastLoads, applyProgression, liftHistory, applyTests, applyWhy, trainingHistoryBlock, logProblem, recentBlock, coachCheck, planSystem, planUser, keepPastDays, logAiCall } from './_lib.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     if (!(await checkLimit(user.uid, 'upgrade', 30, 60))) return res.status(200).json({ upgraded: false, reason: 'limit' });
     return res.status(200).json(await upgradeBackupWeek(user.uid, { deadlineMs: 170000 }));
   }
+  if (!(await guestAllowed(user, 'plan', 4, 400))) return res.status(429).json({ error: 'Save your account to keep building plans today.' });
   if (!(await checkLimit(user.uid, 'plan', 12, 30))) return res.status(429).json({ error: 'You have rebuilt the plan a lot today. Try again tomorrow.' });
   const started = Date.now();
   // one-off overrides for this rebuild; the stored profile is untouched unless the client saved it

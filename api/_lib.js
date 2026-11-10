@@ -47,7 +47,8 @@ export async function logProblem(uid, route, err, extra = {}) {
 }
 
 export function requireCron(req, res) {
-  const ok = req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+  const secret = process.env.CRON_SECRET;
+  const ok = !!secret && req.headers.authorization === `Bearer ${secret}`;
   if (!ok) res.status(401).json({ error: 'Unauthorized' });
   return ok;
 }
@@ -416,6 +417,15 @@ export function nutritionTargets(p, trainingDay) {
   const fat = Math.round(w * 0.9);
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
   return { kcal, protein, carbs, fat, trainingDay };
+}
+
+// Guest (anonymous) accounts cost nothing to create, so they get tighter AI limits plus one shared daily cap,
+// which keeps someone making endless guests from using up the free AI quota everyone shares.
+export const isGuest = (user) => !!(user && user.firebase && user.firebase.sign_in_provider === 'anonymous');
+export async function guestAllowed(user, key, perGuest, allGuests) {
+  if (!isGuest(user)) return true;
+  if (!(await checkLimit(user.uid, 'guest_' + key, perGuest))) return false;
+  return checkLimit('_guests', key, allGuests);
 }
 
 // ---------------- Per-user daily rate limit (usage/{uid}, server-only collection) ----------------

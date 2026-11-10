@@ -1,5 +1,5 @@
 // POST /api/estimate-meal { description?, image? (data URL, jpeg ≤ ~1 MB) } → { name, kcal, protein, carbs, fat }
-import { requireUser, callModel, checkLimit, db, LANG_NAMES, logProblem } from './_lib.js';
+import { requireUser, guestAllowed, callModel, checkLimit, db, LANG_NAMES, logProblem } from './_lib.js';
 
 // Photos arrive as base64 data URLs, which are far larger than the default body limit
 export const config = { api: { bodyParser: { sizeLimit: '6mb' } } };
@@ -14,6 +14,7 @@ export default async function handler(req, res) {
   if (raw.length >= 3_500_000) return res.status(413).json({ error: 'That photo is too large. Try again — Yosh shrinks it first.' });
   const image = raw || null;
   if (!description && !image) return res.status(400).json({ error: 'Describe the meal or add a photo' });
+  if (!(await guestAllowed(user, 'estimate', 5, 300))) return res.status(429).json({ error: 'Save your account to keep estimating meals today.' });
   if (!(await checkLimit(user.uid, 'estimate', 40, 150))) return res.status(429).json({ error: 'Daily estimate limit reached. Enter the numbers manually for now.' });
   let lang = 'English';
   try { lang = LANG_NAMES[(await db().doc(`users/${user.uid}`).get()).data()?.profile?.lang] || 'English'; } catch (_) {}
