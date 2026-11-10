@@ -82,25 +82,28 @@ function grade(raw) {
     phase: plan.phase || null, focus: String(plan.focus || '').slice(0, 300), rationale: String(plan.rationale || '').slice(0, 600),
     week: v.sessions.map((s) => ({ day: s.day, type: s.type, title: s.title, min: s.durationMin, rpe: s.targetRpe, why: s.why, warmup: s.warmup.slice(0, 4), cooldown: s.cooldown.slice(0, 3), ex: s.exercises.map((x) => [x.name, x.sets, x.reps, x.load, x.restSec].join(' | ')) })) };
 }
-export async function runCompare() {
-  const ref = db().doc('system/modelCompare');
+export async function runCompare({ only = null, docId = 'modelCompare', force = false, retries = 0 } = {}) {
+  const ref = db().doc('system/' + docId);
   const prev = await ref.get();
-  if (prev.exists && prev.data().status === 'done') return { skipped: 'already done', at: prev.data().at };
+  if (!force && prev.exists && prev.data().status === 'done') return { skipped: 'already done', at: prev.data().at };
   await ref.set({ status: 'running', startedAt: new Date().toISOString() });
   const system = planSystem(PROFILE, { fromDay: 0 });
   const user = planUser(PROFILE, '2026-W46', { history: HISTORY, recent: RECENT, ref: new Date('2026-11-09T08:00:00Z') });
   const avail = await listModels();
-  const results = await Promise.all(CANDIDATES.map(async (c) => {
+  const results = await Promise.all(CANDIDATES.filter((c) => !only || only.includes(c.label)).map(async (c) => {
     const ids = avail[c.prov] || [];
     let model = null; for (const re of c.want) { model = ids.find((id) => re.test(id)); if (model) break; }
     if (!model) return { label: c.label, model: null, ok: false, error: 'not offered to this key', sample: ids.filter((i) => c.prov === 'gemini' || /:free$/.test(i)).slice(0, 40) };
-    const a = await ask(c, model, system, user);
+    // a busy model (503) gets a few more tries, 20 s apart
+    let a = await ask(c, model, system, user); let tries = 1;
+    while (!a.ok && /^503/.test(a.error || '') && tries <= retries) { await new Promise((r) => setTimeout(r, 20000)); a = await ask(c, model, system, user); tries++; }
+    a.tries = tries;
     if (!a.ok) return { label: c.label, model, ...a };
-    return { label: c.label, model, ok: true, ms: a.ms, tokensIn: a.tokensIn, tokensOut: a.tokensOut, finish: a.finish, ...grade(a.content), rawStart: a.content.slice(0, 400) };
+    return { label: c.label, model, tries: a.tries, ok: true, ms: a.ms, tokensIn: a.tokensIn, tokensOut: a.tokensOut, finish: a.finish, ...grade(a.content), rawStart: a.content.slice(0, 400) };
   }));
   const doc = { status: 'done', at: new Date().toISOString(), promptTokensApprox: Math.round((system.length + user.length) / 4), results };
   await ref.set(JSON.parse(JSON.stringify(doc)));
-  return { done: results.map((r) => [r.label, r.ok, r.valid ?? null, r.ms]) };
+  return doc;
 }
 export async function readCompare(m) {
   const d = (await db().doc('system/modelCompare').get()).data();
