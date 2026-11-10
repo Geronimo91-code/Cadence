@@ -733,6 +733,11 @@ a.btn { text-decoration: none; }
 .ld-btn.ghost { background: transparent; color: var(--ld-hero-ink); border: 1.5px solid var(--ld-hero-line); }
 .ld-btn:active { transform: scale(.98); }
 .ld-get { display: flex; flex-wrap: wrap; gap: 10px; }
+.ld-guest { align-self: flex-start; margin-top: -6px; padding: 6px 2px; border: 0; background: none; color: var(--ld-hero-ink); font: 600 15px var(--font-body); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.ld-guest:disabled { opacity: .6; }
+.guestcard { display: flex; flex-direction: column; gap: 6px; border: 1.5px dashed var(--line); }
+.guestcard small { color: var(--ink-2); line-height: 1.45; }
+.guestcard .btn { align-self: flex-start; margin-top: 6px; }
 .ld-apk, .ld-ios { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; color: var(--ld-hero-ink); font: 700 14px var(--font-body); }
 .ld-apk { padding: 0 14px; border-radius: 999px; background: var(--ld-hero-chip); text-decoration: none; }
 .ld-ios { font-weight: 500; color: var(--ld-hero-ink2); }
@@ -895,6 +900,7 @@ a.btn { text-decoration: none; }
             <button type="button" class="ld-btn" id="btnLdStart" data-i18n="Get started">Get started</button>
             <button type="button" class="ld-btn ghost" id="btnLdSignIn" data-i18n="I already have an account">I already have an account</button>
           </div>
+          <button type="button" class="ld-guest" id="btnLdGuest" data-i18n="Try it first, no account needed">Try it first, no account needed</button>
           <div class="ld-get hidden" id="ldGet">
             <a class="ld-apk hidden" id="ldApk" href="/yosh.apk" download="Yosh.apk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span data-i18n="Download for Android">Download for Android</span></a>
             <span class="ld-ios hidden" id="ldIos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span data-i18n="On iPhone: tap Share, then Add to Home Screen">On iPhone: tap Share, then Add to Home Screen</span></span>
@@ -993,6 +999,7 @@ a.btn { text-decoration: none; }
     <button type="button" class="auth-forgot" id="btnForgot" data-i18n="Forgot password?">Forgot password?</button>
     <label class="consent hidden" id="consentRow"><input type="checkbox" id="consentBox"><span id="consentText"></span></label>
     <button class="btn" id="btnEmail" data-i18n="Sign in">Sign in</button>
+    <button type="button" class="btn ghost" id="btnEmailLink" style="margin-top:8px;width:100%" data-i18n="Email me a sign-in link instead">Email me a sign-in link instead</button>
     <div class="error" id="authError"></div>
     <div class="auth-info hidden" id="authInfo"></div>
     <div class="auth-switch" id="authSwitch">New here? <button id="btnToggleMode" data-i18n="Create an account">Create an account</button></div>
@@ -1305,6 +1312,111 @@ $('#btnEmail').onclick = async () => {
   } catch (e) { $('#authError').textContent = friendlyAuthError(e); }
 };
 $('#authPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnEmail').click(); });
+// ---- Passwordless email link and guest accounts ----
+const LINK_KEY = 'cadence.linkEmail';
+const GOOGLE_SVG = '<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.5-5.8c-2.1 1.4-4.8 2.3-8.1 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
+async function sendEmailLink(email) {
+  auth.languageCode = LANG;
+  await auth.sendSignInLinkToEmail(email, { url: location.origin + '/?signin', handleCodeInApp: true });
+  try { localStorage.setItem(LINK_KEY, email); } catch (_) {}
+}
+function linkSentText(email) { return T('Check your inbox: we sent a sign-in link to {email}. Open it on this phone. Check your spam folder too.').replace('{email}', email); }
+$('#btnEmailLink').onclick = async (ev) => {
+  const email = $('#authEmail').value.trim();
+  $('#authError').textContent = ''; $('#authInfo').classList.add('hidden');
+  if (!email) { $('#authError').textContent = T('Enter your email above first.'); $('#authEmail').focus(); return; }
+  if (needConsentBox()) return;
+  if (signUpMode) { try { localStorage.setItem('cadence.consent', CONSENT_VERSION); } catch (_) {} }
+  const b = ev.currentTarget; b.disabled = true;
+  try { await sendEmailLink(email); $('#authInfo').textContent = linkSentText(email); $('#authInfo').classList.remove('hidden'); }
+  catch (e) { $('#authError').textContent = friendlyAuthError(e); }
+  b.disabled = false;
+};
+// Opening the emailed link signs in (or, for a guest, saves the guest account under that email).
+const firstAuthState = new Promise((resolve) => { const off = auth.onAuthStateChanged((u) => { off(); resolve(u); }); });
+(async function completeEmailLink() {
+  const href = location.href;
+  if (!auth.isSignInWithEmailLink(href)) return;
+  history.replaceState(null, '', location.pathname);
+  await firstAuthState;
+  let email = null; try { email = localStorage.getItem(LINK_KEY); } catch (_) {}
+  if (!email) email = (window.prompt(T('Confirm your email to finish signing in')) || '').trim();
+  if (!email) return;
+  const cur = auth.currentUser;
+  try {
+    if (cur && cur.isAnonymous) {
+      try { await cur.linkWithCredential(firebase.auth.EmailAuthProvider.credentialWithLink(email, href)); await afterAccountSaved(); }
+      catch (e) { if (e.code === 'auth/email-already-in-use' || e.code === 'auth/credential-already-in-use') await auth.signInWithEmailLink(email, href); else throw e; }
+    } else if (!cur || cur.email !== email) {
+      await auth.signInWithEmailLink(email, href);
+    }
+    try { localStorage.removeItem(LINK_KEY); } catch (_) {}
+  } catch (e) {
+    if (!auth.currentUser) show('auth');
+    const msg = e.code === 'auth/invalid-action-code' || e.code === 'auth/expired-action-code' ? T('That sign-in link has expired or was already used. Send a new one.') : friendlyAuthError(e);
+    if (auth.currentUser) toast(msg); else $('#authError').textContent = msg;
+  }
+})();
+$('#btnLdGuest').onclick = async (ev) => {
+  const b = ev.currentTarget; b.disabled = true;
+  try { await auth.signInAnonymously(); }
+  catch (e) { b.disabled = false; openAuth(true); $('#authError').textContent = friendlyAuthError(e); }
+};
+const isGuest = () => !!(state.user && state.user.isAnonymous);
+async function afterAccountSaved() {
+  await auth.currentUser.reload();
+  state.user = auth.currentUser;
+  try { await db.doc('users/' + state.user.uid).set({ email: state.user.email || null }, { merge: true }); } catch (_) {}
+  track('guest:saved');
+  toast(T('Account saved. Your plan and progress are safe.'));
+  document.querySelector('.sheet.save-acct')?.remove(); document.body.style.overflow = '';
+  if (state.view) navigate(state.view);
+}
+function openSaveAccount() {
+  const sheet = document.createElement('div'); sheet.className = 'sheet save-acct'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', T('Save your account'));
+  sheet.innerHTML = `<div class="container">
+    <div class="sheet-top"><button class="btn ghost sm" id="btnCloseSheet">‹ ${T('Back')}</button><h2>${T('Save your account')}</h2></div>
+    <p class="muted">${T('Keep your plan, logs and progress, and sign in on any device.')}</p>
+    <button class="btn secondary" id="saGoogle" style="margin-top:12px">${GOOGLE_SVG}<span>${T('Continue with Google')}</span></button>
+    <div class="divider">${T('or with email')}</div>
+    <div class="field"><input class="input" id="saEmail" type="email" placeholder="${T('Email')}" autocomplete="email"></div>
+    <button class="btn" id="saLink">${T('Email me a sign-in link')}</button>
+    <div class="field" style="margin-top:16px"><input class="input" id="saPass" type="password" placeholder="${T('Or choose a password (8+ characters)')}" autocomplete="new-password"></div>
+    <button class="btn ghost" id="saPassBtn">${T('Save with a password')}</button>
+    <div class="error" id="saErr"></div>
+    <div class="auth-info hidden" id="saInfo"></div></div>`;
+  document.body.append(sheet); document.body.style.overflow = 'hidden';
+  const close = () => { sheet.remove(); document.body.style.overflow = ''; };
+  const err = (m) => { $('#saErr', sheet).textContent = m; };
+  $('#btnCloseSheet', sheet).onclick = close;
+  $('#saGoogle', sheet).onclick = async () => {
+    err(''); const prov = new firebase.auth.GoogleAuthProvider();
+    try { await auth.currentUser.linkWithPopup(prov); await afterAccountSaved(); }
+    catch (e) {
+      if (e.code === 'auth/popup-blocked') { auth.currentUser.linkWithRedirect(prov); return; }
+      if (e.code === 'auth/credential-already-in-use' && e.credential) {
+        if (window.confirm(T('That Google account already has Yosh. Switch to it? Your guest plan stays behind.'))) { close(); await auth.signInWithCredential(e.credential); }
+        return;
+      }
+      if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') err(friendlyAuthError(e));
+    }
+  };
+  $('#saLink', sheet).onclick = async (ev) => {
+    const email = $('#saEmail', sheet).value.trim(); err(''); $('#saInfo', sheet).classList.add('hidden');
+    if (!email) { err(T('Enter your email above first.')); return; }
+    ev.currentTarget.disabled = true;
+    try { await sendEmailLink(email); $('#saInfo', sheet).textContent = linkSentText(email); $('#saInfo', sheet).classList.remove('hidden'); }
+    catch (e) { err(friendlyAuthError(e)); }
+    ev.currentTarget.disabled = false;
+  };
+  $('#saPassBtn', sheet).onclick = async () => {
+    const email = $('#saEmail', sheet).value.trim(), pass = $('#saPass', sheet).value; err('');
+    if (!email || pass.length < 8) { err(T('Enter your email and a password of at least 8 characters.')); return; }
+    try { await auth.currentUser.linkWithCredential(firebase.auth.EmailAuthProvider.credential(email, pass)); await afterAccountSaved(); }
+    catch (e) { err(friendlyAuthError(e)); }
+  };
+}
+
 function friendlyAuthError(e) {
   const m = {
     'auth/invalid-credential': T('Email or password is incorrect.'),
@@ -1314,6 +1426,10 @@ function friendlyAuthError(e) {
     'auth/invalid-email': T('That email address doesn\'t look right.'),
     'auth/weak-password': T('Use a longer password (8+ characters).'),
     'auth/too-many-requests': T('Too many attempts. Wait a minute and try again.'),
+    'auth/credential-already-in-use': T('That account already has Yosh. Sign in with it instead.'),
+    'auth/provider-already-linked': T('Your account is already saved.'),
+    'auth/operation-not-allowed': T('This sign-in option is not switched on yet. Use Google or email and password for now.'),
+    'auth/admin-restricted-operation': T('This sign-in option is not switched on yet. Use Google or email and password for now.'),
   };
   return m[e.code] || T('Could not sign in. Check your connection and try again.');
 }
@@ -2143,6 +2259,11 @@ async function viewToday(el) {
     (() => { const line = coachLine(p, planIsCurrent() ? (state.plan.sessions || []).filter((x) => x.day === todayIndex() && x.type !== 'rest') : []); return line ? `<p class="coachline">${COACH_MARK}<span>${line}</span></p>` : ''; })();
   el.append(head);
   paintStreak();
+  if (isGuest()) {
+    const g = document.createElement('div'); g.className = 'card guestcard';
+    g.innerHTML = `<b>${T('You are trying Yosh as a guest')}</b><small>${T('Save your account so you never lose your plan and progress, and can sign in on any device.')}</small><button type="button" class="btn sm" id="btnSaveAcct">${T('Save my account')}</button>`;
+    el.append(g); $('#btnSaveAcct', g).onclick = openSaveAccount;
+  }
 
   if (!state.plan) {
     const c = document.createElement('div'); c.className = 'card';
@@ -4149,9 +4270,10 @@ function viewProfile(el) {
 
     <h4 class="set-title">${T('Account')}</h4>
     <div class="card set-group">
+      ${isGuest() ? `<button type="button" class="set-row" id="btnSaveAcct2">${ico(I.shield)}<span class="set-main"><span>${T('Save my account')}</span><small>${T('You are a guest. Add Google or an email to keep your data.')}</small></span><span class="chev">›</span></button>` : ''}
       <button type="button" class="set-row" id="btnExport">${ico(I.down)}<span class="set-main"><span>${T('Export my data')}</span><small>${T('Everything Yosh stores about you, as a JSON file.')}</small></span><span class="chev">›</span></button>
       <button type="button" class="set-row" id="btnReset">${ico(I.reset)}<span class="set-main"><span>${T('Start fresh')}</span><small>${T('Delete plans, logs and history but keep your account and setup.')}</small></span><span class="chev">›</span></button>
-      <button type="button" class="set-row" id="btnSignOut">${ico(I.out)}<span class="set-main"><span>${T('Sign out')}</span><small>${esc(state.user.email || T('Google account'))}</small></span></button>
+      <button type="button" class="set-row" id="btnSignOut">${ico(I.out)}<span class="set-main"><span>${T('Sign out')}</span><small>${esc(isGuest() ? T('Guest') : (state.user.email || T('Google account')))}</small></span></button>
       <button type="button" class="set-row danger" id="btnDelete">${ico(I.trash)}<span class="set-main"><span>${T('Delete my account')}</span><small>${T('Removes your profile, plans, logs and meals permanently.')}</small></span></button>
     </div>`);
   $$('[data-edit]', el).forEach((b) => { b.onclick = () => startOnboarding(profileToOb(p)); });
@@ -4208,7 +4330,8 @@ function viewProfile(el) {
     try { await db.doc('users/' + state.user.uid).set({ profile: { theme: THEME } }, { merge: true }); state.profile.theme = THEME; } catch (_) {}
   };
   $('#selLang').onchange = async (ev) => { setLang(ev.target.value); try { await db.doc('users/' + state.user.uid).set({ profile: { lang: LANG } }, { merge: true }); state.profile.lang = LANG; } catch (_) {} navigate('profile'); };
-  $('#btnSignOut').onclick = () => auth.signOut();
+  $('#btnSignOut').onclick = () => { if (isGuest() && !window.confirm(T('You are a guest. Signing out loses your plan and progress for good. Sign out anyway?'))) return; auth.signOut(); };
+  if ($('#btnSaveAcct2')) $('#btnSaveAcct2').onclick = openSaveAccount;
   setupPushToggle();
   api('/api/cron-status', {}, { timeoutMs: 15000 }).then((st) => {
     const el = $('#reminderStatus'); if (!el) return;
