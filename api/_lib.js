@@ -55,7 +55,8 @@ export function requireCron(req, res) {
 // Providers in order: Gemini (free tier, OpenAI-compatible endpoint) if GEMINI_API_KEY is set, then OpenRouter.
 // Free Gemini keys have a daily quota per model, so several Google models are tried in turn: when one is used up
 // (429 quota) the next one answers. Models known to be used up are skipped until the quota resets (midnight Pacific).
-const GEMINI_FALLBACKS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
+// tested 10 Nov 2026: 3.5 Flash-Lite wrote a valid week in 4 s; 2.5 Flash is retired for new keys; 3.8 Flash was busy
+const GEMINI_FALLBACKS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-lite-latest'];
 function providers() {
   const list = [];
   if (process.env.GEMINI_API_KEY) {
