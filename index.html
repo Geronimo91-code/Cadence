@@ -1971,6 +1971,8 @@ async function sessionPhoto(card, sess) {
     head.append(img);
   } catch (_) { /* no photo, no problem */ }
 }
+// first names as people expect to see them: "melih" -> "Melih" (anything already capitalised is left alone)
+const displayName = (n) => String(n || '').trim().replace(/^\p{Ll}/u, (c) => c.toLocaleUpperCase());
 /* ---------- session types: colour, icon and a friendly name ---------- */
 const TYPE_ICON = {
   speed: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
@@ -2118,7 +2120,7 @@ async function viewToday(el) {
 
   // header: greeting and, if set, the countdown — one line each, no card
   const head = document.createElement('div');
-  head.innerHTML = `<div class="todayhead"><h1 style="font-size:1.6rem">${greeting()}, ${esc(p.name)}</h1><button type="button" class="streak hidden" id="streakPill"></button></div>` +
+  head.innerHTML = `<div class="todayhead"><h1 style="font-size:1.6rem">${greeting()}, ${esc(displayName(p.name))}</h1><button type="button" class="streak hidden" id="streakPill"></button></div>` +
     (() => { const line = coachLine(p, planIsCurrent() ? (state.plan.sessions || []).filter((x) => x.day === todayIndex() && x.type !== 'rest') : []); return line ? `<p class="coachline">${COACH_MARK}<span>${line}</span></p>` : ''; })();
   el.append(head);
   paintStreak();
