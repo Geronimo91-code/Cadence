@@ -5,7 +5,8 @@
   "type": "module",
   "dependencies": {
     "firebase-admin": "^12.7.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "@vercel/functions": "2.2.13"
   },
   "scripts": {
     "test": "playwright test"
