@@ -1,12 +1,24 @@
 {
+  "id": "/",
   "name": "Yosh",
   "short_name": "Yosh",
-  "description": "Weekly training plans that adapt to you",
+  "description": "Your AI training coach: a weekly plan that fits around your team practice and rewrites itself every week from what you actually did.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": [
+    "standalone"
+  ],
+  "orientation": "portrait",
   "background_color": "#F4F4F2",
   "theme_color": "#FFC531",
+  "categories": [
+    "sports",
+    "health",
+    "fitness"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
