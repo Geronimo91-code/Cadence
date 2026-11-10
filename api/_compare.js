@@ -105,6 +105,7 @@ export async function runCompare() {
 export async function readCompare(m) {
   const d = (await db().doc('system/modelCompare').get()).data();
   if (!d) return { status: 'not run yet' };
+  if (m === 'all') return d;
   if (m == null) return { status: d.status, at: d.at, promptTokensApprox: d.promptTokensApprox, summary: (d.results || []).map((r, i) => ({ n: i + 1, label: r.label, model: r.model, ok: r.ok, valid: r.valid ?? null, error: r.error || null, seconds: r.ms ? Math.round(r.ms / 100) / 10 : null, tokensOut: r.tokensOut ?? null, finish: r.finish || null, daysWritten: r.daysWritten ?? null, sessions: r.sessions ?? null, offList: r.offList?.length ?? null, coachFixes: r.coachFixes?.length ?? null, loadsRealistic: r.loads?.realistic ?? null, burpees: r.burpees ?? null, sessionsOnOffDays: r.sessionsOnOffDays ?? null, teamDayKept: r.teamDayKept ?? null })) };
   return (d.results || [])[Number(m) - 1] || { error: 'no such model' };
 }
