@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.yosh.coach",
+      "sha256_cert_fingerprints": ["79:F0:D7:4E:03:1C:AC:4A:3D:0F:53:8E:88:D9:FD:49:D0:25:40:25:E8:FE:05:47:05:9B:3B:AE:F4:85:B7:20"]
+    }
+  }
+]

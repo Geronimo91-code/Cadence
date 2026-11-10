@@ -732,6 +732,12 @@ a.btn { text-decoration: none; }
 .ld-btn { min-height: 50px; padding: 0 24px; border: 0; border-radius: 14px; background: var(--ld-acc); color: var(--ld-on-acc); font: 700 16px var(--font-body); cursor: pointer; }
 .ld-btn.ghost { background: transparent; color: var(--ld-hero-ink); border: 1.5px solid var(--ld-hero-line); }
 .ld-btn:active { transform: scale(.98); }
+.ld-get { display: flex; flex-wrap: wrap; gap: 10px; }
+.ld-apk, .ld-ios { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; color: var(--ld-hero-ink); font: 700 14px var(--font-body); }
+.ld-apk { padding: 0 14px; border-radius: 999px; background: var(--ld-hero-chip); text-decoration: none; }
+.ld-ios { font-weight: 500; color: var(--ld-hero-ink2); }
+.ld-apk svg, .ld-ios svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ld-apk.hidden, .ld-ios.hidden, .ld-get.hidden { display: none; }
 .ld-phones { position: relative; width: 410px; height: 540px; margin: 0 auto; }
 .ld-phone { position: absolute; box-sizing: border-box; }
 .ld-phone.back { left: 0; top: 70px; width: 220px; height: 460px; border-radius: 34px; background: var(--ld-frame-2); padding: 9px; transform: rotate(-5deg); }
@@ -888,6 +894,10 @@ a.btn { text-decoration: none; }
           <div class="ld-ctas">
             <button type="button" class="ld-btn" id="btnLdStart" data-i18n="Get started">Get started</button>
             <button type="button" class="ld-btn ghost" id="btnLdSignIn" data-i18n="I already have an account">I already have an account</button>
+          </div>
+          <div class="ld-get hidden" id="ldGet">
+            <a class="ld-apk hidden" id="ldApk" href="/yosh.apk" download="Yosh.apk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span data-i18n="Download for Android">Download for Android</span></a>
+            <span class="ld-ios hidden" id="ldIos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span data-i18n="On iPhone: tap Share, then Add to Home Screen">On iPhone: tap Share, then Add to Home Screen</span></span>
           </div>
         </div>
         <div class="ld-phones" aria-hidden="true">
@@ -1241,6 +1251,15 @@ $$('.ld-langs button').forEach((b) => { b.onclick = () => { setLang(b.dataset.la
 $('#btnLdStart').onclick = () => openAuth(true);
 $('#btnLdStart2').onclick = () => openAuth(true);
 $('#btnLdSignIn').onclick = () => openAuth(false);
+(function setupAppDownload() {
+  const ua = navigator.userAgent || '';
+  const installed = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
+    || document.referrer.startsWith('android-app://') || /[?&]source=android\b/.test(location.search);
+  if (installed) return;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  $(ios ? '#ldIos' : '#ldApk').classList.remove('hidden');
+  $('#ldGet').classList.remove('hidden');
+})();
 $('#btnAuthBack').onclick = () => { if (authFromLanding) history.back(); else backToLanding(); };
 window.addEventListener('popstate', () => { if (!state.user && authFromLanding) backToLanding(); });
 syncLandingLang();
