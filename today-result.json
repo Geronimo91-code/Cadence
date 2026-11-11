@@ -6,28 +6,30 @@
   "blocks": [
     "DIV:32",
     "card:104",
-    "card todaycard:263",
-    "card todaycard:72",
-    "card sage todaycard:106"
+    "card todaycard:111",
+    "card todaycard nextup:99",
+    "card todaycard:116",
+    "quick:45",
+    "card todaycard:72"
   ],
   "tabsDiag": [
     {
-      "at": "2026-11-10T15:51:55.918Z",
+      "at": "2026-11-11T19:52:40.154Z",
       "step": "today",
       "errors": [],
       "console": [],
-      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"T\u001b[7moday\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"T\u001b[7muesday 10 November\u001b[27m\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Tuesday 10 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Tuesday 10 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-da"
+      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"Today\"\u001b[39m\nReceived string: \u001b[31m\"Wednesday 11 November\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Wednesday 11 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Wednesday 11 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18"
     },
     {
-      "at": "2026-11-10T15:52:06.620Z",
+      "at": "2026-11-11T19:52:49.764Z",
       "step": "today",
       "errors": [],
       "console": [],
-      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"T\u001b[7moday\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"T\u001b[7muesday 10 November\u001b[27m\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Tuesday 10 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Tuesday 10 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-da"
+      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"Today\"\u001b[39m\nReceived string: \u001b[31m\"Wednesday 11 November\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Wednesday 11 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Wednesday 11 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18"
     }
   ],
   "rulesStatus": {
-    "at": "2026-11-10T15:52:24.857Z",
+    "at": "2026-11-11T19:53:06.268Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
