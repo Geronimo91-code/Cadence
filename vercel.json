@@ -64,5 +64,15 @@
       "maxDuration": 300,
       "includeFiles": "firestore.rules"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://cadence-7f9d0.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://cadence-7f9d0.firebaseapp.com/__/firebase/:path*"
+    }
+  ]
 }
