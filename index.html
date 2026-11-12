@@ -600,8 +600,9 @@ textarea.input { min-height: 90px; resize: vertical; }
 .credit { font-size: .72rem; color: var(--ink-3); margin-top: 22px; }
 .chip.how { color: var(--green); border-color: var(--green); font-weight: 600; }
 a.btn { text-decoration: none; }
-#loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; }
-#loading .spinner { border-color: var(--sage); border-top-color: var(--green); width: 28px; height: 28px; }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; background: #FFC531; z-index: 100; }
+#loading .boot { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+#loading .spinner { border-color: rgba(23,24,26,.18); border-top-color: #17181A; width: 26px; height: 26px; }
 
 /* ============================================================
    Landing (signed-out visitors). Yellow hero in light mode, near-black + yellow in dark, like the app.
@@ -872,7 +873,7 @@ a.btn { text-decoration: none; }
 </head>
 <body>
 
-<div id="loading"><div class="spinner"></div></div>
+<div id="loading"><div class="boot"><svg viewBox="0 0 512 512" width="84" height="84" aria-hidden="true"><g fill="#17181A" transform="translate(256 256) scale(0.9) translate(-262 -268)"><g transform="skewX(-8)"><rect x="250" y="70" width="81" height="244" rx="40.5"/></g><g transform="rotate(-14 256 401)"><rect x="128" y="384" width="256" height="35" rx="17.5"/><rect x="140" y="337" width="47" height="128" rx="15"/><rect x="325" y="337" width="47" height="128" rx="15"/></g></g></svg><div class="spinner"></div></div></div>
 
 <!-- ================= LANDING (signed-out visitors) ================= -->
 <section id="landing" class="screen hidden ld">
@@ -1434,27 +1435,55 @@ function friendlyAuthError(e) {
   return m[e.code] || T('Could not sign in. Check your connection and try again.');
 }
 
+// Startup reads the on-device copy first (instant), then checks the server in the background and redraws if anything changed.
+let preferCache = false, usedCache = false;
+async function fget(ref) {
+  if (preferCache) {
+    try { const c = await ref.get({ source: 'cache' }); if (c.exists || (c.docs && c.docs.length)) { usedCache = true; return c; } } catch (_) { /* nothing cached yet */ }
+  }
+  return ref.get();
+}
+function applyUserDoc(snap) {
+  state.profile = snap.exists ? snap.data().profile : null;
+  const udata = snap.exists ? snap.data() : {};
+  state.clubIds = Array.isArray(udata.clubIds) ? udata.clubIds : (udata.clubId ? [udata.clubId] : []);
+  state.shareRecovery = !!udata.shareRecovery;
+  state.consent = udata.consent || null;
+  state.clubId = state.clubIds[0] || null;
+  return udata;
+}
+async function refreshFromServer() {
+  if (!state.user) return;
+  const uid = state.user.uid, snapshot = () => JSON.stringify([state.profile, state.plans, state.logs, state.review, state.clubIds]);
+  const before = snapshot();
+  try {
+    applyUserDoc(await db.doc('users/' + uid).get());
+    await loadPlan(state.planWeek);
+  } catch (_) { return; }
+  if (!state.user || state.user.uid !== uid || snapshot() === before) return;
+  const busy = document.querySelector('.sheet, .build-ov') || ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+  if (!busy && state.profile && state.view) navigate(state.view);
+}
 auth.onAuthStateChanged(async (user) => {
   if (!user || sessionUid !== user.uid) resetSession();
+  preferCache = !!user; usedCache = false;
   sessionUid = user ? user.uid : null;
   state.user = user;
   if (!user) { show(signedOutScreen()); return; }
   try {
-    const snap = await db.doc('users/' + user.uid).get();
-    state.profile = snap.exists ? snap.data().profile : null;
-    const udata = snap.exists ? snap.data() : {};
-    state.clubIds = Array.isArray(udata.clubIds) ? udata.clubIds : (udata.clubId ? [udata.clubId] : []);
-    state.shareRecovery = !!udata.shareRecovery;
-    state.consent = udata.consent || null;
-    state.clubId = state.clubIds[0] || null;
+    const snap = await fget(db.doc('users/' + user.uid));
+    const udata = applyUserDoc(snap);
     if (!Array.isArray(udata.clubIds) && udata.clubId) { db.doc('users/' + user.uid).set({ clubIds: [udata.clubId] }, { merge: true }).catch(() => {}); }
     if (state.profile?.lang && LANGS[state.profile.lang]) setLang(state.profile.lang);
     if (state.profile?.theme && !localStorage.getItem('cadence.theme')) applyTheme(state.profile.theme);
   } catch (e) { console.error(e); state.profile = null; }
-  if (!(await ensureConsent(user))) return;
-  if (!state.profile) { startOnboarding(); return; }
+  if (!state.profile && usedCache) { preferCache = false; try { applyUserDoc(await db.doc('users/' + user.uid).get()); } catch (_) {} }
+  if (!(await ensureConsent(user))) { preferCache = false; return; }
+  if (!state.profile) { preferCache = false; startOnboarding(); return; }
   await loadPlan();
+  preferCache = false;
   enterApp();
+  if (usedCache) setTimeout(refreshFromServer, 400);
   garminBoot();
   upgradeBackupSoon();
   loadTests();
@@ -1968,18 +1997,21 @@ function shrinkImage(file, max, quality) {
    ============================================================ */
 async function loadPlan(preferWeek) {
   try {
-    const q = await db.collection('users/' + state.user.uid + '/plans').orderBy('weekId', 'desc').limit(4).get();
+    const thisWeek = isoWeekId();
+    const plansRef = db.collection('users/' + state.user.uid + '/plans').orderBy('weekId', 'desc').limit(4);
+    let q = await fget(plansRef);
+    // A new week may exist only on the server (built on another device or by the Monday job): don't show last week from the cache
+    if (preferCache && !q.docs.some((d) => d.data().weekId === thisWeek)) q = await plansRef.get();
     state.plans = q.docs.map((d) => d.data());
     garminPushSoon();
-    const thisWeek = isoWeekId();
     const pick = (preferWeek && state.plans.find((p) => p.weekId === preferWeek)) || state.plans.find((p) => p.weekId === thisWeek) || state.plans[0] || null;
     state.plan = pick; state.planWeek = pick?.weekId || null;
     state.logs = {};
     if (state.plan) {
-      const lq = await db.collection('users/' + state.user.uid + '/logs').where('weekId', '==', state.plan.weekId).get();
+      const lq = await fget(db.collection('users/' + state.user.uid + '/logs').where('weekId', '==', state.plan.weekId));
       lq.forEach((d) => { state.logs[d.id] = d.data(); });
     }
-    const rq = await db.collection('users/' + state.user.uid + '/reviews').orderBy('weekId', 'desc').limit(1).get();
+    const rq = await fget(db.collection('users/' + state.user.uid + '/reviews').orderBy('weekId', 'desc').limit(1));
     state.review = rq.empty ? null : rq.docs[0].data();
   } catch (e) { console.error(e); state.plan = null; }
 }
