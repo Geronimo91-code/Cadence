@@ -6,30 +6,33 @@
   "blocks": [
     "DIV:32",
     "card:104",
-    "card todaycard:111",
-    "card todaycard nextup:99",
+    "card todaycard:243",
+    "card todaycard nextup:75",
     "card todaycard:116",
-    "quick:45",
     "card todaycard:72"
   ],
   "tabsDiag": [
     {
-      "at": "2026-11-11T19:52:40.154Z",
+      "at": "2026-11-12T15:15:57.614Z",
       "step": "today",
       "errors": [],
-      "console": [],
-      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"Today\"\u001b[39m\nReceived string: \u001b[31m\"Wednesday 11 November\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Wednesday 11 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Wednesday 11 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18"
+      "console": [
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"T\u001b[7moday\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"T\u001b[7mhursday 12 November\u001b[27m\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Thursday 12 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Thursday 12 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top"
     },
     {
-      "at": "2026-11-11T19:52:49.764Z",
+      "at": "2026-11-12T15:16:07.348Z",
       "step": "today",
       "errors": [],
-      "console": [],
-      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"Today\"\u001b[39m\nReceived string: \u001b[31m\"Wednesday 11 November\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Wednesday 11 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Wednesday 11 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18"
+      "console": [
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"T\u001b[7moday\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"T\u001b[7mhursday 12 November\u001b[27m\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Thursday 12 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Thursday 12 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top"
     }
   ],
   "rulesStatus": {
-    "at": "2026-11-11T19:53:06.268Z",
+    "at": "2026-11-12T15:16:23.356Z",
     "rules": "skipped",
     "codesAdded": 0,
     "error": "rules: Caller does not have required permission to use project cadence-7f9d0. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission",
