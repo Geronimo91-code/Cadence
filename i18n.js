@@ -271,6 +271,8 @@ es: {
 (function () {
   const add = {
     fr: {
+      "Recent 5 km time": "Temps récent sur 5 km",
+      "seconds": "secondes",
       "{x} of {n} for your streak": "{x} sur {n} pour ta série",
       "Add": "Ajouter",
       "reps": "reps",
@@ -776,6 +778,8 @@ es: {
       "Ready for your first week?": "Prêt pour ta première semaine ?", "It takes about a minute to set up.": "La configuration prend environ une minute.",
     },
     nl: {
+      "Recent 5 km time": "Recente 5 km-tijd",
+      "seconds": "seconden",
       "{x} of {n} for your streak": "{x} van {n} voor je reeks",
       "Add": "Toevoegen",
       "reps": "herh.",
@@ -1281,6 +1285,8 @@ es: {
       "Ready for your first week?": "Klaar voor je eerste week?", "It takes about a minute to set up.": "Instellen duurt ongeveer een minuut.",
     },
     tr: {
+      "Recent 5 km time": "Son 5 km süresi",
+      "seconds": "saniye",
       "{x} of {n} for your streak": "Seri için {n} içinden {x}",
       "Add": "Ekle",
       "reps": "tekrar",
@@ -1786,6 +1792,8 @@ es: {
       "Ready for your first week?": "İlk haftana hazır mısın?", "It takes about a minute to set up.": "Kurulum yaklaşık bir dakika sürer.",
     },
     es: {
+      "Recent 5 km time": "Tiempo reciente en 5 km",
+      "seconds": "segundos",
       "{x} of {n} for your streak": "{x} de {n} para tu racha",
       "Add": "Añadir",
       "reps": "reps",
