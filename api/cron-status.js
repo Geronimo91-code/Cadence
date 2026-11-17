@@ -33,15 +33,17 @@ export default async function handler(req, res) {
   }
   const user = await requireUser(req, res);
   if (!user) return;
-  const [notify, close, mine] = await Promise.all([
+  const [notify, close, mine, me] = await Promise.all([
     db().doc('cron/daily-notify').get(),
     db().doc('cron/weekly-close').get(),
     db().doc(`users/${user.uid}/push/main`).get(),
+    db().doc(`users/${user.uid}`).get(),
   ]);
   res.status(200).json({
     dailyNotify: notify.exists ? notify.data() : null,
     weeklyClose: close.exists ? close.data() : null,
     myLastReminder: mine.exists ? (mine.data().lastReminder || null) : null,
     subscribed: mine.exists,
+    myWeekClose: me.data()?.autoClose || null,
   });
 }

@@ -1486,6 +1486,7 @@ auth.onAuthStateChanged(async (user) => {
   if (usedCache) setTimeout(refreshFromServer, 400);
   garminBoot();
   upgradeBackupSoon();
+  autoCloseWeek();
   loadTests();
 });
 $('#btnObSignOut').onclick = () => auth.signOut();
@@ -2018,15 +2019,28 @@ async function loadPlan(preferWeek) {
 function planIsCurrent() { return state.plan && state.plan.weekId === isoWeekId(); }
 function planIsPast() { return state.plan && state.plan.weekId < isoWeekId(); }
 function planIsFuture() { return state.plan && state.plan.weekId > isoWeekId(); }
-async function runReview(btn, weekIdToClose) {
+// A finished week the Monday job did not get to (or that had nothing logged) closes by itself when the app opens — once per week per session
+let autoCloseTried = null;
+function autoCloseWeek() {
+  if (!planIsPast() || state.review?.weekId === state.plan.weekId || autoCloseTried === state.plan.weekId) return;
+  autoCloseTried = state.plan.weekId;
+  runReview(null, state.plan.weekId, { auto: true });
+}
+async function runReview(btn, weekIdToClose, { auto = false } = {}) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  if (auto) { state.autoClosing = true; if (state.view === 'today') navigate('today'); }
   try {
-    const out = await api('/api/weekly-review', { weekId: weekIdToClose });
+    const out = await api('/api/weekly-review', { weekId: weekIdToClose, ...(auto ? { auto: true } : {}) }, auto ? { slowMsg: null } : undefined);
+    state.autoClosing = false;
     await loadPlan();
     state.review = out.review;
     toast(out.fallback ? T('Week closed with your real numbers. The coach was busy, so next week is a template — rebuild it later.') : T('Week closed. Next week is ready.'));
     navigate('today'); openReview(out.review);
-  } catch (e) { toast(e.message); if (btn) { btn.disabled = false; btn.textContent = T('Close the week'); } }
+  } catch (e) {
+    state.autoClosing = false;
+    if (auto) { toast(T("Your week couldn't be closed automatically. Tap Close the week to try again.")); if (state.view === 'today') navigate('today'); return; }
+    toast(e.message); if (btn) { btn.disabled = false; btn.textContent = T('Close the week'); }
+  }
 }
 function openReview(r) {
   const sheet = document.createElement('div'); sheet.className = 'sheet'; sheet.setAttribute('role', 'dialog');
@@ -2311,6 +2325,11 @@ async function viewToday(el) {
   if (planIsFuture()) {
     const c = document.createElement('div'); c.className = 'card sage';
     c.innerHTML = `<strong>${T('Next week is ready')}</strong><p class="muted small" style="margin:4px 0 0">${T('Your plan starts Monday. Rest up until then.')}</p>`;
+    el.append(c); return;
+  }
+  if (planIsPast() && state.autoClosing) {
+    const c = document.createElement('div'); c.className = 'card amber';
+    c.innerHTML = `<strong>${T('Closing your week')} ${esc(state.plan.weekId)}…</strong><p class="muted small" style="margin:4px 0 0"><span class="spinner"></span> ${T('Yosh is reviewing what you logged and building next week. This can take a minute or two.')}</p>`;
     el.append(c); return;
   }
   if (planIsPast()) {
@@ -4376,6 +4395,8 @@ function viewProfile(el) {
     else if (st.myLastReminder) lines.push(`${T('Last reminder')}: ${when(st.myLastReminder.at)} — ${st.myLastReminder.outcome}`);
     else lines.push(T('No reminder has been sent to you yet.'));
     lines.push(st.dailyNotify ? `${T('Reminder job last ran')}: ${when(st.dailyNotify.at)}` : T('The reminder job has not run since this update — check again tomorrow morning.'));
+    if (st.myWeekClose) lines.push(`${T('Automatic week close')} (${when(st.myWeekClose.at)}): ${T(st.myWeekClose.text)}`);
+    else if (st.weeklyClose) lines.push(`${T('Week-close job last ran')}: ${when(st.weeklyClose.at)}`);
     el.innerHTML = lines.map(esc).join('<br>');
   }).catch(() => { const el = $('#reminderStatus'); if (el) el.textContent = T('Could not load'); });
   $('#btnTestPush').onclick = async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = '…'; try { await api('/api/test-notify', {}, { timeoutMs: 25000 }); toast(T('Sent — check your notifications')); } catch (e) { toast(e.message); } b.disabled = false; b.textContent = T('Send a test notification'); };

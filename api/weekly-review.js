@@ -16,9 +16,14 @@ export default async function handler(req, res) {
   const userDoc = await db().doc(`users/${uid}`).get();
   const profile = userDoc.data()?.profile;
   if (!profile) return res.status(400).json({ error: 'Complete your profile first' });
+  const wk = (req.body && req.body.weekId) || weekId();
+  // The app closes a finished week by itself on open; if the Monday job (or another device) already did, hand back that result instead of a second review
+  if (req.body && req.body.auto) {
+    const done = await db().doc(`users/${uid}/reviews/${wk}`).get();
+    if (done.exists) return res.status(200).json({ review: done.data(), already: true });
+  }
   if (!(await guestAllowed(user, 'review', 2, 300))) return res.status(429).json({ error: 'Save your account to keep your weekly reviews going.' });
   if (!(await checkLimit(uid, 'review', 4, 8))) return res.status(429).json({ error: 'Review limit reached for today.' });
-  const wk = (req.body && req.body.weekId) || weekId();
   try {
     const out = await reviewWeek(uid, profile, wk, started);
     if (out.error) return res.status(400).json({ error: out.error });
