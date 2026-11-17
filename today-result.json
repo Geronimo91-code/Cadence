@@ -1,22 +1,25 @@
 {
   "scroll": 844,
   "view": 844,
-  "cols": 0,
-  "state": "next week ready",
+  "cols": 7,
+  "state": "week in progress",
   "blocks": [
     "DIV:32",
-    "card amber:108"
+    "card:104",
+    "card todaycard:235",
+    "card todaycard:72",
+    "card sage todaycard:106"
   ],
   "tabsDiag": [
     {
-      "at": "2026-11-17T13:29:53.631Z",
+      "at": "2026-11-17T13:34:20.883Z",
       "step": "today",
       "errors": [],
       "console": [],
       "failure": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#topTitle')\nExpected string: \u001b[32m\"T\u001b[7moday\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"T\u001b[7muesday 17 November\u001b[27m\"\u001b[39m\nCall log:\n  \u001b[2m- expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#topTitle')\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-date\" data-i18n=\"Today\">Tuesday 17 November</h2>\u001b[22m\n\u001b[2m  -   unexpected value \"Tuesday 17 November\"\u001b[22m\n\u001b[2m  -   locator resolved to <h2 id=\"topTitle\" class=\"top-da"
     },
     {
-      "at": "2026-11-17T13:30:03.537Z",
+      "at": "2026-11-17T13:34:29.314Z",
       "step": "today",
       "errors": [],
       "console": [],
